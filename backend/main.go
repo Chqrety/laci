@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/joho/godotenv"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -74,9 +75,9 @@ var (
 
 func initDB() {
 	dbHost := getEnv("DB_HOST", "127.0.0.1")
-	dbPort := getEnv("DB_PORT", "5433")
-	dbUser := getEnv("DB_USER", "admin")
-	dbPassword := getEnv("DB_PASSWORD", "password123")
+	dbPort := getEnv("DB_PORT", "5432")
+	dbUser := getEnv("DB_USER", "root")
+	dbPassword := getEnv("DB_PASSWORD", "password")
 	dbName := getEnv("DB_NAME", "laci_doscom")
 	dbSSLMode := getEnv("DB_SSLMODE", "disable")
 
@@ -206,6 +207,11 @@ func authMiddleware() gin.HandlerFunc {
 }
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("Catatan: File .env tidak ditemukan, menggunakan nilai environment OS bawaan.")
+	}
+
 	initDB()
 
 	if err := os.MkdirAll("./uploads", os.ModePerm); err != nil {
