@@ -5,7 +5,7 @@ dist/
 
 # Golang & Backend
 /backend/laci-app
-/backend/laci-app.exe
+/backend/laci-backend.exe
 uploads/
 *.log
 

@@ -313,6 +313,7 @@ const handleTouchStart = (event: TouchEvent, suratId: string) => {
     if (touchCardElement) {
       const clone = touchCardElement.cloneNode(true) as HTMLElement
       clone.id = 'touch-drag-ghost'
+      clone.classList.add('will-change-transform', 'transform-gpu')
       clone.style.position = 'fixed'
       clone.style.left = `${touch.clientX - touchOffsetX}px`
       clone.style.top = `${touch.clientY - touchOffsetY}px`
@@ -321,6 +322,7 @@ const handleTouchStart = (event: TouchEvent, suratId: string) => {
       clone.style.opacity = '0.85'
       clone.style.pointerEvents = 'none'
       clone.style.transform = 'scale(1.04) rotate(1.5deg)'
+      clone.style.willChange = 'transform, left, top'
       clone.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.25)'
       clone.style.transition = 'transform 0.1s ease, box-shadow 0.1s ease'
       document.body.appendChild(clone)
@@ -633,6 +635,7 @@ onMounted(() => {
           <article
             v-for="item in getSuratByStatus(status)"
             :key="item.id"
+            v-memo="[item.id, item.nomor_surat, item.perihal, item.status_saat_ini, item.pic_nama, item.arsip_url, item.catatan, draggingCardId === item.id]"
             draggable="true"
             @dragstart="onDragStart($event, item.id)"
             @drag="onDrag"
