@@ -637,6 +637,7 @@ onMounted(() => {
             :key="item.id"
             v-memo="[item.id, item.nomor_surat, item.perihal, item.status_saat_ini, item.pic_nama, item.arsip_url, item.catatan, draggingCardId === item.id]"
             draggable="true"
+            style="-webkit-touch-callout: none;"
             @dragstart="onDragStart($event, item.id)"
             @drag="onDrag"
             @dragend="onDragEnd"
@@ -646,7 +647,7 @@ onMounted(() => {
             @touchmove="handleTouchMove"
             @touchend="handleTouchEnd"
             @touchcancel="handleTouchEnd"
-            @contextmenu.prevent
+            @contextmenu.prevent="() => {}"
             @click="openDetail(item)"
             :class="[
               'touch-pan-y select-none bg-white p-4 rounded-2xl border border-black/5 shadow-[0_8px_30px_rgb(0,0,0,0.05)] hover:border-[#0A84DC]/30 hover:shadow-md cursor-grab active:cursor-grabbing transition-all space-y-2.5 active:scale-[0.98]',
