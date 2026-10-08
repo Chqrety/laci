@@ -10,9 +10,12 @@ import (
 	"strings"
 	"time"
 
+	"laci-backend/seeders"
+
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/joho/godotenv"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -22,7 +25,7 @@ type User struct {
 	ID       uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
 	Username string    `gorm:"type:varchar(100);uniqueIndex;not null" json:"username"`
 	Password string    `gorm:"type:varchar(255);not null" json:"-"`
-	Role     string    `gorm:"type:varchar(50);not null" json:"role"` // 'sekre' or 'humas'
+	Role     string    `gorm:"type:varchar(50);not null" json:"role"`
 }
 
 func (User) TableName() string {
@@ -38,6 +41,7 @@ type Surat struct {
 	ArsipURL      *string       `gorm:"type:text" json:"arsip_url"`
 	FileArsip     string        `gorm:"type:text" json:"file_arsip"`
 	Catatan       string        `gorm:"type:text" json:"catatan"`
+	ProkerID      *uuid.UUID    `gorm:"type:uuid" json:"proker_id,omitempty"`
 	Logs          []LogTracking `gorm:"foreignKey:SuratID" json:"logs,omitempty"`
 }
 
@@ -74,9 +78,9 @@ var (
 
 func initDB() {
 	dbHost := getEnv("DB_HOST", "127.0.0.1")
-	dbPort := getEnv("DB_PORT", "5433")
-	dbUser := getEnv("DB_USER", "admin")
-	dbPassword := getEnv("DB_PASSWORD", "password123")
+	dbPort := getEnv("DB_PORT", "5432")
+	dbUser := getEnv("DB_USER", "root")
+	dbPassword := getEnv("DB_PASSWORD", "password")
 	dbName := getEnv("DB_NAME", "laci_doscom")
 	dbSSLMode := getEnv("DB_SSLMODE", "disable")
 
@@ -95,47 +99,7 @@ func initDB() {
 		log.Fatalf("Failed to auto migrate database schemas: %v", err)
 	}
 
-	// Seed default admin user ('sekre') if not exists
-	var sekreCount int64
-	db.Model(&User{}).Where("username = ?", "sekre").Count(&sekreCount)
-	if sekreCount == 0 {
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
-		if err != nil {
-			log.Fatalf("Failed to hash default password: %v", err)
-		}
-		defaultUser := User{
-			ID:       uuid.New(),
-			Username: "sekre",
-			Password: string(hashedPassword),
-			Role:     "sekre",
-		}
-		if err := db.Create(&defaultUser).Error; err != nil {
-			log.Printf("Warning: failed to seed default admin user: %v", err)
-		} else {
-			log.Println("Default user 'sekre' created successfully.")
-		}
-	}
-
-	// Seed default user ('humas') if not exists
-	var humasCount int64
-	db.Model(&User{}).Where("username = ?", "humas").Count(&humasCount)
-	if humasCount == 0 {
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
-		if err != nil {
-			log.Fatalf("Failed to hash default password: %v", err)
-		}
-		humasUser := User{
-			ID:       uuid.New(),
-			Username: "humas",
-			Password: string(hashedPassword),
-			Role:     "humas",
-		}
-		if err := db.Create(&humasUser).Error; err != nil {
-			log.Printf("Warning: failed to seed default user 'humas': %v", err)
-		} else {
-			log.Println("Default user 'humas' created successfully.")
-		}
-	}
+	seeders.RunAllSeeders(db)
 }
 
 func getEnv(key, fallback string) string {
@@ -206,6 +170,10 @@ func authMiddleware() gin.HandlerFunc {
 }
 
 func main() {
+	if err := godotenv.Load(); err != nil {
+		log.Println("Catatan: File .env tidak ditemukan, menggunakan nilai environment OS bawaan.")
+	}
+
 	initDB()
 
 	if err := os.MkdirAll("./uploads", os.ModePerm); err != nil {
