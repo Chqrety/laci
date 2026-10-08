@@ -128,14 +128,6 @@ func UpdateSurat(c *gin.Context) {
 		newStatus = surat.StatusSaatIni
 	}
 
-	roleVal, _ := c.Get("role")
-	role, _ := roleVal.(string)
-
-	// Humas is permitted to edit notes, while status transitions are preserved
-	if role == "humas" && newStatus != surat.StatusSaatIni {
-		newStatus = surat.StatusSaatIni
-	}
-
 	// Determine log note and whether to update surat note
 	note := surat.Catatan
 	if input.Catatan != nil {
