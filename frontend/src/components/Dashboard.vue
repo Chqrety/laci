@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { API_BASE_URL, suratService, type Surat } from '@/services/api'
+import { getBackendAssetUrl, suratService, type Surat } from '@/services/api'
 
 const router = useRouter()
 
@@ -217,7 +217,7 @@ onMounted(() => {
             <td class="px-4 py-3">
               <a
                 v-if="item.arsip_url"
-                :href="API_BASE_URL + item.arsip_url"
+                :href="getBackendAssetUrl(item.arsip_url)"
                 target="_blank"
                 rel="noreferrer"
                 class="inline-flex items-center text-xs text-blue-600 hover:text-blue-800 underline font-medium"

@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Cropper } from 'vue-advanced-cropper'
 import 'vue-advanced-cropper/dist/style.css'
-import { API_BASE_URL, suratService, type Surat } from '@/services/api'
+import { getBackendAssetUrl, suratService, type Surat } from '@/services/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -259,7 +259,7 @@ onMounted(() => {
       <p class="font-medium">{{ uploadStatus.message }}</p>
       <div v-if="uploadStatus.arsipUrl" class="flex items-center gap-4 text-xs">
         <a
-          :href="API_BASE_URL + uploadStatus.arsipUrl"
+          :href="getBackendAssetUrl(uploadStatus.arsipUrl)"
           target="_blank"
           rel="noreferrer"
           class="underline font-semibold"
