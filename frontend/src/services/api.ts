@@ -1,8 +1,31 @@
 import axios from 'axios'
 import { ref } from 'vue'
 
+export function parseJwtPayload(token: string | null) {
+  if (!token) return null
+  try {
+    const base64Url = token.split('.')[1]
+    if (!base64Url) return null
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join(''),
+    )
+    return JSON.parse(jsonPayload)
+  } catch {
+    return null
+  }
+}
+
 export const currentToken = ref<string | null>(typeof window !== 'undefined' ? localStorage.getItem('token') : null)
 export const currentRole = ref<string | null>(typeof window !== 'undefined' ? localStorage.getItem('role') : null)
+const initialPayload = parseJwtPayload(currentToken.value)
+export const currentUsername = ref<string | null>(
+  (typeof window !== 'undefined' ? localStorage.getItem('username') : null) || initialPayload?.username || null,
+)
+export const currentUserId = ref<string | null>(initialPayload?.sub || null)
 
 export const API_BASE_URL = import.meta.env.VITE_API_URL.trim().replace(/\/+$/, '')
 
@@ -90,18 +113,25 @@ export interface LoginResponse {
 export const authService = {
   async login(username: string, password: string): Promise<LoginResponse> {
     const res = await api.post<LoginResponse>('/login', { username, password })
+    const payload = parseJwtPayload(res.data.token)
     localStorage.setItem('token', res.data.token)
     localStorage.setItem('role', res.data.role)
+    localStorage.setItem('username', username || payload?.username || '')
     currentToken.value = res.data.token
     currentRole.value = res.data.role
+    currentUsername.value = username || payload?.username || null
+    currentUserId.value = payload?.sub || null
     return res.data
   },
 
   logout() {
     localStorage.removeItem('token')
     localStorage.removeItem('role')
+    localStorage.removeItem('username')
     currentToken.value = null
     currentRole.value = null
+    currentUsername.value = null
+    currentUserId.value = null
     window.location.href = '/login'
   },
 
@@ -111,6 +141,18 @@ export const authService = {
 
   getRole(): string | null {
     return currentRole.value
+  },
+
+  getUsername(): string | null {
+    return currentUsername.value
+  },
+
+  getUser() {
+    return {
+      id: currentUserId.value,
+      username: currentUsername.value,
+      role: currentRole.value,
+    }
   },
 
   isAuthenticated(): boolean {
