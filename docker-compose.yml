@@ -6,8 +6,6 @@ services:
       POSTGRES_USER: ${DB_USER:-root}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
       POSTGRES_DB: laci_doscom
-    ports:
-      - "5432:5432"
     volumes:
       - laci_db_data:/var/lib/postgresql/data
 
@@ -22,14 +20,16 @@ services:
       - DB_NAME=laci_doscom
       - DB_PORT=5432
       - PORT=8080
-    ports:
-      - "8080:8080"
     depends_on:
       - db
 
   frontend:
     build:
       context: ./frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL:-/api}
+    environment:
+      BACKEND_URL: ${BACKEND_URL:-http://backend:8080}
     restart: always
     ports:
       - "5173:80"

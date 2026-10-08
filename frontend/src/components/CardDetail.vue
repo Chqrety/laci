@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onBeforeUnmount } from 'vue'
-import { api, API_BASE_URL, suratService, authService, type Surat } from '@/services/api'
+import { api, getBackendAssetUrl, suratService, authService, type Surat } from '@/services/api'
 
 const props = defineProps<{
   surat: Surat
@@ -43,12 +43,6 @@ const isPdf = computed(() => {
   const cleanUrl = (parts[0] || '').toLowerCase()
   return cleanUrl.endsWith('.pdf')
 })
-
-const getFullAssetUrl = (url?: string | null) => {
-  if (!url) return ''
-  if (url.startsWith('http://') || url.startsWith('https://')) return url
-  return `${API_BASE_URL}${url}`
-}
 
 const openCamera = async () => {
   cameraError.value = ''
@@ -459,7 +453,7 @@ const formatDate = (dateString?: string) => {
               </div>
 
               <a
-                :href="getFullAssetUrl(fileArsipUrl)"
+                :href="getBackendAssetUrl(fileArsipUrl)"
                 target="_blank"
                 rel="noopener noreferrer"
                 class="shrink-0 px-3.5 py-1.5 bg-white border border-black/10 text-xs font-semibold text-[#0A84DC] rounded-xl hover:bg-zinc-50 shadow-2xs transition-all duration-200 active:scale-95 flex items-center gap-1.5"
@@ -475,13 +469,13 @@ const formatDate = (dateString?: string) => {
             <div v-else class="rounded-2xl border border-black/10 bg-white p-3.5 shadow-2xs space-y-2.5">
               <div class="aspect-4/3 max-h-56 rounded-xl overflow-hidden bg-zinc-100 border border-black/5 flex items-center justify-center">
                 <img
-                  :src="getFullAssetUrl(fileArsipUrl)"
+                  :src="getBackendAssetUrl(fileArsipUrl)"
                   alt="Pratinjau Arsip Dokumen"
                   class="w-full h-full object-contain"
                 />
               </div>
               <a
-                :href="getFullAssetUrl(fileArsipUrl)"
+                :href="getBackendAssetUrl(fileArsipUrl)"
                 target="_blank"
                 rel="noopener noreferrer"
                 class="inline-block text-xs text-[#0A84DC] hover:underline font-semibold px-1"

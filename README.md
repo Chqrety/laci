@@ -38,6 +38,7 @@ Paling gampang nge-jalanin repo ini tuh pakai **Docker**. Nggak perlu instal Nod
 2. **Mantra sakti Docker:**
 
    ```bash
+   cp .env.example .env
    docker compose up -d --build
    ```
 
@@ -72,9 +73,12 @@ Kalau lu pengen ngoprek kodenya langsung dan butuh _Hot-Reload_:
 3. **Nyalain Frontend (Vue 3):**
    Masuk folder `frontend` dan ketik:
    ```bash
-   npm install
+   cp .env.example .env
+   npm ci
    npm run dev
    ```
+
+URL integrasi backend diatur melalui `VITE_API_URL`, tanpa hostname atau port bawaan di kode frontend. Lihat [panduan environment frontend](frontend/README.md) untuk konfigurasi lokal, Docker, dan production.
 
 ## 🧪 Inject Dummy Data (Buat Testing)
 

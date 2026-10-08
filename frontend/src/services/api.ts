@@ -4,7 +4,13 @@ import { ref } from 'vue'
 export const currentToken = ref<string | null>(typeof window !== 'undefined' ? localStorage.getItem('token') : null)
 export const currentRole = ref<string | null>(typeof window !== 'undefined' ? localStorage.getItem('role') : null)
 
-export const API_BASE_URL = `http://${window.location.hostname}:8080`
+export const API_BASE_URL = import.meta.env.VITE_API_URL.trim().replace(/\/+$/, '')
+
+export function getBackendAssetUrl(path?: string | null): string {
+  if (!path) return ''
+  if (/^https?:\/\//i.test(path)) return path
+  return `${API_BASE_URL}/${path.replace(/^\/+/, '')}`
+}
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
