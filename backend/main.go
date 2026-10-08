@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -586,6 +587,44 @@ func main() {
 			"arsip_url":  arsipURL,
 			"surat":      surat,
 		})
+	})
+
+	// 7. DELETE /surat/:id (Requires JWT. Deletes log_tracking first, then surat)
+	authGroup.DELETE("/surat/:id", func(c *gin.Context) {
+		idParam := c.Param("id")
+		suratUUID, err := uuid.Parse(idParam)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+			return
+		}
+
+		err = db.Transaction(func(tx *gorm.DB) error {
+			var surat Surat
+			if err := tx.First(&surat, "id = ?", suratUUID).Error; err != nil {
+				return err
+			}
+
+			if err := tx.Where("surat_id = ?", suratUUID).Delete(&LogTracking{}).Error; err != nil {
+				return err
+			}
+
+			if err := tx.Delete(&surat).Error; err != nil {
+				return err
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Surat not found"})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "Surat dan log terkait berhasil dihapus"})
 	})
 
 	port := getEnv("PORT", "8080")

@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, RouterLink, RouterView } from 'vue-router'
-import { authService } from '@/services/api'
+import { authService, currentRole } from '@/services/api'
 
 const route = useRoute()
 const isLoginPage = computed(() => route.name === 'login')
-const userRole = computed(() => authService.getRole())
+const userRole = computed(() => currentRole.value)
 
 const handleLogout = () => {
   authService.logout()
@@ -34,11 +34,20 @@ const handleLogout = () => {
           <!-- iOS Segmented-like Navigation Links -->
           <nav class="flex items-center p-1 bg-black/[0.04] rounded-2xl space-x-1" aria-label="Navigasi Utama">
             <RouterLink
+              v-if="userRole"
               to="/"
               class="px-3 py-1.5 rounded-xl text-xs font-medium text-zinc-600 hover:text-zinc-900 transition-all"
               active-class="!bg-white !text-[#0A84DC] font-semibold shadow-[0_8px_30px_rgb(0,0,0,0.05)]"
             >
               Kanban Board
+            </RouterLink>
+            <RouterLink
+              v-if="userRole === 'sekre'"
+              to="/surat-management"
+              class="px-3 py-1.5 rounded-xl text-xs font-medium text-zinc-600 hover:text-zinc-900 transition-all"
+              active-class="!bg-white !text-[#0A84DC] font-semibold shadow-[0_8px_30px_rgb(0,0,0,0.05)]"
+            >
+              Tabel Surat
             </RouterLink>
             <RouterLink
               v-if="userRole === 'sekre'"

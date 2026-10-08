@@ -1,4 +1,8 @@
 import axios from 'axios'
+import { ref } from 'vue'
+
+export const currentToken = ref<string | null>(typeof window !== 'undefined' ? localStorage.getItem('token') : null)
+export const currentRole = ref<string | null>(typeof window !== 'undefined' ? localStorage.getItem('role') : null)
 
 export const API_BASE_URL = `http://${window.location.hostname}:8080`
 
@@ -22,6 +26,8 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('token')
       localStorage.removeItem('role')
+      currentToken.value = null
+      currentRole.value = null
       if (window.location.pathname !== '/login') {
         window.location.href = '/login'
       }
@@ -80,25 +86,29 @@ export const authService = {
     const res = await api.post<LoginResponse>('/login', { username, password })
     localStorage.setItem('token', res.data.token)
     localStorage.setItem('role', res.data.role)
+    currentToken.value = res.data.token
+    currentRole.value = res.data.role
     return res.data
   },
 
   logout() {
     localStorage.removeItem('token')
     localStorage.removeItem('role')
+    currentToken.value = null
+    currentRole.value = null
     window.location.href = '/login'
   },
 
   getToken(): string | null {
-    return localStorage.getItem('token')
+    return currentToken.value
   },
 
   getRole(): string | null {
-    return localStorage.getItem('role')
+    return currentRole.value
   },
 
   isAuthenticated(): boolean {
-    return !!localStorage.getItem('token')
+    return !!currentToken.value
   },
 }
 
@@ -152,6 +162,11 @@ export const suratService = {
         'Content-Type': 'multipart/form-data',
       },
     })
+    return response.data
+  },
+
+  async delete(id: string): Promise<{ message: string }> {
+    const response = await api.delete(`/surat/${id}`)
     return response.data
   },
 }

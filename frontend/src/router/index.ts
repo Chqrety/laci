@@ -3,6 +3,7 @@ import { authService } from '@/services/api'
 import Login from '@/views/Login.vue'
 import KanbanBoard from '@/views/KanbanBoard.vue'
 import ProkerManagement from '@/views/ProkerManagement.vue'
+import SuratManagement from '@/views/SuratManagement.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -18,6 +19,12 @@ const router = createRouter({
       name: 'board',
       component: KanbanBoard,
       meta: { requiresAuth: true },
+    },
+    {
+      path: '/surat-management',
+      name: 'SuratManagement',
+      component: SuratManagement,
+      meta: { requiresAuth: true, role: 'sekre' },
     },
     {
       path: '/proker',
