@@ -1,0 +1,14 @@
+# Node & Frontend
+node_modules/
+dist/
+.env
+
+# Golang & Backend
+/backend/laci-app
+/backend/laci-app.exe
+uploads/
+*.log
+
+# OS Files
+.DS_Store
+Thumbs.db
