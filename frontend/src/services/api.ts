@@ -230,3 +230,29 @@ export const prokerService = {
     return response.data
   },
 }
+
+// Modular API Functions
+export const fetchSurat = () => suratService.getAll()
+export const createSurat = (data: CreateSuratPayload) => suratService.create(data)
+export const updateSuratStatus = (id: string, payload: UpdateStatusPayload) => suratService.updateStatus(id, payload)
+export const deleteSurat = (id: string) => suratService.delete(id)
+export const uploadSuratArsip = (id: string, file: Blob, filename?: string) =>
+  suratService.uploadArsip(id, file, filename)
+export const uploadSuratDokumen = (id: string, file: File | Blob, filename?: string) =>
+  suratService.uploadDokumen(id, file, filename)
+
+export const fetchProker = () => prokerService.getAll()
+export const createProker = (nama_proker: string, deskripsi?: string) => prokerService.create(nama_proker, deskripsi)
+
+export const STATUS_COLUMNS = [
+  'Standby',
+  'Cetak',
+  'TTD Lapis 1',
+  'TTD Ketum',
+  'TTD Pembina',
+  'Paraf Koormawa',
+  'TTD Tertinggi',
+  'Selesai',
+] as const
+
+export type SuratStatus = (typeof STATUS_COLUMNS)[number]

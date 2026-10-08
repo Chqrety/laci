@@ -1,81 +1,43 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, computed, nextTick } from 'vue'
-import { suratService, prokerService, authService, type Surat, type Proker } from '@/services/api'
+import { ref, onMounted, computed } from 'vue'
+import {
+  fetchSurat as apiFetchSurat,
+  fetchProker as apiFetchProker,
+  updateSuratStatus,
+  authService,
+  STATUS_COLUMNS,
+  type Surat,
+  type Proker,
+} from '@/services/api'
+import { useKanbanDragDrop } from '@/composables/useKanbanDragDrop'
 import CardDetail from '@/components/CardDetail.vue'
+import KanbanCard from '@/components/KanbanCard.vue'
+import KanbanFilter from '@/components/KanbanFilter.vue'
+import KanbanModalForm from '@/components/KanbanModalForm.vue'
 
 const suratList = ref<Surat[]>([])
+const filteredSuratList = ref<Surat[]>([])
 const prokerList = ref<Proker[]>([])
 const isLoading = ref(false)
 const errorMessage = ref('')
 const selectedSurat = ref<Surat | null>(null)
 
-// Drag and drop state (Desktop & Touch)
-const draggingCardId = ref<string | null>(null)
-const dragOverColumn = ref<string | null>(null)
-
-// Ambient Edge Dropzone state
-const ambientDrop = ref<{
-  active: boolean
-  direction: 'left' | 'right' | null
-  targetStatus: string | null
-}>({
-  active: false,
-  direction: null,
-  targetStatus: null,
-})
-
-const resetAmbientDrop = () => {
-  if (ambientDrop.value.active) {
-    ambientDrop.value = {
-      active: false,
-      direction: null,
-      targetStatus: null,
-    }
-  }
-}
-
 // Modal tambah surat baru
 const isCreateModalOpen = ref(false)
-const isCreating = ref(false)
-
-const romanMonths = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII']
-
-// Komponen Nomor Surat terpisah
-const noUrut = ref('001')
-const selectedProker = ref('')
-const selectedBulan = ref(romanMonths[new Date().getMonth()] || 'X')
-const selectedTahun = ref(new Date().getFullYear().toString())
-
-const createForm = ref({
-  nomor_surat: '',
-  perihal: '',
-  status_saat_ini: 'Standby',
-  pic_nama: '',
-  catatan: '',
-})
 
 const userRole = computed(() => authService.getRole())
 const isSekre = computed(() => userRole.value === 'sekre')
 const isHumas = computed(() => userRole.value === 'humas')
 const canCreateSurat = computed(() => isSekre.value || isHumas.value)
 
-// Status columns strictly defined
-const statusColumns = [
-  'Standby',
-  'Cetak',
-  'TTD Lapis 1',
-  'TTD Ketum',
-  'TTD Pembina',
-  'Paraf Koormawa',
-  'TTD Tertinggi',
-  'Selesai',
-]
+// Status columns array defined from shared constant
+const statusColumns = [...STATUS_COLUMNS]
 
-const fetchSurat = async () => {
+const loadSurat = async () => {
   isLoading.value = true
   errorMessage.value = ''
   try {
-    const data = await suratService.getAll()
+    const data = await apiFetchSurat()
     suratList.value = data
 
     if (selectedSurat.value) {
@@ -91,108 +53,13 @@ const fetchSurat = async () => {
   }
 }
 
-const fetchProker = async () => {
+const loadProker = async () => {
   try {
-    prokerList.value = await prokerService.getAll()
+    prokerList.value = await apiFetchProker()
   } catch (err: any) {
     console.error('Gagal memuat daftar proker:', err)
   }
 }
-
-// Advanced Multi-Filter State
-const filterTahun = ref('')
-const filterProker = ref('')
-const filterOnlyMe = ref(false)
-const searchQuery = ref('')
-
-const clearFilters = () => {
-  filterTahun.value = ''
-  filterProker.value = ''
-  filterOnlyMe.value = false
-  searchQuery.value = ''
-}
-
-const isFilterActive = computed(() => {
-  return !!(
-    filterTahun.value ||
-    filterProker.value ||
-    filterOnlyMe.value ||
-    searchQuery.value.trim()
-  )
-})
-
-const availableYears = computed(() => {
-  const years = new Set<string>()
-  const currentYear = new Date().getFullYear().toString()
-  years.add(currentYear)
-  years.add('2025')
-  years.add('2026')
-
-  suratList.value.forEach((s) => {
-    const match = s.nomor_surat.match(/\b(20\d{2})\b/)
-    if (match && match[1]) {
-      years.add(match[1])
-    }
-  })
-  return Array.from(years).sort().reverse()
-})
-
-const filteredSuratList = computed(() => {
-  return suratList.value.filter((s) => {
-    // 1. Filter Tahun
-    if (filterTahun.value) {
-      const match = s.nomor_surat.match(/\b(20\d{2})\b/)
-      const year = match ? match[1] : ''
-      if (year !== filterTahun.value && !s.nomor_surat.includes(filterTahun.value)) {
-        return false
-      }
-    }
-
-    // 2. Filter Proker
-    if (filterProker.value) {
-      const prokerCode = filterProker.value.toUpperCase().replace(/\s+/g, '-')
-      const prokerLower = filterProker.value.toLowerCase()
-      const matchesProker =
-        (s as any).proker_id === filterProker.value ||
-        s.nomor_surat.toUpperCase().includes(`/${prokerCode}/`) ||
-        s.perihal.toLowerCase().includes(prokerLower)
-      if (!matchesProker) {
-        return false
-      }
-    }
-
-    // 3. Filter Hanya Surat Saya (Assigned to Me)
-    if (filterOnlyMe.value) {
-      const currentUname = (authService.getUsername() || userRole.value || '').trim().toLowerCase()
-      const currentRoleVal = (userRole.value || '').trim().toLowerCase()
-      const currentUid = (authService.getUser().id || '').trim().toLowerCase()
-      const pic = (s.pic_nama || '').trim().toLowerCase()
-
-      const matchesMe =
-        (currentUname && (pic === currentUname || pic.includes(currentUname))) ||
-        (currentRoleVal && (pic === currentRoleVal || pic.includes(currentRoleVal))) ||
-        (currentUid && (s as any).user_id === currentUid)
-
-      if (!matchesMe) {
-        return false
-      }
-    }
-
-    // 4. Search query (case-insensitive PIC, Perihal, or Nomor Surat)
-    if (searchQuery.value.trim()) {
-      const q = searchQuery.value.trim().toLowerCase()
-      const matchSearch =
-        (s.pic_nama && s.pic_nama.toLowerCase().includes(q)) ||
-        (s.perihal && s.perihal.toLowerCase().includes(q)) ||
-        (s.nomor_surat && s.nomor_surat.toLowerCase().includes(q))
-      if (!matchSearch) {
-        return false
-      }
-    }
-
-    return true
-  })
-})
 
 const getSuratByStatus = (status: string) => {
   return filteredSuratList.value.filter((s) => s.status_saat_ini.toLowerCase() === status.toLowerCase())
@@ -207,61 +74,6 @@ const closeDetail = () => {
   selectedSurat.value = null
 }
 
-const scrollToColumn = (status: string) => {
-  nextTick(() => {
-    const colEl = document.querySelector(`[data-status="${status}"]`) as HTMLElement | null
-    if (colEl) {
-      colEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
-    }
-  })
-}
-
-const checkEdgeDetection = (clientX: number) => {
-  if (!draggingCardId.value) {
-    resetAmbientDrop()
-    return
-  }
-
-  const card = suratList.value.find((s) => s.id === draggingCardId.value)
-  if (!card) {
-    resetAmbientDrop()
-    return
-  }
-
-  const currentIndex = statusColumns.findIndex(
-    (col) => col.toLowerCase() === card.status_saat_ini.toLowerCase()
-  )
-  if (currentIndex === -1) {
-    resetAmbientDrop()
-    return
-  }
-
-  const screenWidth = window.innerWidth
-  const edgeThreshold = 55
-
-  if (clientX < edgeThreshold) {
-    if (currentIndex > 0) {
-      ambientDrop.value = {
-        active: true,
-        direction: 'left',
-        targetStatus: statusColumns[currentIndex - 1] ?? null,
-      }
-      return
-    }
-  } else if (clientX > screenWidth - edgeThreshold) {
-    if (currentIndex < statusColumns.length - 1) {
-      ambientDrop.value = {
-        active: true,
-        direction: 'right',
-        targetStatus: statusColumns[currentIndex + 1] ?? null,
-      }
-      return
-    }
-  }
-
-  resetAmbientDrop()
-}
-
 // Core status update function
 const executeStatusUpdate = async (suratId: string, targetStatus: string) => {
   const surat = suratList.value.find((s) => s.id === suratId)
@@ -270,313 +82,41 @@ const executeStatusUpdate = async (suratId: string, targetStatus: string) => {
 
   const previousStatus = surat.status_saat_ini
   surat.status_saat_ini = targetStatus
+  filteredSuratList.value = [...filteredSuratList.value]
 
   try {
-    await suratService.updateStatus(suratId, {
+    await updateSuratStatus(suratId, {
       status_saat_ini: targetStatus,
     })
-    await fetchSurat()
+    await loadSurat()
   } catch (err: any) {
     surat.status_saat_ini = previousStatus
+    filteredSuratList.value = [...filteredSuratList.value]
     alert(err.response?.data?.error || err.message || 'Gagal memindahkan status surat')
   }
 }
 
-// Native HTML5 Desktop Drag and Drop Handlers
-const onDragStart = (event: DragEvent, suratId: string) => {
-  draggingCardId.value = suratId
-  if (event.dataTransfer) {
-    event.dataTransfer.setData('text/plain', suratId)
-    event.dataTransfer.effectAllowed = 'move'
-  }
-}
-
-const onDrag = (event: DragEvent) => {
-  if (event.clientX === 0 && event.clientY === 0) return
-  checkEdgeDetection(event.clientX)
-}
-
-const onDragEnd = async () => {
-  if (ambientDrop.value.active && ambientDrop.value.targetStatus && draggingCardId.value) {
-    const cardId = draggingCardId.value
-    const targetStatus = ambientDrop.value.targetStatus
-    resetAmbientDrop()
-    draggingCardId.value = null
-    dragOverColumn.value = null
-    await executeStatusUpdate(cardId, targetStatus)
-    scrollToColumn(targetStatus)
-    return
-  }
-  resetAmbientDrop()
-  draggingCardId.value = null
-  dragOverColumn.value = null
-}
-
-const onDragOver = (event: DragEvent, status: string) => {
-  event.preventDefault()
-  if (event.dataTransfer) {
-    event.dataTransfer.dropEffect = 'move'
-  }
-  dragOverColumn.value = status
-  checkEdgeDetection(event.clientX)
-}
-
-const onDragEnter = (status: string) => {
-  dragOverColumn.value = status
-}
-
-const onDragLeave = (status: string, event: DragEvent) => {
-  const currentTarget = event.currentTarget as HTMLElement
-  const relatedTarget = event.relatedTarget as HTMLElement | null
-  if (!relatedTarget || !currentTarget.contains(relatedTarget)) {
-    if (dragOverColumn.value === status) {
-      dragOverColumn.value = null
-    }
-  }
-}
-
-const onDrop = async (event: DragEvent, targetStatus: string) => {
-  dragOverColumn.value = null
-  const suratId = event.dataTransfer?.getData('text/plain') || draggingCardId.value
-  const isAmbient = ambientDrop.value.active && ambientDrop.value.targetStatus
-  const finalTarget = isAmbient ? ambientDrop.value.targetStatus! : targetStatus
-
-  resetAmbientDrop()
-  draggingCardId.value = null
-  if (!suratId) return
-
-  await executeStatusUpdate(suratId, finalTarget)
-  if (isAmbient) {
-    scrollToColumn(finalTarget)
-  }
-}
-
-// Mobile Touch Drag State (Long Press to Drag & Ghost Card)
-const isDragging = ref(false)
-let dragTimer: ReturnType<typeof setTimeout> | null = null
-let touchGhostElement: HTMLElement | null = null
-let touchOffsetX = 0
-let touchOffsetY = 0
-let touchSuratId: string | null = null
-let touchCardElement: HTMLElement | null = null
-
-const cleanupGhostElement = () => {
-  if (touchGhostElement) {
-    touchGhostElement.remove()
-    touchGhostElement = null
-  }
-}
-
-onBeforeUnmount(() => {
-  if (dragTimer) clearTimeout(dragTimer)
-  cleanupGhostElement()
-})
-
-const handleTouchStart = (event: TouchEvent, suratId: string) => {
-  if (dragTimer) {
-    clearTimeout(dragTimer)
-    dragTimer = null
-  }
-  cleanupGhostElement()
-  isDragging.value = false
-
-  const touch = event.touches[0]
-  if (!touch) return
-
-  const target = (event.currentTarget || event.target) as HTMLElement
-  const cardElement = (target.closest('article') || target) as HTMLElement
-  const rect = cardElement.getBoundingClientRect()
-
-  touchOffsetX = touch.clientX - rect.left
-  touchOffsetY = touch.clientY - rect.top
-  touchSuratId = suratId
-  touchCardElement = cardElement
-
-  // Mulai timer 300ms untuk Long Press to Drag
-  dragTimer = setTimeout(() => {
-    isDragging.value = true
-    draggingCardId.value = suratId
-
-    // Haptic feedback (getar) jika didukung perangkat
-    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
-      try {
-        navigator.vibrate(50)
-      } catch (_) {}
-    }
-
-    // Ciptakan ghost element melayang setelah 300ms
-    if (touchCardElement) {
-      const clone = touchCardElement.cloneNode(true) as HTMLElement
-      clone.id = 'touch-drag-ghost'
-      clone.classList.add('will-change-transform', 'transform-gpu')
-      clone.style.position = 'fixed'
-      clone.style.left = `${touch.clientX - touchOffsetX}px`
-      clone.style.top = `${touch.clientY - touchOffsetY}px`
-      clone.style.width = `${rect.width}px`
-      clone.style.zIndex = '9999'
-      clone.style.opacity = '0.85'
-      clone.style.pointerEvents = 'none'
-      clone.style.transform = 'scale(1.04) rotate(1.5deg)'
-      clone.style.willChange = 'transform, left, top'
-      clone.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.25)'
-      clone.style.transition = 'transform 0.1s ease, box-shadow 0.1s ease'
-      document.body.appendChild(clone)
-      touchGhostElement = clone
-    }
-  }, 300)
-}
-
-const handleTouchMove = (event: TouchEvent) => {
-  // Jika jari bergerak SEBELUM 300ms (isDragging masih false), batalkan timer agar scroll vertikal berjalan natural
-  if (!isDragging.value) {
-    if (dragTimer) {
-      clearTimeout(dragTimer)
-      dragTimer = null
-    }
-    return
-  }
-
-  // Jika jari bergerak SETELAH timer selesai (isDragging true), blokir scroll dan update ghost element
-  if (event.cancelable) {
-    event.preventDefault()
-  }
-
-  const touch = event.touches[0]
-  if (!touch) return
-
-  // Update koordinat ghost element agar mengikuti posisi jari
-  if (touchGhostElement) {
-    touchGhostElement.style.left = `${touch.clientX - touchOffsetX}px`
-    touchGhostElement.style.top = `${touch.clientY - touchOffsetY}px`
-  }
-
-  checkEdgeDetection(touch.clientX)
-
-  // Deteksi kolom status di bawah jari
-  const elementUnderTouch = document.elementFromPoint(touch.clientX, touch.clientY)
-  const columnElement = elementUnderTouch?.closest('[data-status]')
-  if (columnElement) {
-    const status = columnElement.getAttribute('data-status')
-    if (status) {
-      dragOverColumn.value = status
-    }
-  } else {
-    dragOverColumn.value = null
-  }
-}
-
-const handleTouchEnd = async (event?: TouchEvent) => {
-  if (dragTimer) {
-    clearTimeout(dragTimer)
-    dragTimer = null
-  }
-
-  const wasDragging = isDragging.value
-  const cardId = draggingCardId.value || touchSuratId
-
-  cleanupGhostElement()
-
-  if (wasDragging && cardId) {
-    const isAmbient = ambientDrop.value.active && ambientDrop.value.targetStatus
-
-    if (isAmbient) {
-      const targetStatus = ambientDrop.value.targetStatus!
-      resetAmbientDrop()
-      draggingCardId.value = null
-      dragOverColumn.value = null
-      isDragging.value = false
-      touchSuratId = null
-      touchCardElement = null
-
-      await executeStatusUpdate(cardId, targetStatus)
-      scrollToColumn(targetStatus)
-      return
-    }
-
-    let targetCol = dragOverColumn.value
-    if (!targetCol && event && event.changedTouches && event.changedTouches[0]) {
-      const endTouch = event.changedTouches[0]
-      const el = document.elementFromPoint(endTouch.clientX, endTouch.clientY)
-      const colEl = el?.closest('[data-status]')
-      if (colEl) {
-        targetCol = colEl.getAttribute('data-status')
-      }
-    }
-
-    if (targetCol) {
-      const targetStatus = targetCol
-      resetAmbientDrop()
-      dragOverColumn.value = null
-      draggingCardId.value = null
-      isDragging.value = false
-      touchSuratId = null
-      touchCardElement = null
-
-      await executeStatusUpdate(cardId, targetStatus)
-      scrollToColumn(targetStatus)
-      return
-    }
-  }
-
-  resetAmbientDrop()
-  draggingCardId.value = null
-  dragOverColumn.value = null
-  isDragging.value = false
-  touchSuratId = null
-  touchCardElement = null
-}
-
-const openCreateModal = () => {
-  noUrut.value = '001'
-  const firstProker = prokerList.value[0]
-  selectedProker.value = firstProker ? firstProker.nama_proker : ''
-  const monthIdx = new Date().getMonth()
-  selectedBulan.value = (monthIdx >= 0 && monthIdx < romanMonths.length && romanMonths[monthIdx]) ? romanMonths[monthIdx]! : 'X'
-  selectedTahun.value = new Date().getFullYear().toString()
-
-  createForm.value = {
-    nomor_surat: '',
-    perihal: '',
-    status_saat_ini: 'Standby',
-    pic_nama: '',
-    catatan: '',
-  }
-  isCreateModalOpen.value = true
-}
-
-const handleCreateSurat = async () => {
-  if (!noUrut.value.trim()) {
-    alert('Nomor urut surat wajib diisi.')
-    return
-  }
-  if (!selectedProker.value) {
-    alert('Silakan pilih Program Kerja (Proker).')
-    return
-  }
-  if (!selectedTahun.value.trim()) {
-    alert('Tahun surat wajib diisi.')
-    return
-  }
-
-  const prokerCode = selectedProker.value.toUpperCase().replace(/\s+/g, '-')
-  const paddedNo = noUrut.value.trim().padStart(3, '0')
-  createForm.value.nomor_surat = `${paddedNo}/DOSCOM/${prokerCode}/${selectedBulan.value}/${selectedTahun.value.trim()}`
-
-  isCreating.value = true
-  try {
-    await suratService.create(createForm.value)
-    isCreateModalOpen.value = false
-    await fetchSurat()
-  } catch (err: any) {
-    alert(err.response?.data?.error || 'Gagal membuat surat')
-  } finally {
-    isCreating.value = false
-  }
-}
+// Drag & Drop Composable (Desktop DnD, Mobile Touch, & Ambient Edge Zone)
+const {
+  draggingCardId,
+  dragOverColumn,
+  ambientDrop,
+  isDragging,
+  onDragStart,
+  onDrag,
+  onDragEnd,
+  onDragOver,
+  onDragEnter,
+  onDragLeave,
+  onDrop,
+  handleTouchStart,
+  handleTouchMove,
+  handleTouchEnd,
+} = useKanbanDragDrop(suratList, statusColumns, executeStatusUpdate)
 
 onMounted(() => {
-  fetchSurat()
-  fetchProker()
+  loadSurat()
+  loadProker()
 })
 </script>
 
@@ -592,7 +132,7 @@ onMounted(() => {
       <div class="flex items-center gap-2 w-full sm:w-auto">
         <button
           type="button"
-          @click="fetchSurat"
+          @click="loadSurat"
           :disabled="isLoading"
           class="flex-1 sm:flex-initial px-4 py-2 text-xs font-semibold rounded-2xl bg-white/80 border border-black/5 text-zinc-700 hover:bg-white shadow-[0_8px_30px_rgb(0,0,0,0.05)] transition-all active:scale-[0.98] disabled:opacity-50"
         >
@@ -601,8 +141,8 @@ onMounted(() => {
 
         <button
           type="button"
-          @click="openCreateModal"
-          class="flex-1 sm:flex-initial px-4 py-2 text-xs font-semibold rounded-2xl bg-[#0A84DC] text-white hover:bg-[#0872be] shadow-[0_8px_30px_rgb(0,0,0,0.05)] transition-all active:scale-[0.98]"
+          @click="isCreateModalOpen = true"
+          class="flex-1 sm:flex-initial px-4 py-2 text-xs font-semibold rounded-2xl bg-[#0A84DC] text-white hover:bg-[#0872be] shadow-[0_8px_30px_rgb(0,0,0,0.05)] transition-all active:scale-[0.98] cursor-pointer"
         >
           + Tambah Surat
         </button>
@@ -610,109 +150,11 @@ onMounted(() => {
     </header>
 
     <!-- Advanced Multi-Filter Bar -->
-    <div
-      class="bg-white/80 backdrop-blur-md border border-black/5 rounded-2xl p-3 shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
-    >
-      <div class="flex flex-col lg:flex-row items-center gap-4 w-full">
-        <!-- Search Input -->
-        <div class="flex-1 w-full relative">
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Cari PIC, perihal, nomor..."
-            class="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl bg-black/[0.03] border border-black/5 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 focus:bg-white transition-all"
-          />
-          <svg
-            class="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-        </div>
-
-        <!-- Dropdown Tahun -->
-        <div class="flex-1 w-full">
-          <select
-            v-model="filterTahun"
-            class="w-full px-2.5 py-1.5 text-xs rounded-xl bg-black/[0.03] border border-black/5 text-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 focus:bg-white transition-all cursor-pointer"
-          >
-            <option value="">Semua Tahun</option>
-            <option v-for="yr in availableYears" :key="yr" :value="yr">Tahun {{ yr }}</option>
-          </select>
-        </div>
-
-        <!-- Dropdown Proker -->
-        <div class="flex-1 w-full">
-          <select
-            v-model="filterProker"
-            class="w-full px-2.5 py-1.5 text-xs rounded-xl bg-black/[0.03] border border-black/5 text-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 focus:bg-white transition-all cursor-pointer"
-          >
-            <option value="">Semua Proker</option>
-            <option v-for="proker in prokerList" :key="proker.id" :value="proker.nama_proker">
-              {{ proker.nama_proker }}
-            </option>
-          </select>
-        </div>
-
-        <!-- Toggle & Clear Filter Container -->
-        <div class="flex items-center gap-3 shrink-0">
-          <!-- iOS Segmented Control: Semua Surat (Group) vs Hanya Surat Saya (User) -->
-          <div
-            role="group"
-            aria-label="Filter Kepemilikan Surat"
-            class="relative inline-flex items-center w-24 h-8 p-1 rounded-full bg-gray-200 select-none"
-          >
-            <!-- Background Sliding Indicator: 50% width of inner track, full height -->
-            <span
-              class="absolute top-1 bottom-1 left-1 w-[calc(50%-4px)] rounded-full bg-white shadow-sm transition-transform duration-300 ease-in-out pointer-events-none"
-              :class="filterOnlyMe ? 'translate-x-full' : 'translate-x-0'"
-            />
-
-            <!-- Left Button (50% area): Semua Surat -->
-            <button
-              type="button"
-              @click="filterOnlyMe = false"
-              title="Semua Surat"
-              class="relative z-10 w-1/2 h-full flex items-center justify-center rounded-full transition-colors duration-200 cursor-pointer focus:outline-none"
-              :class="!filterOnlyMe ? 'text-[#0A84DC]' : 'text-zinc-400 hover:text-zinc-600'"
-            >
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-            </button>
-
-            <!-- Right Button (50% area): Hanya Surat Saya -->
-            <button
-              type="button"
-              @click="filterOnlyMe = true"
-              title="Hanya Surat Saya"
-              class="relative z-10 w-1/2 h-full flex items-center justify-center rounded-full transition-colors duration-200 cursor-pointer focus:outline-none"
-              :class="filterOnlyMe ? 'text-[#0A84DC]' : 'text-zinc-400 hover:text-zinc-600'"
-            >
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </button>
-          </div>
-
-          <!-- Clear Filter -->
-          <button
-            type="button"
-            @click="clearFilters"
-            :disabled="!isFilterActive"
-            class="px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all flex items-center gap-1 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-            :class="isFilterActive ? 'bg-rose-50 text-rose-600 hover:bg-rose-100 border-rose-200/80 shadow-2xs' : 'bg-black/[0.03] text-zinc-400 border-black/5'"
-          >
-            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-            Clear Filter
-          </button>
-        </div>
-      </div>
-    </div>
+    <KanbanFilter
+      :surat-list="suratList"
+      :proker-list="prokerList"
+      @update:filtered="filteredSuratList = $event"
+    />
 
     <!-- Error Notice -->
     <div
@@ -832,12 +274,11 @@ onMounted(() => {
           </div>
 
           <!-- Surat Card (Apple iOS: rounded-2xl, subtle shadow, touch-supported) -->
-          <article
+          <KanbanCard
             v-for="item in getSuratByStatus(status)"
             :key="item.id"
-            v-memo="[item.id, item.nomor_surat, item.perihal, item.status_saat_ini, item.pic_nama, item.arsip_url, item.catatan, draggingCardId === item.id]"
-            draggable="true"
-            style="-webkit-touch-callout: none;"
+            :surat="item"
+            :is-dragging="draggingCardId === item.id"
             @dragstart="onDragStart($event, item.id)"
             @drag="onDrag"
             @dragend="onDragEnd"
@@ -849,39 +290,7 @@ onMounted(() => {
             @touchcancel="handleTouchEnd"
             @contextmenu.prevent="() => {}"
             @click="openDetail(item)"
-            :class="[
-              'touch-pan-y select-none bg-white p-4 rounded-2xl border border-black/5 shadow-[0_8px_30px_rgb(0,0,0,0.05)] hover:border-[#0A84DC]/30 hover:shadow-md cursor-grab active:cursor-grabbing transition-all space-y-2.5 active:scale-[0.98]',
-              draggingCardId === item.id ? 'opacity-40 ring-2 ring-[#0A84DC]/50' : ''
-            ]"
-          >
-            <div class="flex items-start justify-between gap-1">
-              <span class="font-mono text-[11px] font-semibold text-zinc-700 bg-black/[0.04] px-2 py-0.5 rounded-lg">
-                {{ item.nomor_surat }}
-              </span>
-              <span
-                v-if="item.arsip_url"
-                title="Arsip telah dipindai"
-                class="text-[10px] text-[#0A84DC] bg-[#0A84DC]/10 border border-[#0A84DC]/20 px-2 py-0.5 rounded-lg font-semibold"
-              >
-                Arsip
-              </span>
-            </div>
-
-            <h4 class="text-xs font-semibold text-zinc-900 leading-snug line-clamp-2">
-              {{ item.perihal }}
-            </h4>
-
-            <div class="flex items-center justify-between pt-1 border-t border-black/5 text-[11px]">
-              <span class="inline-flex items-center gap-1.5 text-zinc-500 font-medium">
-                <span class="w-1.5 h-1.5 rounded-full bg-[#0A84DC]"></span>
-                {{ item.pic_nama }}
-              </span>
-
-              <span v-if="item.catatan" title="Terdapat catatan" class="text-zinc-400 text-xs">
-                💬
-              </span>
-            </div>
-          </article>
+          />
         </div>
       </section>
     </main>
@@ -900,166 +309,18 @@ onMounted(() => {
         :surat="selectedSurat"
         :status-options="statusColumns"
         @close="closeDetail"
-        @updated="fetchSurat"
+        @updated="loadSurat"
       />
     </Transition>
 
-    <!-- Modal Create Surat (iOS HIG: rounded-3xl, Inset Grouped, Glassmorphism, Animated) -->
-    <Transition
-      enter-active-class="transition duration-200 ease-out"
-      enter-from-class="opacity-0 scale-95"
-      enter-to-class="opacity-100 scale-100"
-      leave-active-class="transition duration-150 ease-in"
-      leave-from-class="opacity-100 scale-100"
-      leave-to-class="opacity-0 scale-95"
-    >
-      <div
-        v-if="isCreateModalOpen"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto"
-      >
-        <div class="bg-white rounded-3xl border border-black/10 max-w-xl w-full p-6 sm:p-7 space-y-5 shadow-xl">
-          <header>
-            <h3 class="text-lg font-semibold text-zinc-900 tracking-tight">Tambah Surat Baru</h3>
-            <p class="text-xs text-zinc-500 mt-0.5">Lengkapi parameter nomor surat dan informasi dokumen resmi.</p>
-          </header>
-
-          <form @submit.prevent="handleCreateSurat" class="space-y-4">
-            <!-- Inset Grouped Form Container -->
-            <div class="rounded-2xl border border-black/10 bg-white overflow-hidden divide-y divide-black/5 shadow-2xs">
-              <!-- 1. Nomor Surat Group -->
-              <div class="p-3.5 space-y-2 focus-within:bg-zinc-50/50 transition-colors">
-                <label class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Nomor Surat</label>
-                <div class="flex flex-row flex-wrap items-center gap-2">
-                  <input
-                    v-model="noUrut"
-                    type="text"
-                    required
-                    placeholder="001"
-                    class="w-16 sm:w-20 px-2 py-1.5 text-xs font-mono font-semibold text-center border border-black/10 rounded-xl bg-black/[0.02] focus:outline-none focus:ring-1 focus:ring-[#0A84DC]"
-                  />
-
-                  <span class="text-zinc-400 font-semibold text-xs select-none">/</span>
-
-                  <input
-                    type="text"
-                    value="DOSCOM"
-                    disabled
-                    class="w-20 sm:w-24 px-2 py-1.5 text-xs font-mono font-semibold text-center border border-black/10 rounded-xl bg-black/[0.04] text-zinc-600 cursor-not-allowed select-none"
-                  />
-
-                  <span class="text-zinc-400 font-semibold text-xs select-none">/</span>
-
-                  <select
-                    v-model="selectedProker"
-                    required
-                    class="flex-1 min-w-[120px] px-2.5 py-1.5 text-xs font-medium border border-black/10 rounded-xl bg-white focus:outline-none focus:ring-1 focus:ring-[#0A84DC] truncate"
-                  >
-                    <option value="" disabled>-- Pilih Proker --</option>
-                    <option v-for="proker in prokerList" :key="proker.id" :value="proker.nama_proker">
-                      {{ proker.nama_proker }}
-                    </option>
-                  </select>
-
-                  <span class="text-zinc-400 font-semibold text-xs select-none">/</span>
-
-                  <select
-                    v-model="selectedBulan"
-                    required
-                    class="w-16 sm:w-20 px-2 py-1.5 text-xs font-mono font-semibold text-center border border-black/10 rounded-xl bg-white focus:outline-none focus:ring-1 focus:ring-[#0A84DC]"
-                  >
-                    <option v-for="bulan in romanMonths" :key="bulan" :value="bulan">
-                      {{ bulan }}
-                    </option>
-                  </select>
-
-                  <span class="text-zinc-400 font-semibold text-xs select-none">/</span>
-
-                  <input
-                    v-model="selectedTahun"
-                    type="number"
-                    required
-                    placeholder="2026"
-                    class="min-w-[4rem] flex-1 sm:w-20 px-2 py-1.5 text-xs font-mono font-semibold text-center border border-black/10 rounded-xl bg-white focus:outline-none focus:ring-1 focus:ring-[#0A84DC]"
-                  />
-                </div>
-
-                <p class="text-[11px] text-zinc-500">
-                  Pratinjau: <span class="font-mono text-[#0A84DC] font-semibold">{{ (noUrut || '001') }}/DOSCOM/{{ (selectedProker || 'PROKER').toUpperCase().replace(/\s+/g, '-') }}/{{ selectedBulan }}/{{ selectedTahun }}</span>
-                </p>
-              </div>
-
-              <!-- 2. Perihal -->
-              <div class="px-4 py-2.5 focus-within:bg-zinc-50/50 transition-colors">
-                <label class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Perihal</label>
-                <input
-                  v-model="createForm.perihal"
-                  type="text"
-                  required
-                  placeholder="Undangan Kerjasama Dies Natalis"
-                  class="w-full text-xs font-medium text-zinc-900 bg-transparent focus:outline-none placeholder:text-zinc-400 pt-0.5"
-                />
-              </div>
-
-              <!-- 3. Nama PIC -->
-              <div class="px-4 py-2.5 focus-within:bg-zinc-50/50 transition-colors">
-                <label class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Nama PIC</label>
-                <input
-                  v-model="createForm.pic_nama"
-                  type="text"
-                  required
-                  placeholder="Fikri"
-                  class="w-full text-xs font-medium text-zinc-900 bg-transparent focus:outline-none placeholder:text-zinc-400 pt-0.5"
-                />
-              </div>
-
-              <!-- 4. Status Awal -->
-              <div class="px-4 py-2.5 focus-within:bg-zinc-50/50 transition-colors">
-                <label class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Status Awal</label>
-                <select
-                  v-if="!isHumas"
-                  v-model="createForm.status_saat_ini"
-                  class="w-full text-xs font-semibold text-zinc-900 bg-transparent focus:outline-none pt-0.5"
-                >
-                  <option v-for="col in statusColumns" :key="col" :value="col">
-                    {{ col }}
-                  </option>
-                </select>
-                <div v-else class="text-xs font-semibold text-zinc-700 pt-0.5">
-                  Standby (Otomatis)
-                </div>
-              </div>
-
-              <!-- 5. Catatan Awal -->
-              <div class="px-4 py-2.5 focus-within:bg-zinc-50/50 transition-colors">
-                <label class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Catatan Awal (Opsional)</label>
-                <textarea
-                  v-model="createForm.catatan"
-                  rows="2"
-                  placeholder="Keterangan instruksi..."
-                  class="w-full text-xs font-medium text-zinc-900 bg-transparent focus:outline-none placeholder:text-zinc-400 resize-none pt-0.5"
-                ></textarea>
-              </div>
-            </div>
-
-            <footer class="flex justify-end gap-2.5 pt-2">
-              <button
-                type="button"
-                @click="isCreateModalOpen = false"
-                class="px-4 py-2 text-xs font-semibold border border-black/10 rounded-2xl text-zinc-700 hover:bg-black/5 transition-all duration-200 active:scale-95"
-              >
-                Batal
-              </button>
-              <button
-                type="submit"
-                :disabled="isCreating"
-                class="px-5 py-2 text-xs font-semibold bg-[#0A84DC] text-white rounded-2xl hover:bg-[#0872be] shadow-md disabled:opacity-50 transition-all duration-200 active:scale-95"
-              >
-                {{ isCreating ? 'Menyimpan...' : 'Simpan Surat' }}
-              </button>
-            </footer>
-          </form>
-        </div>
-      </div>
-    </Transition>
+    <!-- Modal Create Surat -->
+    <KanbanModalForm
+      :is-open="isCreateModalOpen"
+      :proker-list="prokerList"
+      :status-columns="statusColumns"
+      :is-humas="isHumas"
+      @close="isCreateModalOpen = false"
+      @created="loadSurat"
+    />
   </div>
 </template>
