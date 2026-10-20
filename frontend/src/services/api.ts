@@ -27,7 +27,7 @@ export const currentUsername = ref<string | null>(
 )
 export const currentUserId = ref<string | null>(initialPayload?.sub || null)
 
-export const API_BASE_URL = import.meta.env.VITE_API_URL.trim().replace(/\/+$/, '')
+export const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080').trim().replace(/\/+$/, '')
 
 export function getBackendAssetUrl(path?: string | null): string {
   if (!path) return ''
@@ -105,33 +105,73 @@ export interface UpdateStatusPayload {
   catatan_log?: string
 }
 
+export interface User {
+  id: string
+  nim?: string
+  nama: string
+  email?: string
+  username: string
+  divisi: string
+  role?: string
+  display_password?: string
+  is_password_default: boolean
+  has_seen_password_prompt: boolean
+}
+
 export interface LoginResponse {
   token: string
-  role: 'sekre' | 'humas'
+  divisi: string
+  role?: string
+  username: string
+  nama?: string
+  nim?: string
+  email?: string
+  is_password_default: boolean
+  has_seen_password_prompt: boolean
 }
+
+export const currentUser = ref<User | null>(null)
 
 export const authService = {
   async login(username: string, password: string): Promise<LoginResponse> {
     const res = await api.post<LoginResponse>('/login', { username, password })
     const payload = parseJwtPayload(res.data.token)
+    const divisiVal = res.data.divisi || res.data.role || 'humas'
+
     localStorage.setItem('token', res.data.token)
-    localStorage.setItem('role', res.data.role)
-    localStorage.setItem('username', username || payload?.username || '')
+    localStorage.setItem('role', divisiVal)
+    localStorage.setItem('divisi', divisiVal)
+    localStorage.setItem('username', res.data.username || username || payload?.username || '')
+
     currentToken.value = res.data.token
-    currentRole.value = res.data.role
-    currentUsername.value = username || payload?.username || null
+    currentRole.value = divisiVal
+    currentUsername.value = res.data.username || username || payload?.username || null
     currentUserId.value = payload?.sub || null
+    currentUser.value = {
+      id: payload?.sub || '',
+      nim: res.data.nim || '',
+      nama: res.data.nama || '',
+      email: res.data.email || '',
+      username: res.data.username || username,
+      divisi: divisiVal,
+      role: divisiVal,
+      is_password_default: res.data.is_password_default,
+      has_seen_password_prompt: res.data.has_seen_password_prompt,
+    }
+
     return res.data
   },
 
   logout() {
     localStorage.removeItem('token')
     localStorage.removeItem('role')
+    localStorage.removeItem('divisi')
     localStorage.removeItem('username')
     currentToken.value = null
     currentRole.value = null
     currentUsername.value = null
     currentUserId.value = null
+    currentUser.value = null
     window.location.href = '/login'
   },
 
@@ -140,6 +180,10 @@ export const authService = {
   },
 
   getRole(): string | null {
+    return currentRole.value
+  },
+
+  getDivisi(): string | null {
     return currentRole.value
   },
 
@@ -152,11 +196,85 @@ export const authService = {
       id: currentUserId.value,
       username: currentUsername.value,
       role: currentRole.value,
+      divisi: currentRole.value,
     }
   },
 
   isAuthenticated(): boolean {
     return !!currentToken.value
+  },
+
+  async getProfile(): Promise<User> {
+    const res = await api.get<User>('/profile')
+    currentUser.value = res.data
+    return res.data
+  },
+
+  async dismissPasswordPrompt(): Promise<void> {
+    await api.post('/profile/dismiss-prompt')
+    if (currentUser.value) {
+      currentUser.value.has_seen_password_prompt = true
+    }
+  },
+
+  async changePassword(newPassword: string, oldPassword?: string): Promise<{ message: string }> {
+    const res = await api.put('/profile/change-password', {
+      new_password: newPassword,
+      old_password: oldPassword,
+    })
+    if (currentUser.value) {
+      currentUser.value.is_password_default = false
+      currentUser.value.has_seen_password_prompt = true
+    }
+    return res.data
+  },
+}
+
+export const userService = {
+  async getAll(): Promise<User[]> {
+    const res = await api.get<User[]>('/users')
+    return res.data
+  },
+
+  async create(data: Partial<User> & { password?: string }): Promise<User> {
+    const res = await api.post<User>('/users', data)
+    return res.data
+  },
+
+  async update(id: string, data: Partial<User> & { password?: string }): Promise<User> {
+    const res = await api.put<User>(`/users/${id}`, data)
+    return res.data
+  },
+
+  async delete(id: string): Promise<{ message: string }> {
+    const res = await api.delete(`/users/${id}`)
+    return res.data
+  },
+
+  async deleteBatch(ids: string[]): Promise<{ message: string; deleted: number }> {
+    const res = await api.delete('/users/batch', { data: { ids } })
+    return res.data
+  },
+
+  async resetPrompt(id: string): Promise<{ message: string }> {
+    const res = await api.put(`/users/${id}/reset-prompt`)
+    return res.data
+  },
+
+  async importCSV(file: File): Promise<{ message: string; imported: User[]; skipped: string[] }> {
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await api.post('/users/import-csv', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    return res.data
+  },
+
+  async importSpreadsheet(sheetURL: string): Promise<{ message: string; imported: User[]; skipped: string[] }> {
+    const res = await api.post('/users/import-spreadsheet', { sheet_url: sheetURL })
+    return res.data
   },
 }
 

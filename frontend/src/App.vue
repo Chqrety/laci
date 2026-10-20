@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useRoute, RouterLink, RouterView } from 'vue-router'
 import { authService, currentRole } from '@/services/api'
+import PasswordReminderModal from '@/components/PasswordReminderModal.vue'
 
 const route = useRoute()
 const isLoginPage = computed(() => route.name === 'login')
@@ -57,6 +58,22 @@ const handleLogout = () => {
             >
               Kelola Proker
             </RouterLink>
+            <RouterLink
+              v-if="userRole === 'sekre'"
+              to="/users"
+              class="px-3 py-1.5 rounded-xl text-xs font-medium text-zinc-600 hover:text-zinc-900 transition-all"
+              active-class="!bg-white !text-[#0A84DC] font-semibold shadow-[0_8px_30px_rgb(0,0,0,0.05)]"
+            >
+              Pengurus
+            </RouterLink>
+            <RouterLink
+              v-if="userRole"
+              to="/profile"
+              class="px-3 py-1.5 rounded-xl text-xs font-medium text-zinc-600 hover:text-zinc-900 transition-all"
+              active-class="!bg-white !text-[#0A84DC] font-semibold shadow-[0_8px_30px_rgb(0,0,0,0.05)]"
+            >
+              Profil
+            </RouterLink>
           </nav>
         </div>
 
@@ -79,6 +96,9 @@ const handleLogout = () => {
         </div>
       </div>
     </header>
+
+    <!-- Password reminder modal (1x pop-up on first login or after sekre reminder) -->
+    <PasswordReminderModal v-if="!isLoginPage" />
 
     <!-- Main Viewport -->
     <main

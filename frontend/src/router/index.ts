@@ -33,6 +33,18 @@ const router = createRouter({
       meta: { requiresAuth: true, role: 'sekre' },
     },
     {
+      path: '/users',
+      name: 'UserManagement',
+      component: () => import('@/views/UserManagement.vue'),
+      meta: { requiresAuth: true, role: 'sekre' },
+    },
+    {
+      path: '/profile',
+      name: 'profile',
+      component: () => import('@/views/Profile.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/:pathMatch(.*)*',
       redirect: '/',
     },
