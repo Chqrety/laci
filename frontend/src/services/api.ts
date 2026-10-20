@@ -2,18 +2,9 @@ import axios from 'axios'
 import { ref } from 'vue'
 
 export function parseJwtPayload(token: string | null) {
-  if (!token) return null
   try {
-    const base64Url = token.split('.')[1]
-    if (!base64Url) return null
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join(''),
-    )
-    return JSON.parse(jsonPayload)
+    const part = token?.split('.')[1]
+    return part ? JSON.parse(atob(part)) : null
   } catch {
     return null
   }
@@ -293,7 +284,7 @@ export const suratService = {
     id: string,
     payload: UpdateStatusPayload,
   ): Promise<{ message: string; surat: Surat; log: LogTracking }> {
-    const response = await api.put(`/surat/${id}/status`, payload)
+    const response = await api.put(`/surat/${id}`, payload)
     return response.data
   },
 
@@ -304,7 +295,7 @@ export const suratService = {
   ): Promise<{ message: string; arsip_url: string; surat: Surat }> {
     const formData = new FormData()
     formData.append('file', file, filename)
-    const response = await api.post(`/surat/${id}/arsip`, formData, {
+    const response = await api.post(`/surat/${id}/upload`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },

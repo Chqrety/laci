@@ -199,6 +199,9 @@ func UploadSurat(c *gin.Context) {
 
 	file, err := c.FormFile("file")
 	if err != nil {
+		file, err = c.FormFile("arsip")
+	}
+	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "No file uploaded. Key 'file' is required."})
 		return
 	}
@@ -233,61 +236,6 @@ func UploadSurat(c *gin.Context) {
 		"message":    "File arsip berhasil diunggah",
 		"file_arsip": fileArsipURL,
 		"arsip_url":  fileArsipURL,
-		"surat":      surat,
-	})
-}
-
-func UploadArsip(c *gin.Context) {
-	idParam := c.Param("id")
-	suratUUID, err := uuid.Parse(idParam)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
-		return
-	}
-
-	var surat models.Surat
-	if err := config.DB.First(&surat, "id = ?", suratUUID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Surat not found"})
-		return
-	}
-
-	file, err := c.FormFile("file")
-	if err != nil {
-		file, err = c.FormFile("arsip")
-	}
-	if err != nil {
-		file, err = c.FormFile("image")
-	}
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "No file uploaded. Key 'file', 'arsip', or 'image' is required."})
-		return
-	}
-
-	ext := filepath.Ext(file.Filename)
-	newFileName := fmt.Sprintf("%s_%s%s", suratUUID.String(), uuid.New().String()[:8], ext)
-	dst := filepath.Join("uploads", newFileName)
-
-	if err := c.SaveUploadedFile(file, dst); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
-		return
-	}
-
-	arsipURL := "/uploads/" + newFileName
-	updates := map[string]interface{}{
-		"file_arsip": arsipURL,
-		"arsip_url":  arsipURL,
-	}
-	if err := config.DB.Model(&surat).Updates(updates).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	surat.FileArsip = arsipURL
-	surat.ArsipURL = &arsipURL
-	c.JSON(http.StatusOK, gin.H{
-		"message":    "Arsip uploaded successfully",
-		"file_arsip": arsipURL,
-		"arsip_url":  arsipURL,
 		"surat":      surat,
 	})
 }

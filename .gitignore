@@ -6,8 +6,8 @@ dist/
 !.env.example
 
 # Golang & Backend
+*.exe
 /backend/laci-app
-/backend/laci-backend.exe
 uploads/
 *.log
 
