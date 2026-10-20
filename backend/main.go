@@ -7,7 +7,6 @@ import (
 	"github.com/joho/godotenv"
 	"laci-backend/config"
 	"laci-backend/routes"
-	"laci-backend/seeders"
 )
 
 func main() {
@@ -16,7 +15,6 @@ func main() {
 	}
 
 	config.InitDB()
-	seeders.RunAllSeeders(config.DB)
 
 	r := gin.Default()
 	routes.SetupRoutes(r)

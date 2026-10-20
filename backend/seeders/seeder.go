@@ -5,10 +5,11 @@ import (
 	"strings"
 	"time"
 
+	"laci-backend/models"
+
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
-	"laci-backend/models"
 )
 
 type User = models.User
@@ -32,10 +33,16 @@ func seedUsers(db *gorm.DB) {
 			log.Fatalf("Failed to hash default password: %v", err)
 		}
 		defaultUser := User{
-			ID:       uuid.New(),
-			Username: "sekre",
-			Password: string(hashedPassword),
-			Role:     "sekre",
+			ID:                    uuid.New(),
+			NIM:                   "A11.2023.00001",
+			Nama:                  "Sekretaris DOSCOM",
+			Email:                 "sekre@doscom.org",
+			Username:              "sekre",
+			Password:              string(hashedPassword),
+			DisplayPassword:       "password123",
+			Divisi:                "sekre",
+			IsPasswordDefault:     true,
+			HasSeenPasswordPrompt: true,
 		}
 		if err := db.Create(&defaultUser).Error; err != nil {
 			log.Printf("Warning: failed to seed default admin user: %v", err)
@@ -50,10 +57,16 @@ func seedUsers(db *gorm.DB) {
 			log.Fatalf("Failed to hash default password: %v", err)
 		}
 		humasUser := User{
-			ID:       uuid.New(),
-			Username: "humas",
-			Password: string(hashedPassword),
-			Role:     "humas",
+			ID:                    uuid.New(),
+			NIM:                   "A11.2023.00002",
+			Nama:                  "Humas DOSCOM",
+			Email:                 "humas@doscom.org",
+			Username:              "humas",
+			Password:              string(hashedPassword),
+			DisplayPassword:       "password123",
+			Divisi:                "humas",
+			IsPasswordDefault:     true,
+			HasSeenPasswordPrompt: false,
 		}
 		if err := db.Create(&humasUser).Error; err != nil {
 			log.Printf("Warning: failed to seed default user 'humas': %v", err)
@@ -65,8 +78,8 @@ func seedProker(db *gorm.DB) {
 	defaultProkers := []Proker{
 		{NamaProker: "MAKRAB", Deskripsi: "Malam Keakraban"},
 		{NamaProker: "OPREC", Deskripsi: "Open Recruitment"},
-		{NamaProker: "OOTS", Deskripsi: "Open Order T-Shirt"},
-		{NamaProker: "DST", Deskripsi: "Doscom Software Training"},
+		{NamaProker: "OOTS", Deskripsi: "Opensource On The School"},
+		{NamaProker: "DST", Deskripsi: "Doscom Sharing Time"},
 		{NamaProker: "DU", Deskripsi: "Doscom University"},
 		{NamaProker: "RP", Deskripsi: "Release Party"},
 	}

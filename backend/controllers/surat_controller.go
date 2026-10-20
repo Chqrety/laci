@@ -49,11 +49,15 @@ func CreateSurat(c *gin.Context) {
 		return
 	}
 
-	roleVal, _ := c.Get("role")
-	role, _ := roleVal.(string)
+	divisiVal, _ := c.Get("divisi")
+	divisi, _ := divisiVal.(string)
+	if divisi == "" {
+		roleVal, _ := c.Get("role")
+		divisi, _ = roleVal.(string)
+	}
 
 	status := input.StatusSaatIni
-	if role == "humas" || strings.TrimSpace(status) == "" {
+	if strings.ToLower(divisi) != "sekre" || strings.TrimSpace(status) == "" {
 		status = "Standby"
 	}
 

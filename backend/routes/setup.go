@@ -18,6 +18,22 @@ func SetupRoutes(r *gin.Engine) {
 	authGroup := r.Group("/")
 	authGroup.Use(middlewares.AuthMiddleware())
 	{
+		// Profile & password routes (untuk semua user)
+		authGroup.GET("/profile", controllers.GetProfile)
+		authGroup.POST("/profile/dismiss-prompt", controllers.DismissPasswordPrompt)
+		authGroup.PUT("/profile/change-password", controllers.ChangePassword)
+
+		// User management routes (khusus sekre)
+		authGroup.GET("/users", controllers.GetUsers)
+		authGroup.POST("/users", controllers.CreateUser)
+		authGroup.PUT("/users/:id", controllers.UpdateUser)
+		authGroup.DELETE("/users/:id", controllers.DeleteUser)
+		authGroup.DELETE("/users/batch", controllers.BatchDeleteUsers)
+		authGroup.PUT("/users/:id/reset-prompt", controllers.ResetPasswordPrompt)
+		authGroup.POST("/users/import-csv", controllers.ImportUsersCSV)
+		authGroup.POST("/users/import-spreadsheet", controllers.ImportUsersSpreadsheet)
+
+		// Surat & Proker
 		authGroup.POST("/proker", controllers.CreateProker)
 		authGroup.GET("/surat", controllers.GetSurat)
 		authGroup.POST("/surat", controllers.CreateSurat)

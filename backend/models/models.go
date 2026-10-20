@@ -7,10 +7,16 @@ import (
 )
 
 type User struct {
-	ID       uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
-	Username string    `gorm:"type:varchar(100);uniqueIndex;not null" json:"username"`
-	Password string    `gorm:"type:varchar(255);not null" json:"-"`
-	Role     string    `gorm:"type:varchar(50);not null" json:"role"`
+	ID                    uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
+	NIM                   string    `gorm:"type:varchar(50);index" json:"nim"`
+	Nama                  string    `gorm:"type:varchar(150);not null;default:''" json:"nama"`
+	Email                 string    `gorm:"type:varchar(150);index" json:"email"`
+	Username              string    `gorm:"type:varchar(100);uniqueIndex;not null" json:"username"`
+	Password              string    `gorm:"type:varchar(255);not null" json:"-"`
+	DisplayPassword       string    `gorm:"type:varchar(255);not null;default:''" json:"display_password,omitempty"`
+	Divisi                string    `gorm:"type:varchar(100);not null;default:'humas'" json:"divisi"`
+	IsPasswordDefault     bool      `gorm:"type:boolean;not null;default:true" json:"is_password_default"`
+	HasSeenPasswordPrompt bool      `gorm:"type:boolean;not null;default:false" json:"has_seen_password_prompt"`
 }
 
 func (User) TableName() string {
