@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import { suratService, type Surat } from '@/services/api'
+import { suratService, STATUS_COLUMNS, type Surat } from '@/services/api'
 import CardDetail from '@/components/CardDetail.vue'
 
 const suratList = ref<Surat[]>([])
@@ -17,17 +17,6 @@ const searchQuery = ref('')
 const statusFilter = ref('')
 const currentPage = ref(1)
 const itemsPerPage = ref(20)
-
-const statusOptions = [
-  'Standby',
-  'Cetak',
-  'TTD Lapis 1',
-  'TTD Ketum',
-  'TTD Pembina',
-  'Paraf Koormawa',
-  'TTD Tertinggi',
-  'Selesai',
-]
 
 const fetchSurat = async () => {
   isLoading.value = true
@@ -134,7 +123,7 @@ onMounted(fetchSurat)
           class="px-3 py-2 text-xs rounded-2xl bg-white/80 border border-black/5 text-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 shadow-[0_8px_30px_rgb(0,0,0,0.05)] transition-all cursor-pointer"
         >
           <option value="">Semua Status</option>
-          <option v-for="status in statusOptions" :key="status" :value="status">
+          <option v-for="status in STATUS_COLUMNS" :key="status" :value="status">
             {{ status }}
           </option>
         </select>
@@ -326,7 +315,7 @@ onMounted(fetchSurat)
       <CardDetail
         v-if="isDetailOpen && selectedSurat"
         :surat="selectedSurat"
-        :status-options="statusOptions"
+        :status-options="STATUS_COLUMNS"
         @close="closeDetail"
         @updated="fetchSurat"
       />

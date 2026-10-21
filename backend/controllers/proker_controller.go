@@ -15,11 +15,6 @@ type CreateProkerInput struct {
 	Deskripsi  string `json:"deskripsi"`
 }
 
-type UpdateProkerInput struct {
-	NamaProker string `json:"nama_proker" binding:"required"`
-	Deskripsi  string `json:"deskripsi"`
-}
-
 func GetProkers(c *gin.Context) {
 	var listProker []models.Proker
 	if err := config.DB.Order("nama_proker asc").Find(&listProker).Error; err != nil {
@@ -71,7 +66,7 @@ func UpdateProker(c *gin.Context) {
 		return
 	}
 
-	var input UpdateProkerInput
+	var input CreateProkerInput
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "nama_proker is required"})
 		return

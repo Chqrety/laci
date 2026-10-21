@@ -4,7 +4,7 @@ import { api, getBackendAssetUrl, suratService, authService, type Surat } from '
 
 const props = defineProps<{
   surat: Surat
-  statusOptions: string[]
+  statusOptions: readonly string[]
 }>()
 
 const emit = defineEmits<{

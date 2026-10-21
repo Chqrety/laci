@@ -72,23 +72,14 @@ const createForm = ref({
   catatan: '',
 })
 
-const getLoggedInPicName = () => {
-  return (
-    currentUser.value?.nama ||
-    currentUser.value?.username ||
-    currentUsername.value ||
-    (typeof window !== 'undefined' ? localStorage.getItem('username') : '') ||
-    ''
-  )
-}
+const getLoggedInPicName = () => currentUser.value?.nama || currentUsername.value || ''
 
 const resetForm = () => {
   noUrut.value = '01'
   scannedExtraProker.value = null
   const firstProker = props.prokerList[0]
   selectedProker.value = firstProker ? firstProker.nama_proker : ''
-  const monthIdx = new Date().getMonth()
-  selectedBulan.value = (monthIdx >= 0 && monthIdx < romanMonths.length && romanMonths[monthIdx]) ? romanMonths[monthIdx]! : 'X'
+  selectedBulan.value = romanMonths[new Date().getMonth()] ?? 'X'
   selectedTahun.value = new Date().getFullYear().toString()
   scanFeedback.value = ''
 

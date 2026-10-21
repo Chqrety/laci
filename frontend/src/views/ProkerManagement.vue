@@ -29,23 +29,12 @@ const fetchProker = async () => {
   }
 }
 
-const openAddModal = () => {
-  isEditing.value = false
-  editingId.value = ''
+const openModal = (proker?: Proker) => {
+  isEditing.value = !!proker
+  editingId.value = proker?.id || ''
   formProker.value = {
-    nama_proker: '',
-    deskripsi: '',
-  }
-  formError.value = ''
-  isModalOpen.value = true
-}
-
-const openEditModal = (proker: Proker) => {
-  isEditing.value = true
-  editingId.value = proker.id
-  formProker.value = {
-    nama_proker: proker.nama_proker,
-    deskripsi: proker.deskripsi || '',
+    nama_proker: proker?.nama_proker || '',
+    deskripsi: proker?.deskripsi || '',
   }
   formError.value = ''
   isModalOpen.value = true
@@ -114,7 +103,7 @@ onMounted(() => {
 
         <button
           type="button"
-          @click="openAddModal"
+          @click="openModal()"
           class="px-4.5 py-2 text-xs font-semibold rounded-2xl bg-[#0A84DC] text-white hover:bg-[#0872be] shadow-[0_8px_30px_rgb(0,0,0,0.05)] transition-all active:scale-[0.98] cursor-pointer"
         >
           + Tambah Proker Baru
@@ -174,7 +163,7 @@ onMounted(() => {
                 <!-- Tombol Edit Proker (Pencil Icon) -->
                 <button
                   type="button"
-                  @click="openEditModal(proker)"
+                  @click="openModal(proker)"
                   class="p-2 rounded-xl text-zinc-400 hover:text-[#0A84DC] hover:bg-[#0A84DC]/10 active:scale-95 transition-all cursor-pointer"
                   title="Edit Program Kerja"
                   aria-label="Edit Program Kerja"
