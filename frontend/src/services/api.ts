@@ -121,6 +121,14 @@ export interface LoginResponse {
   has_seen_password_prompt: boolean
 }
 
+let prokerCache: Proker[] | null = null
+let usersCache: User[] | null = null
+
+export const clearApiCache = () => {
+  prokerCache = null
+  usersCache = null
+}
+
 export const currentUser = ref<User | null>(null)
 
 export const authService = {
@@ -154,6 +162,7 @@ export const authService = {
   },
 
   logout() {
+    clearApiCache()
     localStorage.removeItem('token')
     localStorage.removeItem('role')
     localStorage.removeItem('divisi')
@@ -195,7 +204,10 @@ export const authService = {
     return !!currentToken.value
   },
 
-  async getProfile(): Promise<User> {
+  async getProfile(force = false): Promise<User> {
+    if (!force && currentUser.value?.nama) {
+      return currentUser.value
+    }
     const res = await api.get<User>('/profile')
     currentUser.value = res.data
     return res.data
@@ -222,27 +234,33 @@ export const authService = {
 }
 
 export const userService = {
-  async getAll(): Promise<User[]> {
+  async getAll(force = false): Promise<User[]> {
+    if (!force && usersCache) return usersCache
     const res = await api.get<User[]>('/users')
+    usersCache = res.data
     return res.data
   },
 
   async create(data: Partial<User> & { password?: string }): Promise<User> {
+    usersCache = null
     const res = await api.post<User>('/users', data)
     return res.data
   },
 
   async update(id: string, data: Partial<User> & { password?: string }): Promise<User> {
+    usersCache = null
     const res = await api.put<User>(`/users/${id}`, data)
     return res.data
   },
 
   async delete(id: string): Promise<{ message: string }> {
+    usersCache = null
     const res = await api.delete(`/users/${id}`)
     return res.data
   },
 
   async deleteBatch(ids: string[]): Promise<{ message: string; deleted: number }> {
+    usersCache = null
     const res = await api.delete('/users/batch', { data: { ids } })
     return res.data
   },
@@ -253,6 +271,7 @@ export const userService = {
   },
 
   async importCSV(file: File): Promise<{ message: string; imported: User[]; skipped: string[] }> {
+    usersCache = null
     const formData = new FormData()
     formData.append('file', file)
     const res = await api.post('/users/import-csv', formData, {
@@ -264,6 +283,7 @@ export const userService = {
   },
 
   async importSpreadsheet(sheetURL: string): Promise<{ message: string; imported: User[]; skipped: string[] }> {
+    usersCache = null
     const res = await api.post('/users/import-spreadsheet', { sheet_url: sheetURL })
     return res.data
   },
@@ -329,13 +349,28 @@ export const suratService = {
 }
 
 export const prokerService = {
-  async getAll(): Promise<Proker[]> {
+  async getAll(force = false): Promise<Proker[]> {
+    if (!force && prokerCache) return prokerCache
     const response = await api.get<Proker[]>('/proker')
+    prokerCache = response.data
     return response.data
   },
 
   async create(nama_proker: string, deskripsi = ''): Promise<Proker> {
+    prokerCache = null
     const response = await api.post<Proker>('/proker', { nama_proker, deskripsi })
+    return response.data
+  },
+
+  async update(id: string, nama_proker: string, deskripsi = ''): Promise<Proker> {
+    prokerCache = null
+    const response = await api.put<Proker>(`/proker/${id}`, { nama_proker, deskripsi })
+    return response.data
+  },
+
+  async delete(id: string): Promise<{ message: string }> {
+    prokerCache = null
+    const response = await api.delete(`/proker/${id}`)
     return response.data
   },
 }

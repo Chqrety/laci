@@ -35,6 +35,8 @@ func SetupRoutes(r *gin.Engine) {
 
 		// Surat & Proker
 		authGroup.POST("/proker", controllers.CreateProker)
+		authGroup.PUT("/proker/:id", controllers.UpdateProker)
+		authGroup.DELETE("/proker/:id", controllers.DeleteProker)
 		authGroup.GET("/surat", controllers.GetSurat)
 		authGroup.POST("/surat", controllers.CreateSurat)
 		authGroup.PUT("/surat/:id", controllers.UpdateSurat)

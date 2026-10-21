@@ -116,7 +116,7 @@ onMounted(fetchSurat)
     <!-- Top Bar (Mirip dengan ProkerManagement.vue) -->
     <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 px-1">
       <div>
-        <h2 class="text-xl font-semibold tracking-tight text-zinc-900">Manajemen Surat</h2>
+        <h2 class="text-xl font-semibold tracking-tight text-zinc-900">Surat</h2>
         <p class="text-xs text-zinc-500 mt-0.5">Kelola data arsip dan lacak seluruh status surat keluar DOSCOM.</p>
       </div>
 
@@ -163,15 +163,14 @@ onMounted(fetchSurat)
     <div class="bg-white/85 backdrop-blur-xl border border-black/5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)] overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full text-left text-xs divide-y divide-black/5 min-w-[760px]">
-          <!-- Header Tabel Bersih: Putih menyatu tanpa background abu-abu tebal -->
-          <thead class="text-zinc-500 font-semibold">
+          <thead class="bg-black/[0.02] text-zinc-500 font-semibold">
             <tr>
               <th scope="col" class="px-5 py-4 w-14 text-center">No</th>
               <th scope="col" class="px-5 py-4 w-52 font-mono">Nomor Surat</th>
               <th scope="col" class="px-5 py-4">Perihal</th>
               <th scope="col" class="px-5 py-4 w-40">PIC</th>
               <th scope="col" class="px-5 py-4 w-36">Status</th>
-              <th scope="col" class="px-5 py-4 w-44 text-center">Aksi</th>
+              <th scope="col" class="px-5 py-4 w-28 text-right">Aksi</th>
             </tr>
           </thead>
 
@@ -219,34 +218,49 @@ onMounted(fetchSurat)
                   {{ surat.status_saat_ini }}
                 </span>
               </td>
-              <td class="px-5 py-4 text-center whitespace-nowrap">
-                <div class="inline-flex items-center justify-center gap-2">
-                  <!-- Tombol Detail (Pill-shape) -->
+              <td class="px-5 py-3 text-right whitespace-nowrap">
+                <div class="inline-flex items-center justify-end gap-1">
+                  <!-- Tombol Detail Surat (Eye Icon) -->
                   <button
                     type="button"
                     @click="openDetail(surat)"
-                    class="px-4 py-1.5 text-xs font-semibold rounded-full border border-black/10 bg-white text-zinc-700 hover:bg-black/5 hover:text-zinc-900 transition-all shadow-2xs inline-flex items-center gap-1 active:scale-95 cursor-pointer"
+                    class="p-2 rounded-xl text-zinc-400 hover:text-[#0A84DC] hover:bg-[#0A84DC]/10 active:scale-95 transition-all cursor-pointer"
                     title="Lihat Detail Surat"
+                    aria-label="Lihat Detail Surat"
                   >
-                    <svg class="w-3.5 h-3.5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="1.8"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="1.8"
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                      />
                     </svg>
-                    <span>Detail</span>
                   </button>
 
-                  <!-- Tombol Hapus (Pill-shape) -->
+                  <!-- Tombol Hapus Surat (Trash Icon) -->
                   <button
                     type="button"
                     @click="handleDeleteSurat(surat)"
                     :disabled="deletingId === surat.id"
-                    class="px-4 py-1.5 text-xs font-semibold rounded-full border border-rose-200/80 bg-rose-50/80 text-rose-600 hover:bg-rose-100 hover:text-rose-700 disabled:opacity-50 transition-all shadow-2xs inline-flex items-center gap-1 active:scale-95 cursor-pointer"
+                    class="p-2 rounded-xl text-zinc-400 hover:text-rose-600 hover:bg-rose-50 disabled:opacity-50 active:scale-95 transition-all cursor-pointer"
                     title="Hapus Surat"
+                    aria-label="Hapus Surat"
                   >
-                    <svg class="w-3.5 h-3.5 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="1.8"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
                     </svg>
-                    <span>{{ deletingId === surat.id ? '...' : 'Hapus' }}</span>
                   </button>
                 </div>
               </td>

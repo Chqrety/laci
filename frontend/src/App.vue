@@ -48,7 +48,7 @@ const handleLogout = () => {
               class="px-3 py-1.5 rounded-xl text-xs font-medium text-zinc-600 hover:text-zinc-900 transition-all"
               active-class="!bg-white !text-[#0A84DC] font-semibold shadow-[0_8px_30px_rgb(0,0,0,0.05)]"
             >
-              Tabel Surat
+              Surat
             </RouterLink>
             <RouterLink
               v-if="userRole === 'sekre'"
@@ -56,7 +56,7 @@ const handleLogout = () => {
               class="px-3 py-1.5 rounded-xl text-xs font-medium text-zinc-600 hover:text-zinc-900 transition-all"
               active-class="!bg-white !text-[#0A84DC] font-semibold shadow-[0_8px_30px_rgb(0,0,0,0.05)]"
             >
-              Kelola Proker
+              Proker
             </RouterLink>
             <RouterLink
               v-if="userRole === 'sekre'"
@@ -105,7 +105,11 @@ const handleLogout = () => {
       class="flex-1 w-full mx-auto"
       :class="isLoginPage ? 'p-0' : 'max-w-7xl p-4 sm:p-6 overflow-hidden flex flex-col'"
     >
-      <RouterView />
+      <RouterView v-slot="{ Component }">
+        <KeepAlive include="KanbanBoard">
+          <component :is="Component" />
+        </KeepAlive>
+      </RouterView>
     </main>
   </div>
 </template>
