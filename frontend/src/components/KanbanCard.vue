@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Surat } from '@/services/api'
+import { Badge } from '@/components/ui/badge'
 
 defineProps<{
   surat: Surat
@@ -22,16 +23,17 @@ defineEmits<{
     @click="$emit('click', surat)"
   >
     <div class="flex items-start justify-between gap-1">
-      <span class="font-mono text-[11px] font-semibold text-zinc-700 bg-black/[0.04] px-2 py-0.5 rounded-lg">
+      <Badge variant="mono" size="sm">
         {{ surat.nomor_surat }}
-      </span>
-      <span
+      </Badge>
+      <Badge
         v-if="surat.arsip_url"
+        variant="default"
+        size="xs"
         title="Arsip telah dipindai"
-        class="text-[10px] text-[#0A84DC] bg-[#0A84DC]/10 border border-[#0A84DC]/20 px-2 py-0.5 rounded-lg font-semibold"
       >
         Arsip
-      </span>
+      </Badge>
     </div>
 
     <h4 class="text-xs font-semibold text-zinc-900 leading-snug line-clamp-2">

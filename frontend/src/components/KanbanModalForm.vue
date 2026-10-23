@@ -10,6 +10,10 @@ import {
   type User,
 } from '@/services/api'
 import { useDocumentScanner } from '@/composables/useDocumentScanner'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 
 const props = defineProps<{
   isOpen: boolean
@@ -236,21 +240,26 @@ const handleCreateSurat = async () => {
                 <p class="text-[10px] text-zinc-500">Pindai foto fisik surat untuk mengisi No. Surat & Perihal</p>
               </div>
             </div>
-            <label
-              class="px-3 py-1.5 text-xs font-semibold rounded-xl bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-100 shadow-2xs cursor-pointer inline-flex items-center gap-1.5 transition active:scale-95 shrink-0"
+            <Button
+              as-child
+              variant="outline"
+              size="sm"
               :class="{ 'opacity-50 pointer-events-none': isScanning }"
+              class="cursor-pointer"
             >
-              <input
-                ref="fileInputRef"
-                type="file"
-                accept="image/*"
-                capture="environment"
-                class="hidden"
-                :disabled="isScanning"
-                @change="handleFileChange"
-              />
-              <span>{{ isScanning ? 'Memindai...' : 'Ambil Foto / Scan' }}</span>
-            </label>
+              <label>
+                <input
+                  ref="fileInputRef"
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  class="hidden"
+                  :disabled="isScanning"
+                  @change="handleFileChange"
+                />
+                <span>{{ isScanning ? 'Memindai...' : 'Ambil Foto / Scan' }}</span>
+              </label>
+            </Button>
           </div>
 
           <!-- Progress Bar -->
@@ -277,9 +286,9 @@ const handleCreateSurat = async () => {
           <div class="rounded-2xl border border-black/10 bg-white overflow-hidden divide-y divide-black/5 shadow-2xs">
             <!-- 1. Nomor Surat Group (Format Standar DOSCOM) -->
             <div class="p-3.5 space-y-2 focus-within:bg-zinc-50/50 transition-colors">
-              <label class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">
+              <Label class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">
                 Nomor Surat
-              </label>
+              </Label>
 
               <div class="flex flex-row flex-wrap items-center gap-2">
                 <input
@@ -342,30 +351,30 @@ const handleCreateSurat = async () => {
 
             <!-- 2. Perihal -->
             <div class="px-4 py-2.5 focus-within:bg-zinc-50/50 transition-colors">
-              <label class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Perihal</label>
-              <input
+              <Label class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">Perihal</Label>
+              <Input
                 v-model="createForm.perihal"
                 type="text"
                 required
                 placeholder="Undangan Kerjasama Dies Natalis"
-                class="w-full text-xs font-medium text-zinc-900 bg-transparent focus:outline-none placeholder:text-zinc-400 pt-0.5"
+                class="h-9 text-xs"
               />
             </div>
 
             <!-- 3. Tujuan Surat -->
             <div class="px-4 py-2.5 focus-within:bg-zinc-50/50 transition-colors">
-              <label class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Tujuan Surat</label>
-              <input
+              <Label class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">Tujuan Surat</Label>
+              <Input
                 v-model="createForm.tujuan"
                 type="text"
                 placeholder="Pihak penerima surat (Contoh: Wakil Dekan III / BEM FT)"
-                class="w-full text-xs font-medium text-zinc-900 bg-transparent focus:outline-none placeholder:text-zinc-400 pt-0.5"
+                class="h-9 text-xs"
               />
             </div>
 
             <!-- 4. Nama PIC -->
             <div class="px-4 py-2.5 focus-within:bg-zinc-50/50 transition-colors">
-              <label class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Nama PIC</label>
+              <Label class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Nama PIC</Label>
               <!-- Akun Humas: Terkunci otomatis ke nama pengurus yang sedang login -->
               <div v-if="isHumas" class="text-xs font-semibold text-zinc-700 pt-0.5">
                 {{ createForm.pic_nama || getLoggedInPicName() || '-' }}
@@ -394,7 +403,7 @@ const handleCreateSurat = async () => {
 
             <!-- 5. Status Awal -->
             <div class="px-4 py-2.5 focus-within:bg-zinc-50/50 transition-colors">
-              <label class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Status Awal</label>
+              <Label class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Status Awal</Label>
               <select
                 v-if="!isHumas"
                 v-model="createForm.status_saat_ini"
@@ -411,31 +420,30 @@ const handleCreateSurat = async () => {
 
             <!-- 6. Catatan Awal -->
             <div class="px-4 py-2.5 focus-within:bg-zinc-50/50 transition-colors">
-              <label class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Catatan Awal (Opsional)</label>
-              <textarea
+              <Label class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">Catatan Awal (Opsional)</Label>
+              <Textarea
                 v-model="createForm.catatan"
                 rows="2"
                 placeholder="Keterangan instruksi..."
-                class="w-full text-xs font-medium text-zinc-900 bg-transparent focus:outline-none placeholder:text-zinc-400 resize-none pt-0.5"
-              ></textarea>
+                class="text-xs"
+              />
             </div>
           </div>
 
           <footer class="flex justify-end gap-2.5 pt-2">
-            <button
+            <Button
               type="button"
+              variant="outline"
               @click="emit('close')"
-              class="px-4 py-2 text-xs font-semibold border border-black/10 rounded-2xl text-zinc-700 hover:bg-black/5 transition-all duration-200 active:scale-95 cursor-pointer"
             >
               Batal
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               :disabled="isCreating"
-              class="px-5 py-2 text-xs font-semibold bg-[#0A84DC] text-white rounded-2xl hover:bg-[#0872be] shadow-md disabled:opacity-50 transition-all duration-200 active:scale-95 cursor-pointer"
             >
               {{ isCreating ? 'Menyimpan...' : 'Simpan Surat' }}
-            </button>
+            </Button>
           </footer>
         </form>
       </div>

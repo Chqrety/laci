@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { authService, type Surat, type Proker } from '@/services/api'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 const props = defineProps<{
   suratList: Surat[]
@@ -118,16 +120,16 @@ watch(
 
 <template>
   <div
-    class="bg-white/80 backdrop-blur-md border border-black/5 rounded-2xl p-3 shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
+    class="bg-white/90 backdrop-blur-md border border-slate-200/90 rounded-3xl p-3 shadow-xs"
   >
-    <div class="flex flex-col lg:flex-row items-center gap-4 w-full">
+    <div class="flex flex-col lg:flex-row items-center gap-3 w-full">
       <!-- Search Input -->
       <div class="flex-1 w-full relative">
-        <input
+        <Input
           v-model="searchQuery"
           type="text"
           placeholder="Cari PIC, perihal, nomor..."
-          class="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl bg-black/[0.03] border border-black/5 text-zinc-800 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 focus:bg-white transition-all"
+          class="pl-8"
         />
         <svg
           class="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
@@ -148,7 +150,7 @@ watch(
       <div class="flex-1 w-full">
         <select
           v-model="filterTahun"
-          class="w-full px-2.5 py-1.5 text-xs rounded-xl bg-black/[0.03] border border-black/5 text-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 focus:bg-white transition-all cursor-pointer"
+          class="w-full px-3 py-2 text-xs rounded-2xl bg-zinc-50 border border-zinc-200 text-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 focus:border-[#0A84DC] transition-all cursor-pointer"
         >
           <option value="">Semua Tahun</option>
           <option v-for="yr in availableYears" :key="yr" :value="yr">Tahun {{ yr }}</option>
@@ -159,7 +161,7 @@ watch(
       <div class="flex-1 w-full">
         <select
           v-model="filterProker"
-          class="w-full px-2.5 py-1.5 text-xs rounded-xl bg-black/[0.03] border border-black/5 text-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 focus:bg-white transition-all cursor-pointer"
+          class="w-full px-3 py-2 text-xs rounded-2xl bg-zinc-50 border border-zinc-200 text-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 focus:border-[#0A84DC] transition-all cursor-pointer"
         >
           <option value="">Semua Proker</option>
           <option v-for="proker in prokerList" :key="proker.id" :value="proker.nama_proker">
@@ -174,11 +176,11 @@ watch(
         <div
           role="group"
           aria-label="Filter Kepemilikan Surat"
-          class="relative inline-flex items-center w-24 h-8 p-1 rounded-full bg-gray-200 select-none"
+          class="relative inline-flex items-center w-24 h-8 p-1 rounded-full bg-slate-100 border border-slate-200/80 select-none"
         >
           <!-- Background Sliding Indicator -->
           <span
-            class="absolute top-1 bottom-1 left-1 w-[calc(50%-4px)] rounded-full bg-white shadow-sm transition-transform duration-300 ease-in-out pointer-events-none"
+            class="absolute top-1 bottom-1 left-1 w-[calc(50%-4px)] rounded-full bg-white shadow-2xs transition-transform duration-300 ease-in-out pointer-events-none"
             :class="filterOnlyMe ? 'translate-x-full' : 'translate-x-0'"
           />
 
@@ -210,18 +212,19 @@ watch(
         </div>
 
         <!-- Clear Filter -->
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           @click="clearFilters"
           :disabled="!isFilterActive"
-          class="px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all flex items-center gap-1 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-          :class="isFilterActive ? 'bg-rose-50 text-rose-600 hover:bg-rose-100 border-rose-200/80 shadow-2xs' : 'bg-black/[0.03] text-zinc-400 border-black/5'"
+          class="text-xs"
         >
           <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
           Clear Filter
-        </button>
+        </Button>
       </div>
     </div>
   </div>

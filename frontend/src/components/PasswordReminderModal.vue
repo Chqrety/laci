@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { authService, currentUser } from '@/services/api'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 const showModal = ref(false)
 const newPassword = ref('')
@@ -107,42 +110,41 @@ const handleSubmit = async () => {
 
       <!-- Form -->
       <form v-if="!successMsg" @submit.prevent="handleSubmit" class="flex flex-col gap-3.5">
-        <div>
-          <label class="block text-xs font-medium text-zinc-700 mb-1">Password Baru</label>
-          <input
+        <div class="space-y-1.5">
+          <Label for="new-password">Password Baru</Label>
+          <Input
+            id="new-password"
             v-model="newPassword"
             type="password"
             placeholder="Minimal 6 karakter"
-            class="w-full px-3.5 py-2.5 rounded-2xl bg-zinc-50 border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 focus:border-[#0A84DC] transition-all"
           />
         </div>
 
-        <div>
-          <label class="block text-xs font-medium text-zinc-700 mb-1">Konfirmasi Password Baru</label>
-          <input
+        <div class="space-y-1.5">
+          <Label for="confirm-password">Konfirmasi Password Baru</Label>
+          <Input
+            id="confirm-password"
             v-model="confirmPassword"
             type="password"
             placeholder="Ketik ulang password baru"
-            class="w-full px-3.5 py-2.5 rounded-2xl bg-zinc-50 border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 focus:border-[#0A84DC] transition-all"
           />
         </div>
 
         <!-- Action Buttons -->
         <div class="flex items-center justify-end gap-2.5 mt-2">
-          <button
+          <Button
             type="button"
+            variant="ghost"
             @click="handleDismiss"
-            class="px-4 py-2.5 rounded-2xl text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 transition-all"
           >
             Nanti Saja (Gunakan Default)
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
             :disabled="isSubmitting"
-            class="px-5 py-2.5 rounded-2xl text-xs font-semibold text-white bg-[#0A84DC] hover:bg-[#086db8] active:scale-[0.98] transition-all shadow-[0_8px_20px_rgba(10,132,220,0.25)] disabled:opacity-50"
           >
             {{ isSubmitting ? 'Menyimpan...' : 'Ganti Password' }}
-          </button>
+          </Button>
         </div>
       </form>
     </div>
