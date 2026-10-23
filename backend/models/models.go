@@ -27,6 +27,7 @@ type Surat struct {
 	ID            uuid.UUID     `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
 	NomorSurat    string        `gorm:"type:varchar(255);not null" json:"nomor_surat"`
 	Perihal       string        `gorm:"type:varchar(255);not null" json:"perihal"`
+	Tujuan        string        `gorm:"type:varchar(255);default:''" json:"tujuan"`
 	StatusSaatIni string        `gorm:"type:varchar(100);not null" json:"status_saat_ini"`
 	PICNama       string        `gorm:"type:varchar(100);not null" json:"pic_nama"`
 	ArsipURL      *string       `gorm:"type:text" json:"arsip_url"`

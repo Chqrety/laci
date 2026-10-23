@@ -221,7 +221,7 @@ const formatDate = (dateString?: string) => {
     <div class="fixed inset-0" @click="handleClosePanel" aria-hidden="true"></div>
 
     <!-- iOS Slide-over Sheet (rounded-3xl, pure solid white, no bleed) -->
-    <div class="relative w-full max-w-lg bg-white h-full shadow-2xl flex flex-col z-10 border-l border-black/10 overflow-hidden sm:rounded-l-3xl">
+    <div class="drawer-panel relative w-full max-w-lg bg-white h-full shadow-2xl flex flex-col z-10 border-l border-black/10 overflow-hidden sm:rounded-l-3xl">
       <!-- Header -->
       <header class="p-6 border-b border-black/5 flex items-start justify-between bg-white">
         <div class="space-y-1.5">
@@ -229,6 +229,7 @@ const formatDate = (dateString?: string) => {
             {{ props.surat.nomor_surat }}
           </span>
           <h2 class="text-base font-semibold text-zinc-900 leading-snug">{{ props.surat.perihal }}</h2>
+          <p v-if="props.surat.tujuan" class="text-xs text-zinc-600 font-medium">Tujuan: <span class="text-zinc-900 font-semibold">{{ props.surat.tujuan }}</span></p>
           <p class="text-xs text-zinc-500">PIC: <span class="text-zinc-800 font-semibold">{{ props.surat.pic_nama }}</span></p>
         </div>
 

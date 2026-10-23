@@ -43,7 +43,10 @@ const filteredSurat = computed(() => {
 
   return suratList.value.filter((s) => {
     const matchSearch =
-      !q || s.nomor_surat.toLowerCase().includes(q) || s.perihal.toLowerCase().includes(q)
+      !q ||
+      s.nomor_surat.toLowerCase().includes(q) ||
+      s.perihal.toLowerCase().includes(q) ||
+      (s.tujuan && s.tujuan.toLowerCase().includes(q))
     const matchStatus = !sf || s.status_saat_ini.toLowerCase() === sf
     return matchSearch && matchStatus
   })
@@ -105,8 +108,8 @@ onMounted(fetchSurat)
     <!-- Top Bar (Mirip dengan ProkerManagement.vue) -->
     <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 px-1">
       <div>
-        <h2 class="text-xl font-semibold tracking-tight text-zinc-900">Surat</h2>
-        <p class="text-xs text-zinc-500 mt-0.5">Kelola data arsip dan lacak seluruh status surat keluar DOSCOM.</p>
+        <h2 class="text-xl font-medium tracking-tight text-slate-900 leading-snug">Surat</h2>
+        <p class="text-xs text-slate-500 mt-0.5">Kelola data arsip dan lacak seluruh status surat keluar DOSCOM.</p>
       </div>
 
       <!-- Filter Bar di luar card tabel, sejajar dengan judul -->
@@ -115,12 +118,12 @@ onMounted(fetchSurat)
           v-model="searchQuery"
           type="search"
           placeholder="Cari nomor atau perihal..."
-          class="px-3.5 py-2 text-xs rounded-2xl bg-white/80 border border-black/5 text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 shadow-[0_8px_30px_rgb(0,0,0,0.05)] transition-all w-48 sm:w-60"
+          class="px-4 py-2 text-xs rounded-full bg-white border border-slate-200 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-sky-100 focus:border-sky-500 shadow-xs transition-all w-48 sm:w-60"
         />
 
         <select
           v-model="statusFilter"
-          class="px-3 py-2 text-xs rounded-2xl bg-white/80 border border-black/5 text-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 shadow-[0_8px_30px_rgb(0,0,0,0.05)] transition-all cursor-pointer"
+          class="px-3.5 py-2 text-xs rounded-full bg-white border border-slate-200 text-slate-800 focus:outline-none focus:ring-4 focus:ring-sky-100 focus:border-sky-500 shadow-xs transition-all cursor-pointer"
         >
           <option value="">Semua Status</option>
           <option v-for="status in STATUS_COLUMNS" :key="status" :value="status">
@@ -132,7 +135,7 @@ onMounted(fetchSurat)
           type="button"
           @click="fetchSurat"
           :disabled="isLoading"
-          class="px-4 py-2 text-xs font-semibold border border-black/5 rounded-2xl bg-white/80 text-zinc-700 hover:bg-white shadow-[0_8px_30px_rgb(0,0,0,0.05)] transition-all active:scale-[0.98] disabled:opacity-50 shrink-0"
+          class="px-4 py-2 text-xs font-semibold border border-slate-200 rounded-full bg-white text-slate-700 hover:bg-slate-50 shadow-xs transition-all active:scale-[0.98] disabled:opacity-50 shrink-0 cursor-pointer"
         >
           {{ isLoading ? 'Memuat...' : 'Muat Ulang' }}
         </button>
@@ -149,7 +152,7 @@ onMounted(fetchSurat)
     </div>
 
     <!-- Table Container (Persis seperti ProkerManagement: bg-white/85 backdrop-blur-xl border border-black/5 rounded-2xl) -->
-    <div class="bg-white/85 backdrop-blur-xl border border-black/5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)] overflow-hidden">
+    <div class="bg-white/95 border border-slate-200/90 rounded-3xl shadow-xs overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full text-left text-xs divide-y divide-black/5 min-w-[760px]">
           <thead class="bg-black/[0.02] text-zinc-500 font-semibold">
@@ -192,6 +195,9 @@ onMounted(fetchSurat)
               </td>
               <td class="px-5 py-4 font-semibold text-zinc-900 leading-snug">
                 <div>{{ surat.perihal }}</div>
+                <div v-if="surat.tujuan" class="text-[11px] font-medium text-[#0A84DC] mt-0.5 line-clamp-1">
+                  Tujuan: {{ surat.tujuan }}
+                </div>
                 <div v-if="surat.catatan" class="text-[11px] font-normal text-zinc-500 mt-0.5 line-clamp-1">
                   {{ surat.catatan }}
                 </div>

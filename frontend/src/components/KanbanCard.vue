@@ -16,8 +16,8 @@ defineEmits<{
     draggable="true"
     style="-webkit-touch-callout: none;"
     :class="[
-      'touch-pan-y select-none bg-white p-4 rounded-2xl border border-black/5 shadow-[0_8px_30px_rgb(0,0,0,0.05)] hover:border-[#0A84DC]/30 hover:shadow-md cursor-grab active:cursor-grabbing transition-all space-y-2.5 active:scale-[0.98]',
-      isDragging ? 'opacity-40 ring-2 ring-[#0A84DC]/50' : ''
+      'touch-pan-y select-none bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs hover:border-sky-400 hover:shadow-xs hover:-translate-y-0.5 cursor-grab active:cursor-grabbing transition-all duration-200 space-y-2.5 active:scale-[0.98]',
+      isDragging ? 'opacity-40 ring-2 ring-sky-400/50' : ''
     ]"
     @click="$emit('click', surat)"
   >
@@ -37,6 +37,10 @@ defineEmits<{
     <h4 class="text-xs font-semibold text-zinc-900 leading-snug line-clamp-2">
       {{ surat.perihal }}
     </h4>
+
+    <p v-if="surat.tujuan" class="text-xs text-gray-500 line-clamp-2">
+      {{ surat.tujuan }}
+    </p>
 
     <div class="flex items-center justify-between pt-1 border-t border-black/5 text-[11px]">
       <span class="inline-flex items-center gap-1.5 text-zinc-500 font-medium">

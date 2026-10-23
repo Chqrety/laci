@@ -19,6 +19,7 @@ import (
 type CreateSuratInput struct {
 	NomorSurat    string `json:"nomor_surat" binding:"required"`
 	Perihal       string `json:"perihal" binding:"required"`
+	Tujuan        string `json:"tujuan"`
 	StatusSaatIni string `json:"status_saat_ini"`
 	PICNama       string `json:"pic_nama" binding:"required"`
 	Catatan       string `json:"catatan"`
@@ -28,6 +29,7 @@ type UpdateSuratInput struct {
 	StatusSaatIni string  `json:"status_saat_ini"`
 	StatusBaru    string  `json:"status_baru"`
 	Status        string  `json:"status"`
+	Tujuan        *string `json:"tujuan"`
 	Catatan       *string `json:"catatan"`
 	CatatanLog    *string `json:"catatan_log"`
 }
@@ -66,6 +68,7 @@ func CreateSurat(c *gin.Context) {
 		ID:            suratID,
 		NomorSurat:    input.NomorSurat,
 		Perihal:       input.Perihal,
+		Tujuan:        input.Tujuan,
 		StatusSaatIni: status,
 		PICNama:       input.PICNama,
 		Catatan:       input.Catatan,
@@ -154,6 +157,9 @@ func UpdateSurat(c *gin.Context) {
 		updates := map[string]interface{}{
 			"status_saat_ini": newStatus,
 		}
+		if input.Tujuan != nil {
+			updates["tujuan"] = *input.Tujuan
+		}
 		if input.Catatan != nil {
 			updates["catatan"] = *input.Catatan
 		}
@@ -172,6 +178,9 @@ func UpdateSurat(c *gin.Context) {
 	}
 
 	surat.StatusSaatIni = newStatus
+	if input.Tujuan != nil {
+		surat.Tujuan = *input.Tujuan
+	}
 	if input.Catatan != nil {
 		surat.Catatan = *input.Catatan
 	}

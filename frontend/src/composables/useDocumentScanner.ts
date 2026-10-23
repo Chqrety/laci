@@ -5,6 +5,8 @@ export interface DocumentScanResult {
   rawText: string
   nomorSurat: string
   perihal: string
+  namaKegiatan: string
+  tujuanSurat: string
   noUrut: string
   prokerCode: string
   bulanRomawi: string
@@ -100,6 +102,18 @@ export function extractPerihal(text: string): string {
   return ''
 }
 
+export function extractNamaKegiatan(text: string): string {
+  if (!text) return ''
+  const match = text.match(/kegiatan\s+(.+?)\s+yang\s+(?:akan\s+)?diselenggarakan/is)
+  return match?.[1] ? match[1].replace(/\s+/g, ' ').trim() : ''
+}
+
+export function extractTujuanSurat(text: string): string {
+  if (!text) return ''
+  const match = text.match(/Yth\.?\s*(.+?)(?:\r?\n|$)/i)
+  return match?.[1] ? match[1].trim() : ''
+}
+
 export function useDocumentScanner() {
   const isScanning = ref(false)
   const scanProgress = ref(0)
@@ -122,11 +136,15 @@ export function useDocumentScanner() {
       const text = data?.text || ''
       const doscomParsed = parseDoscomNomor(text)
       const perihal = extractPerihal(text)
+      const namaKegiatan = extractNamaKegiatan(text)
+      const tujuanSurat = extractTujuanSurat(text)
 
       const extracted: DocumentScanResult = {
         rawText: text,
         nomorSurat: doscomParsed.full,
         perihal,
+        namaKegiatan,
+        tujuanSurat,
         noUrut: doscomParsed.noUrut,
         prokerCode: doscomParsed.prokerCode,
         bulanRomawi: doscomParsed.bulan,

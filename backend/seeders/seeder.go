@@ -115,6 +115,7 @@ func seedSurat(db *gorm.DB) {
 	dummyList := []struct {
 		Nomor   string
 		Perihal string
+		Tujuan  string
 		Proker  string
 		Status  string
 		PIC     string
@@ -123,6 +124,7 @@ func seedSurat(db *gorm.DB) {
 		{
 			Nomor:   "015/DOSCOM/MAKRAB/X/2026",
 			Perihal: "Permohonan Peminjaman Ruang Gedung H",
+			Tujuan:  "Kepala Bagian Rumah Tangga & Sarpras",
 			Proker:  "MAKRAB",
 			Status:  "Standby",
 			PIC:     "Ahmad Fauzi",
@@ -131,6 +133,7 @@ func seedSurat(db *gorm.DB) {
 		{
 			Nomor:   "018/DOSCOM/OPREC/X/2026",
 			Perihal: "Surat Izin Penyelenggaraan Acara",
+			Tujuan:  "Koordinator Kemahasiswaan Fakultas",
 			Proker:  "OPREC",
 			Status:  "Cetak",
 			PIC:     "Nabila Putri",
@@ -139,6 +142,7 @@ func seedSurat(db *gorm.DB) {
 		{
 			Nomor:   "021/DOSCOM/DST/X/2026",
 			Perihal: "Peminjaman Proyektor dan Sound System",
+			Tujuan:  "Laboratorium Komputer & Multimedia",
 			Proker:  "DST",
 			Status:  "TTD Lapis 1",
 			PIC:     "Dimas Arya",
@@ -147,6 +151,7 @@ func seedSurat(db *gorm.DB) {
 		{
 			Nomor:   "022/DOSCOM/DU/X/2026",
 			Perihal: "Permohonan SK Kepengurusan",
+			Tujuan:  "Ketua BEM Fakultas Ilmu Komputer",
 			Proker:  "DU",
 			Status:  "TTD Ketum",
 			PIC:     "Siti Rahma",
@@ -155,6 +160,7 @@ func seedSurat(db *gorm.DB) {
 		{
 			Nomor:   "025/DOSCOM/RP/X/2026",
 			Perihal: "Surat Undangan Pembicara",
+			Tujuan:  "Bapak Dosen Pembina Organisasi",
 			Proker:  "RP",
 			Status:  "TTD Pembina",
 			PIC:     "Rian Pratama",
@@ -163,6 +169,7 @@ func seedSurat(db *gorm.DB) {
 		{
 			Nomor:   "028/DOSCOM/OOTS/X/2026",
 			Perihal: "Permohonan Izin Stand Bazaar Kampus",
+			Tujuan:  "Biro Kemahasiswaan Universitas",
 			Proker:  "OOTS",
 			Status:  "Paraf Koormawa",
 			PIC:     "Fajar Santoso",
@@ -171,6 +178,7 @@ func seedSurat(db *gorm.DB) {
 		{
 			Nomor:   "030/DOSCOM/MAKRAB/X/2026",
 			Perihal: "Permohonan Rekomendasi Kegiatan Luar Kampus",
+			Tujuan:  "Wakil Dekan III Bidang Kemahasiswaan",
 			Proker:  "MAKRAB",
 			Status:  "TTD Tertinggi",
 			PIC:     "Lestari Widya",
@@ -179,6 +187,7 @@ func seedSurat(db *gorm.DB) {
 		{
 			Nomor:   "032/DOSCOM/DST/X/2026",
 			Perihal: "Surat Tugas Instruktur Workshop",
+			Tujuan:  "Ketua Program Studi Teknik Informatika",
 			Proker:  "DST",
 			Status:  "Selesai",
 			PIC:     "Bayu Saputra",
@@ -192,6 +201,7 @@ func seedSurat(db *gorm.DB) {
 			ID:            uuid.New(),
 			NomorSurat:    d.Nomor,
 			Perihal:       d.Perihal,
+			Tujuan:        d.Tujuan,
 			StatusSaatIni: d.Status,
 			PICNama:       d.PIC,
 			Catatan:       d.Catatan,

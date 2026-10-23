@@ -67,6 +67,7 @@ const scanFeedback = ref('')
 const createForm = ref({
   nomor_surat: '',
   perihal: '',
+  tujuan: '',
   status_saat_ini: 'Standby',
   pic_nama: '',
   catatan: '',
@@ -86,6 +87,7 @@ const resetForm = () => {
   createForm.value = {
     nomor_surat: '',
     perihal: '',
+    tujuan: '',
     status_saat_ini: 'Standby',
     pic_nama: getLoggedInPicName(),
     catatan: '',
@@ -108,8 +110,19 @@ const handleFileChange = async (event: Event) => {
   try {
     const result = await scanImage(file)
 
-    if (result.perihal) {
-      createForm.value.perihal = result.perihal.replace(/^[:;.\s-]+/, '').trim()
+    const halAsli = result.perihal ? result.perihal.replace(/^[:;.\s-]+/, '').trim() : ''
+    const kegiatan = result.namaKegiatan?.trim()
+
+    if (halAsli && kegiatan) {
+      createForm.value.perihal = `${halAsli} — ${kegiatan}`
+    } else if (halAsli) {
+      createForm.value.perihal = halAsli
+    } else if (kegiatan) {
+      createForm.value.perihal = kegiatan
+    }
+
+    if (result.tujuanSurat) {
+      createForm.value.tujuan = result.tujuanSurat
     }
 
     if (result.noUrut) {
@@ -139,7 +152,7 @@ const handleFileChange = async (event: Event) => {
       selectedTahun.value = result.tahun
     }
 
-    if (result.perihal || result.noUrut || result.prokerCode) {
+    if (result.perihal || result.noUrut || result.prokerCode || result.tujuanSurat || result.namaKegiatan) {
       scanFeedback.value = 'Data surat DOSCOM berhasil diekstrak dan diisi ke form.'
     } else {
       scanFeedback.value = 'Teks terbaca namun struktur nomor surat DOSCOM tidak terdeteksi.'
@@ -197,19 +210,12 @@ const handleCreateSurat = async () => {
 </script>
 
 <template>
-  <Transition
-    enter-active-class="transition duration-200 ease-out"
-    enter-from-class="opacity-0 scale-95"
-    enter-to-class="opacity-100 scale-100"
-    leave-active-class="transition duration-150 ease-in"
-    leave-from-class="opacity-100 scale-100"
-    leave-to-class="opacity-0 scale-95"
-  >
+  <Transition name="modal-fade">
     <div
       v-if="isOpen"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto"
     >
-      <div class="bg-white rounded-3xl border border-black/10 max-w-xl w-full p-6 sm:p-7 space-y-5 shadow-xl">
+      <div class="modal-panel bg-white rounded-3xl border border-black/10 max-w-xl w-full p-6 sm:p-7 space-y-5 shadow-xl">
         <header>
           <h3 class="text-lg font-semibold text-zinc-900 tracking-tight">Tambah Surat Baru</h3>
           <p class="text-xs text-zinc-500 mt-0.5">Lengkapi parameter nomor surat dan informasi dokumen resmi.</p>
@@ -346,7 +352,18 @@ const handleCreateSurat = async () => {
               />
             </div>
 
-            <!-- 3. Nama PIC -->
+            <!-- 3. Tujuan Surat -->
+            <div class="px-4 py-2.5 focus-within:bg-zinc-50/50 transition-colors">
+              <label class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Tujuan Surat</label>
+              <input
+                v-model="createForm.tujuan"
+                type="text"
+                placeholder="Pihak penerima surat (Contoh: Wakil Dekan III / BEM FT)"
+                class="w-full text-xs font-medium text-zinc-900 bg-transparent focus:outline-none placeholder:text-zinc-400 pt-0.5"
+              />
+            </div>
+
+            <!-- 4. Nama PIC -->
             <div class="px-4 py-2.5 focus-within:bg-zinc-50/50 transition-colors">
               <label class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Nama PIC</label>
               <!-- Akun Humas: Terkunci otomatis ke nama pengurus yang sedang login -->
@@ -375,7 +392,7 @@ const handleCreateSurat = async () => {
               </div>
             </div>
 
-            <!-- 4. Status Awal -->
+            <!-- 5. Status Awal -->
             <div class="px-4 py-2.5 focus-within:bg-zinc-50/50 transition-colors">
               <label class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Status Awal</label>
               <select
@@ -392,7 +409,7 @@ const handleCreateSurat = async () => {
               </div>
             </div>
 
-            <!-- 5. Catatan Awal -->
+            <!-- 6. Catatan Awal -->
             <div class="px-4 py-2.5 focus-within:bg-zinc-50/50 transition-colors">
               <label class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Catatan Awal (Opsional)</label>
               <textarea
