@@ -27,7 +27,7 @@ const handleLogout = () => {
     <!-- Header with Floema Architectural Styling (Hidden on Login page) -->
     <header
       v-if="!isLoginPage"
-      class="backdrop-blur-md bg-white/90 border-b border-slate-200/80 sticky top-0 z-30 shadow-xs transition-all"
+      class="bg-white/95 sm:bg-white/90 sm:backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-30 shadow-xs transition-all"
     >
       <div class="max-w-7xl mx-auto px-4 sm:px-6">
         <!-- Top Row: Brand & Profile / Controls (Single row on desktop, split on mobile) -->

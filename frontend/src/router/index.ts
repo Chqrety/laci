@@ -1,9 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { authService, currentRole } from '@/services/api'
-import Login from '@/views/Login.vue'
-import KanbanBoard from '@/views/KanbanBoard.vue'
-import ProkerManagement from '@/views/ProkerManagement.vue'
-import SuratManagement from '@/views/SuratManagement.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -11,27 +7,27 @@ const router = createRouter({
     {
       path: '/login',
       name: 'login',
-      component: Login,
+      component: () => import('@/views/Login.vue'),
       meta: { requiresAuth: false },
     },
     {
       path: '/',
       name: 'board',
-      component: KanbanBoard,
+      component: () => import('@/views/KanbanBoard.vue'),
       meta: { requiresAuth: true },
     },
     {
       path: '/letters',
       alias: '/surat-management',
       name: 'letters',
-      component: SuratManagement,
+      component: () => import('@/views/SuratManagement.vue'),
       meta: { requiresAuth: true, role: 'sekre' },
     },
     {
       path: '/programs',
       alias: '/proker',
       name: 'programs',
-      component: ProkerManagement,
+      component: () => import('@/views/ProkerManagement.vue'),
       meta: { requiresAuth: true, role: 'sekre' },
     },
     {

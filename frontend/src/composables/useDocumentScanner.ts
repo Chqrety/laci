@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import Tesseract from 'tesseract.js'
+
 
 export interface DocumentScanResult {
   rawText: string
@@ -181,16 +181,19 @@ export function useDocumentScanner() {
     scanProgress.value = 0
     scanResult.value = null
 
+    let worker: any = null
     try {
       const optimizedFile = await preprocessImageForOcr(file)
-      const { data } = await Tesseract.recognize(optimizedFile, 'ind', {
-        logger: (m) => {
+      const { createWorker } = await import('tesseract.js')
+      worker = await createWorker('ind', 1, {
+        logger: (m: { status?: string; progress?: number }) => {
           if (m?.status === 'recognizing text' && typeof m.progress === 'number') {
             scanProgress.value = Math.min(100, Math.round(m.progress * 100))
           }
         },
       })
 
+      const { data } = await worker.recognize(optimizedFile)
       const text = data?.text || ''
       const doscomParsed = parseDoscomNomor(text)
       const perihal = extractPerihal(text)
@@ -213,6 +216,9 @@ export function useDocumentScanner() {
       scanResult.value = extracted
       return extracted
     } finally {
+      if (worker) {
+        await worker.terminate()
+      }
       isScanning.value = false
     }
   }
