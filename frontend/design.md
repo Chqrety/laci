@@ -180,3 +180,23 @@ Semua transisi diatur secara global pada `frontend/src/style.css` agar bebas dar
 3. **Hindari Tombol Sudut Kaku (Sharp Angles)**: Gunakan minimal `rounded-2xl` untuk input dan `rounded-3xl` untuk card/modal utama.
 4. **Jaga Kontras & Aksesibilitas**: Pastikan teks di atas latar putih memakai minimal `text-slate-700` atau `text-zinc-800`.
 5. **Pertahankan Transisi Halus**: Selalu bungkus modal dengan `<Transition name="modal-fade">` dan tambahkan kelas `.modal-panel` pada kontainer dialog intinya.
+
+---
+
+## 8. Arsitektur UI & Form Validation
+
+Untuk menjaga konsistensi antarmuka, keandalan data, serta pengalaman pengguna yang seragam di seluruh aplikasi, wajib mengikuti arsitektur komponen dan validasi form berikut:
+
+### 8.1 Komponen UI Utama (Shadcn-Vue Mandatory)
+- Semua pengembangan elemen antarmuka (seperti `Button`, `Input`, `Textarea`, `Badge`, `Label`, `Dialog`/Modal, `Select`, dan `Toast`) **WAJIB** menggunakan komponen terpusat dari `@/components/ui/*` (`shadcn-vue`).
+- **Dilarang** membuat komponen form mentah dari nol atau menulis tag HTML dasar secara manual jika komponen Shadcn-Vue yang sesuai sudah tersedia di dalam proyek.
+
+### 8.2 Form State & Schema Validation (Vee-Validate + Zod)
+- **Ekosistem Validasi**: Seluruh manajemen form wajib menggunakan ekosistem `vee-validate`, `@vee-validate/zod`, dan `zod` untuk pendefinisian skema validasi deklaratif.
+- **Tanpa State Error Manual**: Dilarang mengelola state error secara manual (contoh: `const error = ref('')`, `const isInvalid = ref(false)`) atau mengandalkan validasi HTML native browser.
+- **Atribut Form**: Wajib menyertakan atribut `novalidate` pada setiap tag `<form>` untuk menonaktifkan tooltip bawaan browser dan memastikan konsistensi interaksi visual kustom.
+
+### 8.3 Error Handling Visual (<FormMessage>)
+- Pesan kesalahan validasi wajib dirender secara otomatis menggunakan komponen `<FormMessage />` dari Shadcn-Vue.
+- Input yang berada dalam kondisi error otomatis mendapatkan border berwarna merah (`border-destructive` / `border-rose-500`) dan pesan teks peringatan merah di bawah input, sepenuhnya selaras dengan token warna semantik DOSCOM di atas.
+
