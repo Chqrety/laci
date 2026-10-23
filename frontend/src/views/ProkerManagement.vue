@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { prokerService, type Proker } from '@/services/api'
+import { Button } from '@/components/ui/button'
 
 const prokerList = ref<Proker[]>([])
 const isLoading = ref(false)
@@ -92,22 +93,23 @@ onMounted(() => {
       </div>
 
       <div class="flex items-center gap-2">
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           @click="fetchProker"
           :disabled="isLoading"
-          class="px-4 py-2 text-xs font-semibold border border-slate-200 rounded-full bg-white text-slate-700 hover:bg-slate-50 shadow-xs transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
         >
           {{ isLoading ? 'Memuat...' : 'Muat Ulang' }}
-        </button>
+        </Button>
 
-        <button
+        <Button
           type="button"
+          size="sm"
           @click="openModal()"
-          class="px-4.5 py-2 text-xs font-bold rounded-full bg-sky-600 text-white hover:bg-sky-700 shadow-xs transition-all active:scale-[0.98] cursor-pointer"
         >
           + Tambah Proker Baru
-        </button>
+        </Button>
       </div>
     </header>
 
@@ -255,20 +257,21 @@ onMounted(() => {
             </p>
 
             <footer class="flex justify-end gap-2.5 pt-2">
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 @click="isModalOpen = false"
-                class="px-4 py-2 text-xs font-semibold border border-black/10 rounded-2xl text-zinc-700 hover:bg-black/5 transition-all duration-200 active:scale-95 cursor-pointer"
               >
                 Batal
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
+                size="sm"
                 :disabled="isSubmitting"
-                class="px-5 py-2 text-xs font-semibold bg-[#0A84DC] text-white rounded-2xl hover:bg-[#0872be] shadow-md disabled:opacity-50 transition-all duration-200 active:scale-95 cursor-pointer"
               >
                 {{ isSubmitting ? 'Menyimpan...' : (isEditing ? 'Perbarui Proker' : 'Simpan Proker') }}
-              </button>
+              </Button>
             </footer>
           </form>
         </div>

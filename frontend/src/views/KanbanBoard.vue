@@ -14,6 +14,7 @@ import CardDetail from '@/components/CardDetail.vue'
 import KanbanCard from '@/components/KanbanCard.vue'
 import KanbanFilter from '@/components/KanbanFilter.vue'
 import KanbanModalForm from '@/components/KanbanModalForm.vue'
+import { Button } from '@/components/ui/button'
 
 const suratList = ref<Surat[]>([])
 const filteredSuratList = ref<Surat[]>([])
@@ -136,22 +137,25 @@ onMounted(() => {
       </div>
 
       <div class="flex items-center gap-2 w-full sm:w-auto">
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           @click="loadSurat"
           :disabled="isLoading"
-          class="flex-1 sm:flex-initial px-4 py-2 text-xs font-semibold rounded-full bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-xs transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+          class="flex-1 sm:flex-initial"
         >
           {{ isLoading ? 'Memuat...' : 'Muat Ulang' }}
-        </button>
+        </Button>
 
-        <button
+        <Button
           type="button"
+          size="sm"
           @click="isCreateModalOpen = true"
-          class="flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-full bg-sky-600 text-white hover:bg-sky-700 shadow-xs transition-all active:scale-[0.98] cursor-pointer"
+          class="flex-1 sm:flex-initial"
         >
           + Tambah Surat
-        </button>
+        </Button>
       </div>
     </header>
 

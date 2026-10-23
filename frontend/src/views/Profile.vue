@@ -212,44 +212,40 @@ const handleChangePassword = async () => {
       <form @submit.prevent="handleChangePassword" class="flex flex-col gap-3.5">
         <div v-if="!profile?.is_password_default">
           <label class="block text-xs font-medium text-zinc-700 mb-1">Password Saat Ini</label>
-          <input
+          <Input
             v-model="oldPassword"
             type="password"
             placeholder="Masukkan password saat ini"
-            class="w-full px-3.5 py-2.5 rounded-2xl bg-zinc-50 border border-zinc-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 focus:border-[#0A84DC]"
           />
         </div>
 
         <div>
           <label class="block text-xs font-medium text-zinc-700 mb-1">Password Baru</label>
-          <input
+          <Input
             v-model="newPassword"
             type="password"
             required
             placeholder="Minimal 6 karakter"
-            class="w-full px-3.5 py-2.5 rounded-2xl bg-zinc-50 border border-zinc-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 focus:border-[#0A84DC]"
           />
         </div>
 
         <div>
           <label class="block text-xs font-medium text-zinc-700 mb-1">Konfirmasi Password Baru</label>
-          <input
+          <Input
             v-model="confirmPassword"
             type="password"
             required
             placeholder="Ketik ulang password baru"
-            class="w-full px-3.5 py-2.5 rounded-2xl bg-zinc-50 border border-zinc-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 focus:border-[#0A84DC]"
           />
         </div>
 
         <div class="flex justify-end pt-2">
-          <button
+          <Button
             type="submit"
             :disabled="isSubmitting"
-            class="px-6 py-2.5 rounded-full text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 active:scale-[0.98] transition-all shadow-xs disabled:opacity-50 cursor-pointer"
           >
             {{ isSubmitting ? 'Menyimpan...' : 'Simpan Password Baru' }}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

@@ -2,6 +2,8 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { authService, currentRole, type LoginResponse } from '@/services/api'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 const router = useRouter()
 
@@ -251,14 +253,14 @@ const handleSkipPasswordChange = async () => {
                 <label for="username" class="block text-xs font-bold uppercase tracking-wider text-slate-700">
                   Username atau NIM
                 </label>
-                <input
+                <Input
                   id="username"
                   v-model="username"
                   type="text"
                   autocomplete="username"
                   required
                   placeholder="sekre atau humas"
-                  class="w-full px-4 py-3.5 text-sm sm:text-base font-medium rounded-2xl border border-slate-200 bg-slate-50/70 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-sky-500 focus:ring-4 focus:ring-sky-100 transition-all duration-200"
+                  class="text-sm sm:text-base py-3"
                 />
               </div>
 
@@ -276,28 +278,29 @@ const handleSkipPasswordChange = async () => {
                     {{ showPassword ? 'Sembunyikan' : 'Perlihatkan' }}
                   </button>
                 </div>
-                <input
+                <Input
                   id="password"
                   v-model="password"
                   :type="showPassword ? 'text' : 'password'"
                   autocomplete="current-password"
                   required
                   placeholder="Masukkan kata sandi"
-                  class="w-full px-4 py-3.5 text-sm sm:text-base font-medium rounded-2xl border border-slate-200 bg-slate-50/70 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-sky-500 focus:ring-4 focus:ring-sky-100 transition-all duration-200 tracking-wider"
+                  class="text-sm sm:text-base py-3 tracking-wider"
                 />
               </div>
 
               <!-- Pill Button CTA (Floema Hallmark) -->
               <div class="pt-3">
-                <button
+                <Button
                   type="submit"
+                  size="lg"
                   :disabled="isLoading"
-                  class="w-full py-4 px-8 rounded-full bg-sky-600 hover:bg-sky-700 active:scale-[0.98] text-white font-bold text-sm sm:text-base shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                  class="w-full text-sm sm:text-base"
                 >
                   <span v-if="isLoading" class="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   <span>{{ isLoading ? 'Memverifikasi...' : 'Masuk ke Repositori' }}</span>
                   <span v-if="!isLoading" class="text-sm tracking-widest">&rarr;</span>
-                </button>
+                </Button>
               </div>
             </form>
 
@@ -369,13 +372,13 @@ const handleSkipPasswordChange = async () => {
                     {{ showNewPassword ? 'Sembunyikan' : 'Perlihatkan' }}
                   </button>
                 </div>
-                <input
+                <Input
                   id="newPass"
                   v-model="newPassword"
                   :type="showNewPassword ? 'text' : 'password'"
                   required
                   placeholder="Minimal 6 karakter"
-                  class="w-full px-4 py-3.5 text-sm sm:text-base font-medium rounded-2xl border border-slate-200 bg-slate-50/70 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-sky-500 focus:ring-4 focus:ring-sky-100 transition-all duration-200"
+                  class="text-sm sm:text-base py-3"
                 />
               </div>
 
@@ -393,13 +396,13 @@ const handleSkipPasswordChange = async () => {
                     {{ showConfirmPassword ? 'Sembunyikan' : 'Perlihatkan' }}
                   </button>
                 </div>
-                <input
+                <Input
                   id="confPass"
                   v-model="confirmPassword"
                   :type="showConfirmPassword ? 'text' : 'password'"
                   required
                   placeholder="Ketik ulang kata sandi baru"
-                  class="w-full px-4 py-3.5 text-sm sm:text-base font-medium rounded-2xl border border-slate-200 bg-slate-50/70 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-sky-500 focus:ring-4 focus:ring-sky-100 transition-all duration-200"
+                  class="text-sm sm:text-base py-3"
                 />
               </div>
 
@@ -417,23 +420,27 @@ const handleSkipPasswordChange = async () => {
 
               <!-- Submit Button (DOSCOM Orange Accent Pill) -->
               <div class="space-y-3 pt-2">
-                <button
+                <Button
                   type="submit"
+                  variant="orange"
+                  size="lg"
                   :disabled="!canSubmitPasswordChange"
-                  class="w-full py-4 px-8 rounded-full bg-orange-500 hover:bg-orange-600 active:scale-[0.98] text-white font-bold text-sm sm:text-base shadow-sm hover:shadow transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="w-full text-sm sm:text-base"
                 >
                   <span v-if="isUpdatingPassword" class="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   <span>{{ isUpdatingPassword ? 'Menyimpan...' : 'Konfirmasi & Masuk' }}</span>
                   <span v-if="!isUpdatingPassword" class="text-sm tracking-widest">&rarr;</span>
-                </button>
+                </Button>
 
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   @click="handleSkipPasswordChange"
-                  class="w-full py-2.5 text-xs font-bold text-slate-400 hover:text-slate-700 tracking-wider uppercase transition-colors text-center cursor-pointer"
+                  class="w-full text-xs font-bold text-slate-400 hover:text-slate-700 tracking-wider uppercase"
                 >
                   Lewati untuk sementara &gt;
-                </button>
+                </Button>
               </div>
             </form>
           </div>

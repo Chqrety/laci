@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useRoute, RouterLink, RouterView } from 'vue-router'
 import { authService, currentRole } from '@/services/api'
+import { Button } from '@/components/ui/button'
 import PasswordReminderModal from '@/components/PasswordReminderModal.vue'
 
 const route = useRoute()
@@ -93,13 +94,14 @@ const handleLogout = () => {
             {{ userRole }}
           </span>
 
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="sm"
             @click="handleLogout"
-            class="text-xs text-slate-500 hover:text-slate-900 px-3 py-1.5 rounded-full hover:bg-slate-100 transition-all font-medium cursor-pointer"
+            class="text-xs text-slate-500 hover:text-slate-900 font-medium"
           >
             Keluar
-          </button>
+          </Button>
         </div>
       </div>
       <!-- Fine Top Accent Line -->

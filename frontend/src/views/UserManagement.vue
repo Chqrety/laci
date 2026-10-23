@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
 import { userService, currentUserId, type User } from '@/services/api'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 const users = ref<User[]>([])
 const isLoading = ref(false)
@@ -363,37 +365,40 @@ const handleImportData = async () => {
       </div>
 
       <div class="flex items-center gap-2 flex-wrap">
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           @click="isImportModalOpen = true"
-          class="px-4 py-2 rounded-full bg-white border border-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5 shadow-xs hover:bg-slate-50 active:scale-[0.98] transition-all cursor-pointer"
+          class="flex items-center gap-1.5"
         >
           <svg class="w-4 h-4 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
           </svg>
           Import Data
-        </button>
+        </Button>
 
-        <button
+        <Button
           type="button"
+          size="sm"
           @click="isAddModalOpen = true"
-          class="px-4.5 py-2 rounded-full bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs active:scale-[0.98] transition-all cursor-pointer"
+          class="flex items-center gap-1.5"
         >
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
           </svg>
           Tambah Pengurus
-        </button>
+        </Button>
       </div>
     </div>
 
     <!-- Filter Bar (Konsisten dengan SuratManagement.vue & ProkerManagement.vue) -->
     <div class="flex items-center flex-wrap gap-2">
-      <input
+      <Input
         v-model="searchQuery"
         type="search"
         placeholder="Cari nama, NIM, email, username..."
-        class="px-4 py-2 text-xs rounded-full bg-white border border-slate-200 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-sky-100 focus:border-sky-500 shadow-xs transition-all flex-1 min-w-[200px]"
+        class="flex-1 min-w-[200px]"
       />
 
       <select
@@ -687,40 +692,36 @@ const handleImportData = async () => {
         <form @submit.prevent="handleCreateUser" class="flex flex-col gap-3">
           <div>
             <label class="block text-xs font-medium text-zinc-700 mb-1">Nama Lengkap *</label>
-            <input
+            <Input
               v-model="formUser.nama"
               required
               placeholder="Contoh: Budi Santoso"
-              class="w-full px-3 py-2 rounded-2xl bg-zinc-50 border border-zinc-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 focus:border-[#0A84DC]"
             />
           </div>
 
           <div>
             <label class="block text-xs font-medium text-zinc-700 mb-1">NIM (Nomor Induk Mahasiswa)</label>
-            <input
+            <Input
               v-model="formUser.nim"
               placeholder="Contoh: A11.2023.12345"
-              class="w-full px-3 py-2 rounded-2xl bg-zinc-50 border border-zinc-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 focus:border-[#0A84DC]"
             />
           </div>
 
           <div>
             <label class="block text-xs font-medium text-zinc-700 mb-1">Email</label>
-            <input
+            <Input
               v-model="formUser.email"
               type="email"
               placeholder="budi@doscom.org"
-              class="w-full px-3 py-2 rounded-2xl bg-zinc-50 border border-zinc-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 focus:border-[#0A84DC]"
             />
           </div>
 
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="block text-xs font-medium text-zinc-700 mb-1">Username (Opsional)</label>
-              <input
+              <Input
                 v-model="formUser.username"
                 placeholder="Auto dari NIM/Nama"
-                class="w-full px-3 py-2 rounded-2xl bg-zinc-50 border border-zinc-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 focus:border-[#0A84DC]"
               />
             </div>
             <div>
@@ -740,28 +741,28 @@ const handleImportData = async () => {
 
           <div>
             <label class="block text-xs font-medium text-zinc-700 mb-1">Password Awal (Opsional)</label>
-            <input
+            <Input
               v-model="formUser.password"
               placeholder="Kosongkan untuk acak otomatis"
-              class="w-full px-3 py-2 rounded-2xl bg-zinc-50 border border-zinc-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 focus:border-[#0A84DC]"
             />
           </div>
 
           <div class="flex items-center justify-end gap-2 mt-2">
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               @click="isAddModalOpen = false"
-              class="px-4 py-2 rounded-2xl text-xs text-zinc-600 hover:bg-zinc-100"
             >
               Batal
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
+              size="sm"
               :disabled="isSubmitting"
-              class="px-4 py-2 rounded-2xl text-xs font-semibold text-white bg-[#0A84DC] hover:bg-[#086db8] disabled:opacity-50"
             >
               {{ isSubmitting ? 'Menyimpan...' : 'Simpan Pengurus' }}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -959,28 +960,25 @@ const handleImportData = async () => {
         <form @submit.prevent="handleUpdateUser" class="flex flex-col gap-3">
           <div>
             <label class="block text-xs font-medium text-zinc-700 mb-1">Nama Lengkap *</label>
-            <input
+            <Input
               v-model="editForm.nama"
               required
-              class="w-full px-3 py-2 rounded-2xl bg-zinc-50 border border-zinc-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 focus:border-[#0A84DC]"
             />
           </div>
 
           <div>
             <label class="block text-xs font-medium text-zinc-700 mb-1">NIM (Nomor Induk Mahasiswa)</label>
-            <input
+            <Input
               v-model="editForm.nim"
               placeholder="Contoh: A11.2023.12345"
-              class="w-full px-3 py-2 rounded-2xl bg-zinc-50 border border-zinc-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 focus:border-[#0A84DC]"
             />
           </div>
 
           <div>
             <label class="block text-xs font-medium text-zinc-700 mb-1">Email</label>
-            <input
+            <Input
               v-model="editForm.email"
               type="email"
-              class="w-full px-3 py-2 rounded-2xl bg-zinc-50 border border-zinc-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 focus:border-[#0A84DC]"
             />
           </div>
 
@@ -1004,10 +1002,9 @@ const handleImportData = async () => {
 
           <div>
             <label class="block text-xs font-medium text-zinc-700 mb-1">Reset Password Baru (Opsional)</label>
-            <input
+            <Input
               v-model="editForm.password"
               placeholder="Kosongkan jika tidak ingin mengubah password"
-              class="w-full px-3 py-2 rounded-2xl bg-zinc-50 border border-zinc-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 focus:border-[#0A84DC]"
             />
             <span class="text-[10px] text-zinc-400 mt-1 block">
               *Jika diisi, password akun ini akan otomatis diganti dan statusnya direset menjadi default.
@@ -1015,20 +1012,21 @@ const handleImportData = async () => {
           </div>
 
           <div class="flex items-center justify-end gap-2 mt-2">
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               @click="isEditModalOpen = false"
-              class="px-4 py-2 rounded-2xl text-xs text-zinc-600 hover:bg-zinc-100"
             >
               Batal
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
+              size="sm"
               :disabled="isSubmitting"
-              class="px-4 py-2 rounded-2xl text-xs font-semibold text-white bg-[#0A84DC] hover:bg-[#086db8] disabled:opacity-50"
             >
               {{ isSubmitting ? 'Menyimpan...' : 'Simpan Perubahan' }}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

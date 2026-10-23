@@ -2,6 +2,8 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { suratService, STATUS_COLUMNS, type Surat } from '@/services/api'
 import CardDetail from '@/components/CardDetail.vue'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 const suratList = ref<Surat[]>([])
 const isLoading = ref(false)
@@ -114,11 +116,11 @@ onMounted(fetchSurat)
 
       <!-- Filter Bar di luar card tabel, sejajar dengan judul -->
       <div class="flex items-center flex-wrap gap-2">
-        <input
+        <Input
           v-model="searchQuery"
           type="search"
           placeholder="Cari nomor atau perihal..."
-          class="px-4 py-2 text-xs rounded-full bg-white border border-slate-200 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-sky-100 focus:border-sky-500 shadow-xs transition-all w-48 sm:w-60"
+          class="w-48 sm:w-60"
         />
 
         <select
@@ -131,14 +133,16 @@ onMounted(fetchSurat)
           </option>
         </select>
 
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           @click="fetchSurat"
           :disabled="isLoading"
-          class="px-4 py-2 text-xs font-semibold border border-slate-200 rounded-full bg-white text-slate-700 hover:bg-slate-50 shadow-xs transition-all active:scale-[0.98] disabled:opacity-50 shrink-0 cursor-pointer"
+          class="shrink-0"
         >
           {{ isLoading ? 'Memuat...' : 'Muat Ulang' }}
-        </button>
+        </Button>
       </div>
     </header>
 
@@ -284,27 +288,29 @@ onMounted(fetchSurat)
         </div>
 
         <div class="flex items-center gap-2">
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             @click="currentPage--"
             :disabled="currentPage <= 1"
-            class="px-3.5 py-1.5 text-xs font-semibold rounded-2xl border border-black/10 bg-white text-zinc-700 hover:bg-black/5 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs active:scale-95 cursor-pointer"
           >
             Previous
-          </button>
+          </Button>
 
           <span class="text-xs font-medium text-zinc-600 px-1">
             Halaman <span class="font-semibold text-zinc-900">{{ currentPage }}</span> dari <span class="font-semibold text-zinc-900">{{ totalPages }}</span>
           </span>
 
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             @click="currentPage++"
             :disabled="currentPage >= totalPages"
-            class="px-3.5 py-1.5 text-xs font-semibold rounded-2xl border border-black/10 bg-white text-zinc-700 hover:bg-black/5 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs active:scale-95 cursor-pointer"
           >
             Next
-          </button>
+          </Button>
         </div>
       </footer>
     </div>
