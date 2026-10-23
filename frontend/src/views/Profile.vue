@@ -61,6 +61,7 @@ const onSubmitUsername = async (values: Record<string, any>) => {
     toast({
       title: 'Berhasil',
       description: text,
+      variant: 'success',
     })
     if (profile.value) {
       profile.value.username = res.username
@@ -109,6 +110,7 @@ const handleChangePassword = async () => {
     toast({
       title: 'Berhasil',
       description: text,
+      variant: 'success',
     })
     oldPassword.value = ''
     newPassword.value = ''

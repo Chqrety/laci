@@ -38,6 +38,6 @@ Docker Compose membaca konfigurasi dari root `.env`. `frontend/.env` digunakan u
 | `VITE_API_URL` | Build argument frontend, digunakan browser untuk request API dan lampiran. | `/api` |
 | `BACKEND_URL` | Environment runtime Nginx, alamat backend dalam jaringan Docker tanpa trailing slash. | `http://backend:8080` |
 
-Nginx meneruskan `/api/` ke `BACKEND_URL/` dengan menghapus awalan `/api/`. Request `/api/surat` diteruskan ke `/surat`, dan lampiran `/api/uploads/...` diteruskan ke `/uploads/...`. Alamat upstream di template Nginx berasal dari environment.
+Nginx meneruskan `/api/` ke `BACKEND_URL/` dengan menghapus awalan `/api/`. Request `/api/letters` diteruskan ke `/letters`, dan lampiran `/api/uploads/...` diteruskan ke `/uploads/...`. Alamat upstream di template Nginx berasal dari environment.
 
 Perubahan `VITE_API_URL` memerlukan rebuild image. Perubahan `BACKEND_URL` memerlukan recreate container frontend. File `.env*` lokal tidak disalin ke image build.

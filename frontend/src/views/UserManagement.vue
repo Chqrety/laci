@@ -370,7 +370,12 @@ const handleImportData = async () => {
     <!-- Header & Actions -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div>
-        <h2 class="text-xl font-medium tracking-tight text-slate-900 leading-snug">Kelola Pengurus & Divisi</h2>
+        <div class="flex items-center gap-2.5">
+          <h2 class="text-xl font-medium tracking-tight text-slate-900 leading-snug">Kelola Pengurus & Divisi</h2>
+          <Badge variant="outline" class="font-normal text-[11px] px-2.5 py-0.5 rounded-full text-slate-500 bg-slate-100/70 border-slate-200/80">
+            {{ filteredUsers.length }} {{ filteredUsers.length === users.length ? 'pengurus' : `dari ${users.length}` }}
+          </Badge>
+        </div>
         <p class="text-xs text-slate-500 mt-0.5">Kelola data humas/pengurus, import CSV/Spreadsheet, dan monitoring password</p>
       </div>
 
@@ -402,17 +407,39 @@ const handleImportData = async () => {
       </div>
     </div>
 
-    <!-- Filter Bar (Konsisten dengan SuratManagement.vue & ProkerManagement.vue) -->
-    <div class="flex items-center flex-wrap gap-2">
-      <Input
-        v-model="searchQuery"
-        type="search"
-        placeholder="Cari nama, NIM, email, username..."
-        class="flex-1 min-w-[200px]"
-      />
+    <!-- Filter Bar (Konsisten dengan SuratManagement.vue) -->
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+      <div class="relative flex-1 min-w-[200px]">
+        <svg
+          class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 105.65 5.65a7.5 7.5 0 0010.7 10.7z" />
+        </svg>
+        <Input
+          v-model="searchQuery"
+          type="search"
+          placeholder="Cari nama, NIM, email, username..."
+          class="pl-9 pr-8 h-9 rounded-xl border-slate-200/90 bg-white text-xs shadow-2xs focus-visible:ring-sky-500/20 w-full"
+        />
+        <button
+          v-if="searchQuery"
+          type="button"
+          @click="searchQuery = ''"
+          title="Hapus pencarian"
+          aria-label="Hapus pencarian"
+          class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-sm"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
 
       <Select v-model="selectedDivisi">
-        <SelectTrigger class="w-40 sm:w-48">
+        <SelectTrigger class="h-9 w-full sm:w-44 lg:w-48 rounded-xl border-slate-200/90 bg-white text-xs shadow-2xs">
           <SelectValue placeholder="Semua Divisi" />
         </SelectTrigger>
         <SelectContent>
@@ -793,7 +820,11 @@ const handleImportData = async () => {
 
     <!-- Modal Import Data (CSV atau Google Sheets) -->
     <Dialog :open="isImportModalOpen" @update:open="(val: boolean) => { if (!val) isImportModalOpen = false }">
-      <DialogContent class="max-w-md">
+      <DialogContent
+        class="max-w-md"
+        @pointer-down-outside="(e: Event) => e.preventDefault()"
+        @interact-outside="(e: Event) => e.preventDefault()"
+      >
         <DialogHeader>
           <DialogTitle>Import Data Pengurus</DialogTitle>
           <DialogDescription>Pilih metode import yang kamu inginkan (CSV atau Google Sheets).</DialogDescription>

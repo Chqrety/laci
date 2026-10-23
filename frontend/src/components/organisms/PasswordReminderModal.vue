@@ -73,6 +73,7 @@ const handleSubmit = async () => {
     toast({
       title: 'Berhasil',
       description: 'Password akun kamu berhasil diperbarui!',
+      variant: 'success',
     })
     setTimeout(() => {
       showModal.value = false

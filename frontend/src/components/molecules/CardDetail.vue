@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, nextTick, onBeforeUnmount } from 'vue'
+import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { api, getBackendAssetUrl, suratService, currentRole, type Surat } from '@/services/api'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -125,7 +125,7 @@ const captureAndSave = async () => {
     const formData = new FormData()
     formData.append('file', blob, filename)
 
-    await api.post(`/surat/${props.surat.id}/upload`, formData, {
+    await api.post(`/letters/${props.surat.id}/upload`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -136,6 +136,7 @@ const captureAndSave = async () => {
     toast({
       title: 'Berhasil',
       description: 'Foto arsip berhasil dijepret & diunggah',
+      variant: 'success',
     })
     emit('updated')
   } catch (err: any) {
@@ -163,7 +164,7 @@ const handleFileUpload = async (event: Event) => {
   try {
     const formData = new FormData()
     formData.append('file', file)
-    await api.post(`/surat/${props.surat.id}/upload`, formData, {
+    await api.post(`/letters/${props.surat.id}/upload`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -172,6 +173,7 @@ const handleFileUpload = async (event: Event) => {
     toast({
       title: 'Berhasil',
       description: 'Arsip dokumen berhasil diunggah',
+      variant: 'success',
     })
     emit('updated')
   } catch (err: any) {
@@ -189,11 +191,25 @@ const handleFileUpload = async (event: Event) => {
 
 const handleClosePanel = () => {
   stopCamera()
+  document.body.style.overflow = ''
   emit('close')
 }
 
+const handleKeyDown = (e: KeyboardEvent) => {
+  if (e.key === 'Escape') {
+    handleClosePanel()
+  }
+}
+
+onMounted(() => {
+  document.body.style.overflow = 'hidden'
+  window.addEventListener('keydown', handleKeyDown)
+})
+
 onBeforeUnmount(() => {
   stopCamera()
+  document.body.style.overflow = ''
+  window.removeEventListener('keydown', handleKeyDown)
 })
 
 // Tracking logs limit toggle
@@ -224,6 +240,7 @@ const handleUpdateStatusAndNote = async () => {
     toast({
       title: 'Berhasil',
       description: updateMessage.value,
+      variant: 'success',
     })
     emit('updated')
   } catch (err: any) {
@@ -253,7 +270,7 @@ const formatDate = (dateString?: string) => {
 <template>
   <aside
     aria-label="Detail Surat"
-    class="fixed inset-0 z-50 flex justify-end bg-black/50 transition-opacity"
+    class="fixed inset-0 z-[100] flex justify-end bg-black/60 backdrop-blur-xs transition-opacity"
   >
     <!-- Backdrop close click area -->
     <div class="fixed inset-0" @click="handleClosePanel" aria-hidden="true"></div>

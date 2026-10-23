@@ -100,6 +100,7 @@ const executeStatusUpdate = async (suratId: string, targetStatus: string) => {
     toast({
       title: 'Status Diperbarui',
       description: `Surat berhasil dipindahkan ke kolom "${targetStatus}"`,
+      variant: 'success',
     })
   } catch (err: any) {
     surat.status_saat_ini = previousStatus
@@ -149,12 +150,15 @@ onMounted(() => {
         <Button
           type="button"
           variant="outline"
-          size="sm"
+          size="icon"
           @click="loadSurat"
           :disabled="isLoading"
-          class="flex-1 sm:flex-initial"
+          title="Muat Ulang"
+          aria-label="Muat Ulang"
         >
-          {{ isLoading ? 'Memuat...' : 'Muat Ulang' }}
+          <svg class="w-4 h-4" :class="{ 'animate-spin': isLoading }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
         </Button>
 
         <Button
@@ -341,16 +345,18 @@ onMounted(() => {
       </section>
     </main>
 
-    <!-- Slide-over Card Detail with Transition -->
-    <Transition name="drawer">
-      <CardDetail
-        v-if="selectedSurat"
-        :surat="selectedSurat"
-        :status-options="statusColumns"
-        @close="closeDetail"
-        @updated="loadSurat"
-      />
-    </Transition>
+    <!-- Slide-over Card Detail with Transition Teleported to Body -->
+    <Teleport to="body">
+      <Transition name="drawer">
+        <CardDetail
+          v-if="selectedSurat"
+          :surat="selectedSurat"
+          :status-options="statusColumns"
+          @close="closeDetail"
+          @updated="loadSurat"
+        />
+      </Transition>
+    </Teleport>
 
     <!-- Modal Create Surat -->
     <KanbanModalForm

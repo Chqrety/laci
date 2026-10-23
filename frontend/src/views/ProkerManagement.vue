@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { prokerService, type Proker } from '@/services/api'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -83,12 +84,14 @@ const handleSubmit = async () => {
       toast({
         title: 'Berhasil',
         description: 'Program kerja berhasil diperbarui',
+        variant: 'success',
       })
     } else {
       await prokerService.create(trimmedNama, formProker.value.deskripsi.trim())
       toast({
         title: 'Berhasil',
         description: 'Program kerja berhasil ditambahkan',
+        variant: 'success',
       })
     }
     isModalOpen.value = false
@@ -119,6 +122,7 @@ const executeDeleteProker = async () => {
     toast({
       title: 'Berhasil',
       description: `Program kerja "${prokerToDelete.value.nama_proker}" berhasil dihapus`,
+      variant: 'success',
     })
     isDeleteModalOpen.value = false
     prokerToDelete.value = null
@@ -144,25 +148,36 @@ onMounted(() => {
     <!-- Top Bar -->
     <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 px-1">
       <div>
-        <h2 class="text-xl font-medium tracking-tight text-slate-900 leading-snug">Program Kerja</h2>
+        <div class="flex items-center gap-2.5">
+          <h2 class="text-xl font-medium tracking-tight text-slate-900 leading-snug">Program Kerja</h2>
+          <Badge variant="outline" class="font-normal text-[11px] px-2.5 py-0.5 rounded-full text-slate-500 bg-slate-100/70 border-slate-200/80">
+            {{ prokerList.length }} proker
+          </Badge>
+        </div>
         <p class="text-xs text-slate-500 mt-0.5">Kelola data program kerja DOSCOM untuk klasifikasi dan penomoran surat resmi.</p>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 w-full sm:w-auto">
         <Button
           type="button"
           variant="outline"
-          size="sm"
+          size="icon"
           @click="fetchProker"
           :disabled="isLoading"
+          title="Muat Ulang"
+          aria-label="Muat Ulang"
+          class="h-9 w-9 shrink-0 rounded-xl border-slate-200/90 bg-white shadow-2xs text-slate-600 hover:text-slate-900 active:scale-95 transition-all"
         >
-          {{ isLoading ? 'Memuat...' : 'Muat Ulang' }}
+          <svg class="w-4 h-4" :class="{ 'animate-spin': isLoading }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
         </Button>
 
         <Button
           type="button"
           size="sm"
           @click="openModal()"
+          class="flex-1 sm:flex-initial"
         >
           + Tambah Proker Baru
         </Button>

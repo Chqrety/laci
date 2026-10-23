@@ -123,6 +123,7 @@ const executeDeleteSurat = async () => {
     toast({
       title: 'Berhasil',
       description: `Surat "${surat.nomor_surat}" berhasil dihapus`,
+      variant: 'success',
     })
     isDeleteModalOpen.value = false
     suratToDelete.value = null
@@ -144,44 +145,79 @@ onMounted(fetchSurat)
 
 <template>
   <div class="max-w-6xl mx-auto space-y-6 w-full">
-    <!-- Top Bar (Mirip dengan ProkerManagement.vue) -->
-    <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 px-1">
+    <!-- Top Bar -->
+    <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-2 px-1">
       <div>
-        <h2 class="text-xl font-medium tracking-tight text-slate-900 leading-snug">Surat</h2>
+        <div class="flex items-center gap-2.5">
+          <h2 class="text-xl font-medium tracking-tight text-slate-900 leading-snug">Surat</h2>
+          <Badge variant="outline" class="font-normal text-[11px] px-2.5 py-0.5 rounded-full text-slate-500 bg-slate-100/70 border-slate-200/80">
+            {{ filteredSurat.length }} {{ filteredSurat.length === suratList.length ? 'surat' : `dari ${suratList.length}` }}
+          </Badge>
+        </div>
         <p class="text-xs text-slate-500 mt-0.5">Kelola data arsip dan lacak seluruh status surat keluar DOSCOM.</p>
       </div>
 
-      <!-- Filter Bar di luar card tabel, sejajar dengan judul -->
-      <div class="flex items-center flex-wrap gap-2">
-        <Input
-          v-model="searchQuery"
-          type="search"
-          placeholder="Cari nomor atau perihal..."
-          class="w-48 sm:w-60"
-        />
+      <!-- Filter Bar: Responsive adaptif untuk mobile, tablet, dan desktop -->
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
+        <!-- Input Pencarian dengan ikon search & tombol clear -->
+        <div class="relative w-full sm:w-60 lg:w-72">
+          <svg
+            class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 105.65 5.65a7.5 7.5 0 0010.7 10.7z" />
+          </svg>
+          <Input
+            v-model="searchQuery"
+            type="search"
+            placeholder="Cari nomor atau perihal..."
+            class="pl-9 pr-8 h-9 rounded-xl border-slate-200/90 bg-white text-xs shadow-2xs focus-visible:ring-sky-500/20"
+          />
+          <button
+            v-if="searchQuery"
+            type="button"
+            @click="searchQuery = ''"
+            title="Hapus pencarian"
+            aria-label="Hapus pencarian"
+            class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-sm"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
 
-        <Select v-model="statusFilter">
-          <SelectTrigger class="w-40 sm:w-48">
-            <SelectValue placeholder="Semua Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua Status</SelectItem>
-            <SelectItem v-for="status in STATUS_COLUMNS" :key="status" :value="status">
-              {{ status }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
+        <!-- Kelompok Filter Status & Reload (sejajar di mobile, compact di desktop) -->
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <Select v-model="statusFilter">
+            <SelectTrigger class="h-9 w-full sm:w-44 lg:w-48 rounded-xl border-slate-200/90 bg-white text-xs shadow-2xs">
+              <SelectValue placeholder="Semua Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Status</SelectItem>
+              <SelectItem v-for="status in STATUS_COLUMNS" :key="status" :value="status">
+                {{ status }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
 
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          @click="fetchSurat"
-          :disabled="isLoading"
-          class="shrink-0"
-        >
-          {{ isLoading ? 'Memuat...' : 'Muat Ulang' }}
-        </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            @click="fetchSurat"
+            :disabled="isLoading"
+            title="Muat Ulang"
+            aria-label="Muat Ulang"
+            class="h-9 w-9 shrink-0 rounded-xl border-slate-200/90 bg-white shadow-2xs text-slate-600 hover:text-slate-900 active:scale-95 transition-all"
+          >
+            <svg class="w-4 h-4" :class="{ 'animate-spin': isLoading }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </Button>
+        </div>
       </div>
     </header>
 
@@ -384,21 +420,16 @@ onMounted(fetchSurat)
     </Dialog>
 
     <!-- Modal Detail Component Integration -->
-    <Transition
-      enter-active-class="transition-opacity duration-200 ease-out"
-      enter-from-class="opacity-0"
-      enter-to-class="opacity-100"
-      leave-active-class="transition-opacity duration-150 ease-in"
-      leave-from-class="opacity-100"
-      leave-to-class="opacity-0"
-    >
-      <CardDetail
-        v-if="isDetailOpen && selectedSurat"
-        :surat="selectedSurat"
-        :status-options="STATUS_COLUMNS"
-        @close="closeDetail"
-        @updated="fetchSurat"
-      />
-    </Transition>
+    <Teleport to="body">
+      <Transition name="drawer">
+        <CardDetail
+          v-if="isDetailOpen && selectedSurat"
+          :surat="selectedSurat"
+          :status-options="STATUS_COLUMNS"
+          @close="closeDetail"
+          @updated="fetchSurat"
+        />
+      </Transition>
+    </Teleport>
   </div>
 </template>

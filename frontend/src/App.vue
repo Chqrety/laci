@@ -29,9 +29,11 @@ const handleLogout = () => {
       v-if="!isLoginPage"
       class="backdrop-blur-md bg-white/90 border-b border-slate-200/80 sticky top-0 z-30 shadow-xs transition-all"
     >
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 sm:py-0 min-h-14 sm:h-15 flex flex-wrap items-center justify-between gap-2.5 sm:gap-4">
-        <div class="flex items-center gap-3 sm:gap-6 flex-wrap">
-          <RouterLink to="/" class="flex items-center space-x-2.5">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6">
+        <!-- Top Row: Brand & Profile / Controls (Single row on desktop, split on mobile) -->
+        <div class="h-14 sm:h-16 flex items-center justify-between gap-4">
+          <!-- Left: Brand Logo -->
+          <RouterLink to="/" class="flex items-center space-x-2.5 shrink-0 select-none outline-none focus:outline-none">
             <div class="w-8 h-8 rounded-full bg-sky-600 text-white font-black flex items-center justify-center text-xs shadow-xs">
               L
             </div>
@@ -41,72 +43,127 @@ const handleLogout = () => {
             </div>
           </RouterLink>
 
-          <!-- Architectural Pill Navigation Links -->
-          <nav class="flex items-center p-1 bg-slate-100/80 rounded-full space-x-1" aria-label="Navigasi Utama">
+          <!-- Middle: Desktop Architectural Pill Navigation (Hidden on mobile, inline on md+) -->
+          <nav
+            class="hidden md:flex items-center p-1 bg-slate-100/80 rounded-full space-x-1"
+            aria-label="Navigasi Utama Desktop"
+          >
             <RouterLink
               v-if="userRole"
               to="/"
-              class="px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-600 hover:text-slate-900 transition-all"
-              active-class="!bg-white !text-sky-700 !font-semibold !shadow-xs border border-slate-200/60"
+              class="px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-600 hover:text-slate-900 transition-all select-none outline-none focus:outline-none"
+              active-class="!bg-white !text-sky-700 !font-semibold shadow-2xs"
             >
               Kanban Board
             </RouterLink>
             <RouterLink
               v-if="userRole === 'sekre'"
-              to="/surat-management"
-              class="px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-600 hover:text-slate-900 transition-all"
-              active-class="!bg-white !text-sky-700 !font-semibold !shadow-xs border border-slate-200/60"
+              to="/letters"
+              class="px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-600 hover:text-slate-900 transition-all select-none outline-none focus:outline-none"
+              active-class="!bg-white !text-sky-700 !font-semibold shadow-2xs"
             >
               Surat
             </RouterLink>
             <RouterLink
               v-if="userRole === 'sekre'"
-              to="/proker"
-              class="px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-600 hover:text-slate-900 transition-all"
-              active-class="!bg-white !text-sky-700 !font-semibold !shadow-xs border border-slate-200/60"
+              to="/programs"
+              class="px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-600 hover:text-slate-900 transition-all select-none outline-none focus:outline-none"
+              active-class="!bg-white !text-sky-700 !font-semibold shadow-2xs"
             >
               Proker
             </RouterLink>
             <RouterLink
               v-if="userRole === 'sekre'"
               to="/users"
-              class="px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-600 hover:text-slate-900 transition-all"
-              active-class="!bg-white !text-sky-700 !font-semibold !shadow-xs border border-slate-200/60"
+              class="px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-600 hover:text-slate-900 transition-all select-none outline-none focus:outline-none"
+              active-class="!bg-white !text-sky-700 !font-semibold shadow-2xs"
             >
               Pengurus
             </RouterLink>
             <RouterLink
               v-if="userRole"
               to="/profile"
-              class="px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-600 hover:text-slate-900 transition-all"
-              active-class="!bg-white !text-sky-700 !font-semibold !shadow-xs border border-slate-200/60"
+              class="px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-600 hover:text-slate-900 transition-all select-none outline-none focus:outline-none"
+              active-class="!bg-white !text-sky-700 !font-semibold shadow-2xs"
+            >
+              Profil
+            </RouterLink>
+          </nav>
+
+          <!-- Right: User Role Badge & Logout -->
+          <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+            <span
+              v-if="userRole"
+              class="px-2.5 py-0.5 sm:px-3 sm:py-1 text-[10px] font-mono uppercase font-bold rounded-full border border-sky-200/80 bg-sky-50 text-sky-700"
+            >
+              {{ userRole }}
+            </span>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              @click="handleLogout"
+              class="text-xs text-slate-500 hover:text-slate-900 font-medium h-8 px-2.5 sm:px-3 rounded-full"
+            >
+              <svg class="w-3.5 h-3.5 sm:mr-1 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              <span class="hidden sm:inline">Keluar</span>
+            </Button>
+          </div>
+        </div>
+
+        <!-- Mobile Horizontal Pill Navigation (Only shown on < md) -->
+        <div class="md:hidden pb-2.5 pt-0.5 overflow-x-auto no-scrollbar">
+          <nav
+            class="flex items-center p-1 bg-slate-100/80 rounded-full space-x-1 w-max mx-auto"
+            aria-label="Navigasi Utama Mobile"
+          >
+            <RouterLink
+              v-if="userRole"
+              to="/"
+              class="px-3 py-1.5 rounded-full text-xs font-medium text-slate-600 hover:text-slate-900 transition-all select-none outline-none focus:outline-none shrink-0"
+              active-class="!bg-white !text-sky-700 !font-semibold shadow-2xs"
+            >
+              Kanban
+            </RouterLink>
+            <RouterLink
+              v-if="userRole === 'sekre'"
+              to="/letters"
+              class="px-3 py-1.5 rounded-full text-xs font-medium text-slate-600 hover:text-slate-900 transition-all select-none outline-none focus:outline-none shrink-0"
+              active-class="!bg-white !text-sky-700 !font-semibold shadow-2xs"
+            >
+              Surat
+            </RouterLink>
+            <RouterLink
+              v-if="userRole === 'sekre'"
+              to="/programs"
+              class="px-3 py-1.5 rounded-full text-xs font-medium text-slate-600 hover:text-slate-900 transition-all select-none outline-none focus:outline-none shrink-0"
+              active-class="!bg-white !text-sky-700 !font-semibold shadow-2xs"
+            >
+              Proker
+            </RouterLink>
+            <RouterLink
+              v-if="userRole === 'sekre'"
+              to="/users"
+              class="px-3 py-1.5 rounded-full text-xs font-medium text-slate-600 hover:text-slate-900 transition-all select-none outline-none focus:outline-none shrink-0"
+              active-class="!bg-white !text-sky-700 !font-semibold shadow-2xs"
+            >
+              Pengurus
+            </RouterLink>
+            <RouterLink
+              v-if="userRole"
+              to="/profile"
+              class="px-3 py-1.5 rounded-full text-xs font-medium text-slate-600 hover:text-slate-900 transition-all select-none outline-none focus:outline-none shrink-0"
+              active-class="!bg-white !text-sky-700 !font-semibold shadow-2xs"
             >
               Profil
             </RouterLink>
           </nav>
         </div>
-
-        <!-- User Role Badge & Logout -->
-        <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-          <span
-            v-if="userRole"
-            class="px-3 py-1 text-[10px] font-mono uppercase font-bold rounded-full border border-sky-200/80 bg-sky-50 text-sky-700"
-          >
-            {{ userRole }}
-          </span>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            @click="handleLogout"
-            class="text-xs text-slate-500 hover:text-slate-900 font-medium"
-          >
-            Keluar
-          </Button>
-        </div>
       </div>
       <!-- Fine Top Accent Line -->
-      <div class="h-[2px] w-full bg-gradient-to-r from-sky-500 via-sky-400 to-orange-400 opacity-70" />
+      <div class="h-[1.5px] w-full bg-gradient-to-r from-sky-500 via-sky-400 to-orange-400 opacity-70" />
     </header>
 
     <!-- Password reminder modal (1x pop-up on first login or after sekre reminder) -->
@@ -118,7 +175,7 @@ const handleLogout = () => {
     <!-- Main Viewport -->
     <main
       class="flex-1 w-full mx-auto relative z-10"
-      :class="isLoginPage ? 'p-0' : 'max-w-7xl p-4 sm:p-6 overflow-hidden flex flex-col'"
+      :class="isLoginPage ? 'p-0' : 'max-w-7xl p-4 sm:p-6 flex flex-col'"
     >
       <RouterView v-slot="{ Component, route }">
         <Transition name="page-fade" mode="out-in">
