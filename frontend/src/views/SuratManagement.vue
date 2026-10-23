@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { suratService, STATUS_COLUMNS, type Surat } from '@/services/api'
-import CardDetail from '@/components/CardDetail.vue'
+import CardDetail from '@/components/molecules/CardDetail.vue'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 

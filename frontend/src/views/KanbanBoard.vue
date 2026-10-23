@@ -10,10 +10,10 @@ import {
   type Proker,
 } from '@/services/api'
 import { useKanbanDragDrop } from '@/composables/useKanbanDragDrop'
-import CardDetail from '@/components/CardDetail.vue'
-import KanbanCard from '@/components/KanbanCard.vue'
-import KanbanFilter from '@/components/KanbanFilter.vue'
-import KanbanModalForm from '@/components/KanbanModalForm.vue'
+import CardDetail from '@/components/molecules/CardDetail.vue'
+import KanbanFilter from '@/components/molecules/KanbanFilter.vue'
+import KanbanCard from '@/components/organisms/KanbanCard.vue'
+import KanbanModalForm from '@/components/organisms/KanbanModalForm.vue'
 import { Button } from '@/components/ui/button'
 
 const suratList = ref<Surat[]>([])

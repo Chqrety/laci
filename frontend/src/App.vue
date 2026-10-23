@@ -3,7 +3,8 @@ import { computed } from 'vue'
 import { useRoute, RouterLink, RouterView } from 'vue-router'
 import { authService, currentRole } from '@/services/api'
 import { Button } from '@/components/ui/button'
-import PasswordReminderModal from '@/components/PasswordReminderModal.vue'
+import { Toaster } from '@/components/ui/toast'
+import PasswordReminderModal from '@/components/organisms/PasswordReminderModal.vue'
 
 const route = useRoute()
 const isLoginPage = computed(() => route.name === 'login')
@@ -110,6 +111,9 @@ const handleLogout = () => {
 
     <!-- Password reminder modal (1x pop-up on first login or after sekre reminder) -->
     <PasswordReminderModal v-if="!isLoginPage" />
+
+    <!-- Global Toast Container -->
+    <Toaster />
 
     <!-- Main Viewport -->
     <main
