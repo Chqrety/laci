@@ -8,12 +8,17 @@ const oldPassword = ref('')
 const newPassword = ref('')
 const confirmPassword = ref('')
 const isSubmitting = ref(false)
+const newUsername = ref('')
+const isSubmittingUsername = ref(false)
 const msg = ref<{ type: 'success' | 'error'; text: string } | null>(null)
 
 const fetchProfile = async () => {
   isLoading.value = true
   try {
     profile.value = await authService.getProfile()
+    if (profile.value?.username) {
+      newUsername.value = profile.value.username
+    }
   } catch (err: any) {
     msg.value = { type: 'error', text: err.response?.data?.error || 'Gagal memuat profil' }
   } finally {
@@ -24,6 +29,32 @@ const fetchProfile = async () => {
 onMounted(() => {
   fetchProfile()
 })
+
+const handleChangeUsername = async () => {
+  msg.value = null
+  const trimmed = newUsername.value.trim()
+  if (!trimmed || trimmed.length < 3) {
+    msg.value = { type: 'error', text: 'Username minimal 3 karakter' }
+    return
+  }
+  if (/\s/.test(trimmed)) {
+    msg.value = { type: 'error', text: 'Username tidak boleh mengandung spasi' }
+    return
+  }
+
+  isSubmittingUsername.value = true
+  try {
+    const res = await authService.changeUsername(trimmed)
+    msg.value = { type: 'success', text: res.message || 'Username berhasil diperbarui!' }
+    if (profile.value) {
+      profile.value.username = res.username
+    }
+  } catch (err: any) {
+    msg.value = { type: 'error', text: err.response?.data?.error || 'Gagal mengubah username' }
+  } finally {
+    isSubmittingUsername.value = false
+  }
+}
 
 const handleChangePassword = async () => {
   msg.value = null
@@ -55,7 +86,7 @@ const handleChangePassword = async () => {
 <template>
   <div class="max-w-2xl mx-auto w-full flex flex-col gap-6 py-4">
     <div>
-      <h2 class="text-xl font-bold tracking-tight text-zinc-900">Profil Saya</h2>
+      <h2 class="text-xl font-medium tracking-tight text-slate-900 leading-snug">Profil Saya</h2>
       <p class="text-xs text-zinc-500 mt-0.5">Informasi akun dan pengaturan keamanan password</p>
     </div>
 
@@ -74,9 +105,9 @@ const handleChangePassword = async () => {
     </div>
 
     <!-- Info User Card -->
-    <div class="bg-white rounded-3xl p-6 border border-black/5 shadow-[0_8px_30px_rgb(0,0,0,0.03)] flex flex-col gap-4">
+    <div class="bg-white rounded-3xl p-6 border border-slate-200/90 shadow-xs flex flex-col gap-4">
       <div class="flex items-center gap-4">
-        <div class="w-14 h-14 rounded-2xl bg-[#0A84DC]/10 text-[#0A84DC] flex items-center justify-center font-bold text-lg">
+        <div class="w-14 h-14 rounded-2xl bg-sky-50 text-sky-700 flex items-center justify-center font-bold text-lg border border-sky-100">
           {{ profile?.nama ? profile.nama.charAt(0).toUpperCase() : 'U' }}
         </div>
         <div>
@@ -114,8 +145,45 @@ const handleChangePassword = async () => {
       </div>
     </div>
 
+    <!-- Form Ganti Username -->
+    <div class="bg-white rounded-3xl p-6 border border-slate-200/90 shadow-xs flex flex-col gap-4">
+      <div>
+        <h3 class="text-sm font-semibold text-zinc-900">Ubah Username</h3>
+        <p class="text-xs text-zinc-400 mt-0.5">Ubah username kamu agar lebih mudah diingat saat login</p>
+      </div>
+
+      <form @submit.prevent="handleChangeUsername" class="flex flex-col gap-3.5">
+        <div>
+          <label class="block text-xs font-medium text-zinc-700 mb-1">Username Baru</label>
+          <div class="relative">
+            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-zinc-400 font-medium">@</span>
+            <input
+              v-model="newUsername"
+              type="text"
+              required
+              placeholder="username_kamu"
+              class="w-full pl-8 pr-3.5 py-2.5 rounded-2xl bg-zinc-50 border border-zinc-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 focus:border-[#0A84DC]"
+            />
+          </div>
+          <p class="text-[11px] text-zinc-400 mt-1">
+            Default akun menggunakan format persis NIM (misal: {{ profile?.nim || 'A11.2022.14000' }}). Anda dapat menggantinya menjadi username personal tanpa spasi.
+          </p>
+        </div>
+
+        <div class="flex justify-end pt-1">
+          <button
+            type="submit"
+            :disabled="isSubmittingUsername || !newUsername.trim() || newUsername.trim() === profile?.username"
+            class="px-6 py-2.5 rounded-full text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 active:scale-[0.98] transition-all shadow-xs disabled:opacity-50 cursor-pointer"
+          >
+            {{ isSubmittingUsername ? 'Menyimpan...' : 'Simpan Username Baru' }}
+          </button>
+        </div>
+      </form>
+    </div>
+
     <!-- Form Ganti Password -->
-    <div class="bg-white rounded-3xl p-6 border border-black/5 shadow-[0_8px_30px_rgb(0,0,0,0.03)] flex flex-col gap-4">
+    <div class="bg-white rounded-3xl p-6 border border-slate-200/90 shadow-xs flex flex-col gap-4">
       <div>
         <h3 class="text-sm font-semibold text-zinc-900">Ubah Password</h3>
         <p class="text-xs text-zinc-400 mt-0.5">Ganti password akun kamu kapan saja demi keamanan</p>
@@ -158,7 +226,7 @@ const handleChangePassword = async () => {
           <button
             type="submit"
             :disabled="isSubmitting"
-            class="px-5 py-2.5 rounded-2xl text-xs font-semibold text-white bg-[#0A84DC] hover:bg-[#086db8] active:scale-[0.98] transition-all shadow-[0_8px_20px_rgba(10,132,220,0.25)] disabled:opacity-50"
+            class="px-6 py-2.5 rounded-full text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 active:scale-[0.98] transition-all shadow-xs disabled:opacity-50 cursor-pointer"
           >
             {{ isSubmitting ? 'Menyimpan...' : 'Simpan Password Baru' }}
           </button>

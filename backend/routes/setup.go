@@ -22,6 +22,7 @@ func SetupRoutes(r *gin.Engine) {
 		authGroup.GET("/profile", controllers.GetProfile)
 		authGroup.POST("/profile/dismiss-prompt", controllers.DismissPasswordPrompt)
 		authGroup.PUT("/profile/change-password", controllers.ChangePassword)
+		authGroup.PUT("/profile/change-username", controllers.ChangeUsername)
 
 		// User management routes (khusus sekre)
 		authGroup.GET("/users", controllers.GetUsers)

@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -22,6 +23,10 @@ type ChangePasswordInput struct {
 	NewPassword string `json:"new_password" binding:"required,min=6"`
 }
 
+type ChangeUsernameInput struct {
+	Username string `json:"username" binding:"required"`
+}
+
 func Login(c *gin.Context) {
 	var input LoginInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -29,8 +34,9 @@ func Login(c *gin.Context) {
 		return
 	}
 
+	identifier := strings.TrimSpace(input.Username)
 	var user models.User
-	if err := config.DB.Where("username = ? OR nim = ? OR email = ?", input.Username, input.Username, input.Username).First(&user).Error; err != nil {
+	if err := config.DB.Where("LOWER(username) = LOWER(?) OR LOWER(nim) = LOWER(?) OR LOWER(email) = LOWER(?)", identifier, identifier, identifier).First(&user).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Username atau password salah"})
 		return
 	}
@@ -146,4 +152,42 @@ func ChangePassword(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Password berhasil diubah"})
+}
+
+func ChangeUsername(c *gin.Context) {
+	userIDVal, _ := c.Get("userID")
+	userIDStr, _ := userIDVal.(string)
+
+	var input ChangeUsernameInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Username wajib diisi"})
+		return
+	}
+
+	newUsername := strings.TrimSpace(input.Username)
+	if len(newUsername) < 3 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Username minimal 3 karakter"})
+		return
+	}
+	if strings.ContainsAny(newUsername, " \t\n\r") {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Username tidak boleh mengandung spasi"})
+		return
+	}
+
+	var count int64
+	config.DB.Model(&models.User{}).Where("LOWER(username) = LOWER(?) AND id != ?", newUsername, userIDStr).Count(&count)
+	if count > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Username sudah digunakan oleh akun lain"})
+		return
+	}
+
+	if err := config.DB.Model(&models.User{}).Where("id = ?", userIDStr).Update("username", newUsername).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengubah username"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":  "Username berhasil diperbarui!",
+		"username": newUsername,
+	})
 }

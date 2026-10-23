@@ -30,6 +30,7 @@ type UpdateUserInput struct {
 	NIM      string `json:"nim"`
 	Nama     string `json:"nama"`
 	Email    string `json:"email"`
+	Username string `json:"username"`
 	Divisi   string `json:"divisi"`
 	Password string `json:"password"`
 }
@@ -49,8 +50,9 @@ func generateRandomPassword(length int) string {
 }
 
 func sanitizeUsername(name string, nim string) string {
-	if nim != "" {
-		return strings.ToLower(strings.ReplaceAll(nim, " ", ""))
+	trimmedNIM := strings.TrimSpace(nim)
+	if trimmedNIM != "" {
+		return trimmedNIM
 	}
 	cleaned := strings.ToLower(strings.Join(strings.Fields(name), "."))
 	if cleaned == "" {
@@ -183,6 +185,16 @@ func UpdateUser(c *gin.Context) {
 	}
 	if input.Email != "" {
 		updates["email"] = strings.TrimSpace(input.Email)
+	}
+	if input.Username != "" {
+		newUsername := strings.TrimSpace(input.Username)
+		var count int64
+		config.DB.Model(&models.User{}).Where("LOWER(username) = LOWER(?) AND id != ?", newUsername, userUUID).Count(&count)
+		if count > 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Username sudah digunakan oleh akun lain"})
+			return
+		}
+		updates["username"] = newUsername
 	}
 	if input.Divisi != "" {
 		if userUUID.String() == currentUserIDStr && strings.ToLower(strings.TrimSpace(input.Divisi)) != "sekre" {

@@ -68,6 +68,7 @@ export interface Surat {
   id: string
   nomor_surat: string
   perihal: string
+  tujuan?: string
   status_saat_ini: string
   pic_nama: string
   arsip_url?: string | null
@@ -85,6 +86,7 @@ export interface Proker {
 export interface CreateSuratPayload {
   nomor_surat: string
   perihal: string
+  tujuan?: string
   status_saat_ini: string
   pic_nama: string
   catatan?: string
@@ -92,6 +94,7 @@ export interface CreateSuratPayload {
 
 export interface UpdateStatusPayload {
   status_saat_ini: string
+  tujuan?: string
   catatan?: string
   catatan_log?: string
 }
@@ -229,6 +232,18 @@ export const authService = {
       currentUser.value.is_password_default = false
       currentUser.value.has_seen_password_prompt = true
     }
+    return res.data
+  },
+
+  async changeUsername(newUsername: string): Promise<{ message: string; username: string }> {
+    const res = await api.put<{ message: string; username: string }>('/profile/change-username', {
+      username: newUsername,
+    })
+    if (currentUser.value) {
+      currentUser.value.username = res.data.username
+    }
+    localStorage.setItem('username', res.data.username)
+    currentUsername.value = res.data.username
     return res.data
   },
 }
