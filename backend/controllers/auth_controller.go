@@ -24,7 +24,7 @@ type ChangePasswordInput struct {
 }
 
 type ChangeUsernameInput struct {
-	Username string `json:"username" binding:"required"`
+	Username string `json:"username" binding:"required,min=3"`
 }
 
 func Login(c *gin.Context) {
@@ -160,15 +160,11 @@ func ChangeUsername(c *gin.Context) {
 
 	var input ChangeUsernameInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Username wajib diisi"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Username wajib diisi minimal 3 karakter"})
 		return
 	}
 
 	newUsername := strings.TrimSpace(input.Username)
-	if len(newUsername) < 3 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Username minimal 3 karakter"})
-		return
-	}
 	if strings.ContainsAny(newUsername, " \t\n\r") {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Username tidak boleh mengandung spasi"})
 		return

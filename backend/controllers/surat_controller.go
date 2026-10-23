@@ -178,9 +178,6 @@ func UpdateSurat(c *gin.Context) {
 	}
 
 	surat.StatusSaatIni = newStatus
-	if input.Tujuan != nil {
-		surat.Tujuan = *input.Tujuan
-	}
 	if input.Catatan != nil {
 		surat.Catatan = *input.Catatan
 	}

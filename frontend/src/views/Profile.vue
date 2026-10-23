@@ -32,19 +32,9 @@ onMounted(() => {
 
 const handleChangeUsername = async () => {
   msg.value = null
-  const trimmed = newUsername.value.trim()
-  if (!trimmed || trimmed.length < 3) {
-    msg.value = { type: 'error', text: 'Username minimal 3 karakter' }
-    return
-  }
-  if (/\s/.test(trimmed)) {
-    msg.value = { type: 'error', text: 'Username tidak boleh mengandung spasi' }
-    return
-  }
-
   isSubmittingUsername.value = true
   try {
-    const res = await authService.changeUsername(trimmed)
+    const res = await authService.changeUsername(newUsername.value.trim())
     msg.value = { type: 'success', text: res.message || 'Username berhasil diperbarui!' }
     if (profile.value) {
       profile.value.username = res.username
@@ -161,6 +151,9 @@ const handleChangePassword = async () => {
               v-model="newUsername"
               type="text"
               required
+              minlength="3"
+              pattern="^\S+$"
+              title="Minimal 3 karakter tanpa spasi"
               placeholder="username_kamu"
               class="w-full pl-8 pr-3.5 py-2.5 rounded-2xl bg-zinc-50 border border-zinc-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 focus:border-[#0A84DC]"
             />
