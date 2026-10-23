@@ -50,7 +50,6 @@ func Login(c *gin.Context) {
 		"sub":      user.ID.String(),
 		"username": user.Username,
 		"divisi":   user.Divisi,
-		"role":     user.Divisi,
 		"exp":      time.Now().Add(24 * time.Hour).Unix(),
 	}
 
@@ -64,7 +63,6 @@ func Login(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"token":                     tokenString,
 		"divisi":                    user.Divisi,
-		"role":                      user.Divisi,
 		"username":                  user.Username,
 		"nama":                      user.Nama,
 		"nim":                       user.NIM,
@@ -91,7 +89,6 @@ func GetProfile(c *gin.Context) {
 		"email":                     user.Email,
 		"username":                  user.Username,
 		"divisi":                    user.Divisi,
-		"role":                      user.Divisi,
 		"is_password_default":       user.IsPasswordDefault,
 		"has_seen_password_prompt":  user.HasSeenPasswordPrompt,
 	})

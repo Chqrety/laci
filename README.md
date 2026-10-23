@@ -88,7 +88,23 @@ Jika kamu ingin mengembangkan fitur dengan _Hot-Reload_:
 
 ---
 
-## 🧪 Inject Dummy Data (Buat Testing)
+## 🌱 Menjalankan Seeder di Docker
+
+Setelah container berjalan (`docker compose up -d`), jalankan seeder langsung ke dalam container backend:
+
+* **Seeder Inti / Kebutuhan Real (Akun Default Sekre/Humas & Master Proker):**
+  ```bash
+  docker compose exec backend ./laci-seed
+  ```
+
+* **Seeder Lengkap beserta Data Dummy Surat (Khusus Dev/Testing):**
+  ```bash
+  docker compose exec backend ./laci-seed -dummy
+  ```
+
+---
+
+## 🧪 Inject Dummy Data (Manual SQL Alternatif)
 
 Aplikasi kosong tentu sepi untuk ditest. Kamu bisa memasukkan **50 data surat simulasi** secara instan ke database lokal:
 

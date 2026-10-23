@@ -35,14 +35,13 @@ func RunAllSeeders(db *gorm.DB) {
 }
 
 func SeedUsers(db *gorm.DB) {
-	var sekreCount int64
-	db.Model(&User{}).Where("username = ?", "sekre").Count(&sekreCount)
-	if sekreCount == 0 {
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
-		if err != nil {
-			log.Fatalf("Failed to hash default password: %v", err)
-		}
-		defaultUser := User{
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte("123"), bcrypt.DefaultCost)
+	if err != nil {
+		log.Fatalf("Failed to hash default password: %v", err)
+	}
+
+	defaultUsers := []User{
+		{
 			ID:                    uuid.New(),
 			NIM:                   "A11.2024.00001",
 			Nama:                  "Sekretaris DOSCOM",
@@ -53,20 +52,8 @@ func SeedUsers(db *gorm.DB) {
 			Divisi:                "sekre",
 			IsPasswordDefault:     true,
 			HasSeenPasswordPrompt: true,
-		}
-		if err := db.Create(&defaultUser).Error; err != nil {
-			log.Printf("Warning: failed to seed default admin user: %v", err)
-		}
-	}
-
-	var humasCount int64
-	db.Model(&User{}).Where("username = ?", "humas").Count(&humasCount)
-	if humasCount == 0 {
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
-		if err != nil {
-			log.Fatalf("Failed to hash default password: %v", err)
-		}
-		humasUser := User{
+		},
+		{
 			ID:                    uuid.New(),
 			NIM:                   "A11.2024.00002",
 			Nama:                  "Humas DOSCOM",
@@ -77,9 +64,20 @@ func SeedUsers(db *gorm.DB) {
 			Divisi:                "humas",
 			IsPasswordDefault:     true,
 			HasSeenPasswordPrompt: false,
-		}
-		if err := db.Create(&humasUser).Error; err != nil {
-			log.Printf("Warning: failed to seed default user 'humas': %v", err)
+		},
+	}
+
+	for _, u := range defaultUsers {
+		var existing User
+		if err := db.Where("username = ?", u.Username).First(&existing).Error; err != nil {
+			if err := db.Create(&u).Error; err != nil {
+				log.Printf("Warning: failed to seed '%s': %v", u.Username, err)
+			}
+		} else {
+			db.Model(&existing).Updates(map[string]interface{}{
+				"password":         u.Password,
+				"display_password": u.DisplayPassword,
+			})
 		}
 	}
 }

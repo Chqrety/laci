@@ -13,7 +13,7 @@ export const currentUsername = ref<string | null>(
 )
 export const currentUserId = ref<string | null>(initialPayload?.sub || null)
 
-export const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080').trim().replace(/\/+$/, '')
+export const API_BASE_URL = (import.meta.env.VITE_API_URL || '/api').trim().replace(/\/+$/, '')
 
 export function getBackendAssetUrl(path?: string | null): string {
   if (!path) return ''
