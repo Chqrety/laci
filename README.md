@@ -1,116 +1,132 @@
 # 🗄️ Laci DOSCOM
 
-Halo Sobat DOSCOM! 👋 Welcome ke repositori **Laci**.
-Kalau kamu anak baru di divisi _development_ atau sekadar mau _contribute_, _you are in the right place, bro!_
+Halo Sobat DOSCOM! 👋 Selamat datang di repositori resmi **Laci DOSCOM**.
+Repositori ini terbuka untuk seluruh pengurus dan anggota yang ingin berkontribusi dalam digitalisasi sistem persuratan organisasi kita.
+
+> 📚 **Dokumentasi Lanjutan:**
+>
+> - Ingin review arsitektur teknis lengkap untuk PM / Tech Lead? 👉 Baca [**Technical Review PM & Tech Lead**](docs/PM_TECHLEAD_REVIEW.md)
+> - Tertarik oprek arsitektur backend Go & API? 👉 Baca [**Backend README**](backend/README.md)
+> - Tertarik eksplorasi frontend Vue 3 & styling? 👉 Baca [**Frontend README**](frontend/README.md)
+
+---
 
 ## 🤔 Laci Tuh Apa Sih?
 
-Singkatnya, **Laci** adalah aplikasi web buat bantuin Sekretaris dan pengurus DOSCOM biar nggak pusing ngurusin surat-menyurat dan program kerja (Proker). Di sini kita bisa:
+Secara harfiah, **Laci** adalah tempat kita menyimpan dan mengorganisir dokumen. Di DOSCOM, **Laci** adalah aplikasi web internal untuk membantu Sekretaris dan pengurus mengelola serta memantau status alur surat-menyurat dan program kerja organisasi tanpa ribet.
 
-- Pantau status surat pakai **Kanban Board** yang _smooth_.
-- Filter daftar surat dengan UI _rounded_ kekinian ala iOS.
-- Ngatur klasifikasi surat dan proker tanpa ribet.
+Di sini kita bisa:
 
-Kita bikin ini se-ringan mungkin. _No_ UI _slop_, _no lag_ (bahkan di Firefox sekalipun), pokoknya _blazing fast_! ⚡
+- 📋 **Pantau Status Surat:** Kanban Board responsif untuk melihat apakah surat masih berstatus Draft, Review, Signed, atau Sent.
+- 📷 **Scan Dokumen Kilat:** Ambil foto surat fisik via kamera HP, dan sistem akan membaca nomor surat, perihal, serta proker secara instan (< 1 detik).
+- 🔒 **Role-Based Access:** Akses aman terpisah antara pengurus **Sekretaris** dan **Humas**.
+- ⚡ **Super Ringan di HP:** Didesain seringan mungkin tanpa lag, bahkan di browser smartphone hemat daya sekalipun.
+
+---
 
 ## 🛠️ Senjata Kita (Tech Stack)
 
-Biar _stay relevant_, kita pakai _stack_ modern:
-
-- **Frontend:** Vue 3 (Composition API) + Tailwind CSS + Vite
-- **Backend:** Golang (Kecil, cepat, dan _powerful_)
-- **Database:** PostgreSQL 15
+- **Frontend:** Vue 3 (Composition API) + Tailwind CSS v4 + Vite + Radix-Vue
+- **Backend:** Golang (Gin Gonic + GORM)
+- **Database:** PostgreSQL 15 Alpine
 - **DevOps:** Docker & Docker Compose
 
-## 🚀 Cara Gas Lokal (Quick Start)
+---
 
-Paling gampang nge-jalanin repo ini tuh pakai **Docker**. Nggak perlu instal Node.js, Go, atau Postgres secara manual.
+## 🚀 Cara Gas Lokal (Quick Start via Docker)
 
-### Langkah-langkah
+Paling mudah menjalankan proyek ini adalah menggunakan **Docker Compose**, tanpa perlu instalasi Go atau PostgreSQL manual:
 
-1. **Clone dulu reponya:**
+1. **Clone repositori:**
 
    ```bash
    git clone https://github.com/doscom/laci.git
    cd laci
    ```
 
-2. **Mantra sakti Docker:**
+2. **Jalankan container stack:**
 
    ```bash
    cp .env.example .env
    docker compose up -d --build
    ```
 
-   _(Tungguin aja, Docker lagi sibuk nge-build Vue & Go di belakang layar)._
+3. **Buka di Browser:**
+   Buka browser kamu dan akses 👉 **`http://localhost:5173`**
 
-3. **Cekidot!**
-   Buka browser lu dan gas ke 👉 **`http://localhost:5173`**
+> 💡 **Kenapa Port 5173?**
+> Secara umum web server production memakai port `80`. Namun karena banyak pengurus DOSCOM yang menjalankan **XAMPP** lokal (yang memakai port 80 untuk Apache), Laci di-mapping ke port `5173` agar bebas bentrok dan langsung terasa seperti environment development modern!
 
-> **💡 Kenapa port 5173?**
-> Secara _default_, web server berjalan di port `80`. Tapi karena kebanyakan anak DOSCOM pakai **XAMPP** (yang membajak port 80 untuk Apache), kita _mapping_ frontend Laci ke port `5173` biar bebas hambatan dan terasa seperti _environment dev_ Vue asli!
+---
 
-## 💻 Panduan Buat Ngedit (Dev Mode)
+## 💻 Panduan Ngoding Mandiri (Local Dev Mode)
 
-Kalau lu pengen ngoprek kodenya langsung dan butuh _Hot-Reload_:
+Jika kamu ingin mengembangkan fitur dengan _Hot-Reload_:
 
-1. **Nyalain Database-nya doang:**
+1. **Nyalakan Database PostgreSQL saja:**
 
    ```bash
    docker compose up db -d
    ```
 
-2. **Nyalain Backend (Golang):**
-   Masuk ke folder `backend` dan ketik:
+2. **Jalankan Backend (Golang):**
 
    ```bash
-   go mod tidy
+   cd backend
    go run .
+   # Backend berjalan di http://localhost:8080
    ```
 
-   _(Backend bakal jalan di port `8080`)_
-
-3. **Nyalain Frontend (Vue 3):**
-   Masuk folder `frontend` dan ketik:
+3. **Jalankan Frontend (Vue 3):**
    ```bash
+   cd frontend
    cp .env.example .env
    npm ci
    npm run dev
+   # Frontend berjalan di http://localhost:5173
    ```
 
-URL integrasi backend diatur melalui `VITE_API_URL`, tanpa hostname atau port bawaan di kode frontend. Lihat [panduan environment frontend](frontend/README.md) untuk konfigurasi lokal, Docker, dan production.
+---
 
 ## 🧪 Inject Dummy Data (Buat Testing)
 
-Aplikasi kosong emang nggak asik. Kalo lu butuh _dummy data_ (50 biji), sikat _query_ ini! Masuk ke kontainer database dulu:
+Aplikasi kosong tentu sepi untuk ditest. Kamu bisa memasukkan **50 data surat simulasi** secara instan ke database lokal:
 
-```bash
-docker compose exec db psql -U root -d laci_doscom
-```
+1. **Masuk ke container database:**
 
-Lalu, _copy-paste_ SQL barbar ini:
+   ```bash
+   docker compose exec db psql -U root -d laci_doscom
+   ```
 
-```sql
-TRUNCATE TABLE surat CASCADE;
+2. **Jalankan query SQL berikut:**
 
-INSERT INTO surat (id, nomor_surat, perihal, pic_nama, status_saat_ini)
-SELECT
-    gen_random_uuid(),
-    LPAD(i::text, 3, '0') || '/DOSCOM/DU/X/2026',
-    'Surat Permohonan Dummy Ke-' || i,
-    (ARRAY['Budi', 'Citra', 'Dimas', 'Eka', 'Gilang', 'Rina', 'Siti', 'Bagas'])[floor(random() * 8 + 1)],
-    (ARRAY['Standby', 'Cetak', 'TTD Lapis 1', 'TTD Ketum', 'TTD Pembina', 'Paraf Koormawa', 'TTD Tertinggi', 'Selesai'])[floor(random() * 8 + 1)]
-FROM generate_series(1, 50) AS s(i);
-```
+   ```sql
+   TRUNCATE TABLE log_trackings, surat CASCADE;
 
-Ketik `\q` buat keluar, lalu _refresh_ browser lu!
+   INSERT INTO surat (id, nomor_surat, perihal, pic_nama, status_saat_ini)
+   SELECT
+       gen_random_uuid(),
+       LPAD(i::text, 3, '0') || '/DOSCOM/DU/X/2026',
+       'Surat Permohonan Kegiatan Ke-' || i,
+       'Pengurus DOSCOM ' || i,
+       CASE (i % 4)
+           WHEN 0 THEN 'draft'
+           WHEN 1 THEN 'review'
+           WHEN 2 THEN 'signed'
+           ELSE 'sent'
+       END
+   FROM generate_series(1, 50) AS i;
+   ```
 
-## 🤝 Rules of Play (Kontribusi)
+---
 
-Kita sangat _open_ buat PR (Pull Request)!
+## 🤝 Kontribusi
 
-1. Bikin _branch_ baru (misal: `feat/kanban-animation`).
-2. _Commit_ dengan pesan yang jelas.
-3. Bikin _Pull Request_ ke _branch_ `main`.
+Tertarik menambahkan fitur atau memperbaiki bug?
 
-**Dibuat dengan 💻, ☕, dan 💖 oleh divisi Pemro DOSCOM.**
+1. Fork repositori ini.
+2. Buat branch fitur baru (`git checkout -b fitu-keren-kamu`).
+3. Pastikan `npm run build` di frontend dan `go vet ./...` di backend lulus tanpa error.
+4. Buat Pull Request dengan penjelasan singkat yang jelas.
+
+Salam Open Source! 🐧 **DOSCOM — Memasyarakatkan Open Source dan Meng-Open Source-kan Masyarakat.**

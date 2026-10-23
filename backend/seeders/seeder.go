@@ -17,14 +17,24 @@ type Proker = models.Proker
 type Surat = models.Surat
 type LogTracking = models.LogTracking
 
-func RunAllSeeders(db *gorm.DB) {
-	seedUsers(db)
-	seedProker(db)
+// SeedCore menjalankan seeder kebutuhan dasar (Users & Proker) untuk production & inisialisasi sistem
+func SeedCore(db *gorm.DB) {
+	SeedUsers(db)
+	SeedProker(db)
+}
+
+// SeedDummySurat menjalankan seeder data dummy surat & tracking untuk keperluan dev/testing
+func SeedDummySurat(db *gorm.DB) {
 	seedSurat(db)
 	seedLogTracking(db)
 }
 
-func seedUsers(db *gorm.DB) {
+func RunAllSeeders(db *gorm.DB) {
+	SeedCore(db)
+	SeedDummySurat(db)
+}
+
+func SeedUsers(db *gorm.DB) {
 	var sekreCount int64
 	db.Model(&User{}).Where("username = ?", "sekre").Count(&sekreCount)
 	if sekreCount == 0 {
@@ -34,12 +44,12 @@ func seedUsers(db *gorm.DB) {
 		}
 		defaultUser := User{
 			ID:                    uuid.New(),
-			NIM:                   "A11.2023.00001",
+			NIM:                   "A11.2024.00001",
 			Nama:                  "Sekretaris DOSCOM",
 			Email:                 "sekre@doscom.org",
 			Username:              "sekre",
 			Password:              string(hashedPassword),
-			DisplayPassword:       "password123",
+			DisplayPassword:       "123",
 			Divisi:                "sekre",
 			IsPasswordDefault:     true,
 			HasSeenPasswordPrompt: true,
@@ -58,12 +68,12 @@ func seedUsers(db *gorm.DB) {
 		}
 		humasUser := User{
 			ID:                    uuid.New(),
-			NIM:                   "A11.2023.00002",
+			NIM:                   "A11.2024.00002",
 			Nama:                  "Humas DOSCOM",
 			Email:                 "humas@doscom.org",
 			Username:              "humas",
 			Password:              string(hashedPassword),
-			DisplayPassword:       "password123",
+			DisplayPassword:       "123",
 			Divisi:                "humas",
 			IsPasswordDefault:     true,
 			HasSeenPasswordPrompt: false,
@@ -74,7 +84,7 @@ func seedUsers(db *gorm.DB) {
 	}
 }
 
-func seedProker(db *gorm.DB) {
+func SeedProker(db *gorm.DB) {
 	defaultProkers := []Proker{
 		{NamaProker: "MAKRAB", Deskripsi: "Malam Keakraban"},
 		{NamaProker: "OPREC", Deskripsi: "Open Recruitment"},
