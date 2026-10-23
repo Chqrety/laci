@@ -71,12 +71,14 @@ export interface Surat {
   catatan?: string
   logs?: LogTracking[]
 }
+export type Letter = Surat
 
 export interface Proker {
   id: string
   nama_proker: string
   deskripsi?: string
 }
+export type Program = Proker
 
 export interface CreateSuratPayload {
   nomor_surat: string
@@ -86,6 +88,7 @@ export interface CreateSuratPayload {
   pic_nama: string
   catatan?: string
 }
+export type CreateLetterPayload = CreateSuratPayload
 
 export interface UpdateStatusPayload {
   status_saat_ini: string
@@ -276,12 +279,12 @@ export const userService = {
 
 export const suratService = {
   async getAll(): Promise<Surat[]> {
-    const response = await api.get<Surat[]>('/surat')
+    const response = await api.get<Surat[]>('/letters')
     return response.data
   },
 
   async create(data: CreateSuratPayload): Promise<Surat> {
-    const response = await api.post<Surat>('/surat', data)
+    const response = await api.post<Surat>('/letters', data)
     return response.data
   },
 
@@ -289,7 +292,7 @@ export const suratService = {
     id: string,
     payload: UpdateStatusPayload,
   ): Promise<{ message: string; surat: Surat; log: LogTracking }> {
-    const response = await api.put(`/surat/${id}`, payload)
+    const response = await api.put(`/letters/${id}`, payload)
     return response.data
   },
 
@@ -300,7 +303,7 @@ export const suratService = {
   ): Promise<{ message: string; arsip_url: string; surat: Surat }> {
     const formData = new FormData()
     formData.append('file', file, filename)
-    const response = await api.post(`/surat/${id}/upload`, formData, {
+    const response = await api.post(`/letters/${id}/upload`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -319,7 +322,7 @@ export const suratService = {
     } else {
       formData.append('file', file)
     }
-    const response = await api.post(`/surat/${id}/upload`, formData, {
+    const response = await api.post(`/letters/${id}/upload`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -328,7 +331,7 @@ export const suratService = {
   },
 
   async delete(id: string): Promise<{ message: string }> {
-    const response = await api.delete(`/surat/${id}`)
+    const response = await api.delete(`/letters/${id}`)
     return response.data
   },
 }
@@ -336,39 +339,45 @@ export const suratService = {
 export const prokerService = {
   async getAll(force = false): Promise<Proker[]> {
     if (!force && prokerCache) return prokerCache
-    const response = await api.get<Proker[]>('/proker')
+    const response = await api.get<Proker[]>('/programs')
     prokerCache = response.data
     return response.data
   },
 
   async create(nama_proker: string, deskripsi = ''): Promise<Proker> {
     prokerCache = null
-    const response = await api.post<Proker>('/proker', { nama_proker, deskripsi })
+    const response = await api.post<Proker>('/programs', { nama_proker, deskripsi })
     return response.data
   },
 
   async update(id: string, nama_proker: string, deskripsi = ''): Promise<Proker> {
     prokerCache = null
-    const response = await api.put<Proker>(`/proker/${id}`, { nama_proker, deskripsi })
+    const response = await api.put<Proker>(`/programs/${id}`, { nama_proker, deskripsi })
     return response.data
   },
 
   async delete(id: string): Promise<{ message: string }> {
     prokerCache = null
-    const response = await api.delete(`/proker/${id}`)
+    const response = await api.delete(`/programs/${id}`)
     return response.data
   },
 }
 
+export const letterService = suratService
+export const programService = prokerService
+
 // Modular API Functions
-export const fetchSurat = () => suratService.getAll()
-export const updateSuratStatus = (id: string, payload: UpdateStatusPayload) => suratService.updateStatus(id, payload)
+export const fetchLetters = () => letterService.getAll()
+export const fetchSurat = fetchLetters
+export const updateLetterStatus = (id: string, payload: UpdateStatusPayload) => letterService.updateStatus(id, payload)
+export const updateSuratStatus = updateLetterStatus
 export const uploadSuratArsip = (id: string, file: Blob, filename?: string) =>
   suratService.uploadArsip(id, file, filename)
 export const uploadSuratDokumen = (id: string, file: File | Blob, filename?: string) =>
   suratService.uploadDokumen(id, file, filename)
 
-export const fetchProker = () => prokerService.getAll()
+export const fetchPrograms = () => programService.getAll()
+export const fetchProker = fetchPrograms
 
 export const STATUS_COLUMNS = [
   'Standby',

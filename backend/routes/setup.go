@@ -12,7 +12,7 @@ func SetupRoutes(r *gin.Engine) {
 
 	// Public routes
 	r.POST("/login", controllers.Login)
-	r.GET("/proker", controllers.GetProkers)
+	r.GET("/programs", controllers.GetProkers)
 
 	// Protected routes (Require JWT)
 	authGroup := r.Group("/")
@@ -34,14 +34,14 @@ func SetupRoutes(r *gin.Engine) {
 		authGroup.POST("/users/import-csv", controllers.ImportUsersCSV)
 		authGroup.POST("/users/import-spreadsheet", controllers.ImportUsersSpreadsheet)
 
-		// Surat & Proker
-		authGroup.POST("/proker", controllers.CreateProker)
-		authGroup.PUT("/proker/:id", controllers.UpdateProker)
-		authGroup.DELETE("/proker/:id", controllers.DeleteProker)
-		authGroup.GET("/surat", controllers.GetSurat)
-		authGroup.POST("/surat", controllers.CreateSurat)
-		authGroup.PUT("/surat/:id", controllers.UpdateSurat)
-		authGroup.POST("/surat/:id/upload", controllers.UploadSurat)
-		authGroup.DELETE("/surat/:id", controllers.DeleteSurat)
+		// Letters & Programs
+		authGroup.POST("/programs", controllers.CreateProker)
+		authGroup.PUT("/programs/:id", controllers.UpdateProker)
+		authGroup.DELETE("/programs/:id", controllers.DeleteProker)
+		authGroup.GET("/letters", controllers.GetSurat)
+		authGroup.POST("/letters", controllers.CreateSurat)
+		authGroup.PUT("/letters/:id", controllers.UpdateSurat)
+		authGroup.POST("/letters/:id/upload", controllers.UploadSurat)
+		authGroup.DELETE("/letters/:id", controllers.DeleteSurat)
 	}
 }
