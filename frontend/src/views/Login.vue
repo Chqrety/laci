@@ -28,12 +28,6 @@ const passwordSuccessMessage = ref('')
 
 const loggedUsername = ref('')
 
-// Quick Demo Injection
-const fillQuickAccount = (roleUser: 'sekre' | 'humas') => {
-  username.value = roleUser
-  password.value = 'password123'
-  errorMessage.value = ''
-}
 
 // Handle Login Submission
 const handleLogin = async () => {
@@ -307,42 +301,7 @@ const handleSkipPasswordChange = async () => {
               </div>
             </form>
 
-            <!-- Floema Style Demo Selector -->
-            <div class="pt-6 border-t border-slate-100 space-y-3">
-              <div class="flex items-center justify-between text-[11px] font-semibold text-slate-400 uppercase tracking-widest">
-                <span>Preset Akun Uji Coba</span>
-                <span class="font-mono text-slate-500">pw: password123</span>
-              </div>
-              <div class="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  @click="fillQuickAccount('sekre')"
-                  class="py-2.5 px-4 rounded-full border text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
-                  :class="
-                    username === 'sekre'
-                      ? 'border-sky-500 bg-sky-50 text-sky-800'
-                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900'
-                  "
-                >
-                  <span class="w-2 h-2 rounded-full" :class="username === 'sekre' ? 'bg-sky-600' : 'bg-slate-300'" />
-                  <span>Sekretaris</span>
-                </button>
 
-                <button
-                  type="button"
-                  @click="fillQuickAccount('humas')"
-                  class="py-2.5 px-4 rounded-full border text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
-                  :class="
-                    username === 'humas'
-                      ? 'border-orange-500 bg-orange-50 text-orange-800'
-                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900'
-                  "
-                >
-                  <span class="w-2 h-2 rounded-full" :class="username === 'humas' ? 'bg-orange-500' : 'bg-slate-300'" />
-                  <span>Humas</span>
-                </button>
-              </div>
-            </div>
           </div>
 
           <!-- STATE 2: FORCE PASSWORD ROTATION (FLOEMA MINIMALIST ARCHITECTURE) -->
