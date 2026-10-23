@@ -91,19 +91,36 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	divisi := strings.TrimSpace(input.Divisi)
-	if divisi == "" {
+	nim := strings.TrimSpace(input.NIM)
+	nama := strings.TrimSpace(input.Nama)
+	divisi := strings.ToLower(strings.TrimSpace(input.Divisi))
+	if divisi != "sekre" && divisi != "humas" {
 		divisi = "humas"
 	}
 
 	username := strings.TrimSpace(input.Username)
 	if username == "" {
-		username = sanitizeUsername(input.Nama, input.NIM)
+		username = sanitizeUsername(nama, nim)
 	}
 
-	var count int64
-	config.DB.Model(&models.User{}).Where("username = ?", username).Count(&count)
-	if count > 0 {
+	// Tolak jika ada data duplikat (NIM, Nama, atau Username)
+	var existing models.User
+	dupQuery := config.DB.Where("LOWER(username) = LOWER(?)", username)
+	if nim != "" {
+		dupQuery = dupQuery.Or("LOWER(nim) = LOWER(?)", nim)
+	}
+	if nama != "" {
+		dupQuery = dupQuery.Or("LOWER(nama) = LOWER(?)", nama)
+	}
+	if err := dupQuery.First(&existing).Error; err == nil {
+		if nim != "" && strings.EqualFold(existing.NIM, nim) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "NIM sudah terdaftar: " + nim})
+			return
+		}
+		if nama != "" && strings.EqualFold(existing.Nama, nama) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Nama pengurus sudah terdaftar: " + nama})
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Username sudah digunakan: " + username})
 		return
 	}
@@ -178,10 +195,24 @@ func UpdateUser(c *gin.Context) {
 
 	updates := map[string]interface{}{}
 	if input.NIM != "" {
-		updates["nim"] = strings.TrimSpace(input.NIM)
+		newNIM := strings.TrimSpace(input.NIM)
+		var count int64
+		config.DB.Model(&models.User{}).Where("LOWER(nim) = LOWER(?) AND id != ?", newNIM, userUUID).Count(&count)
+		if count > 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "NIM sudah terdaftar pada akun lain"})
+			return
+		}
+		updates["nim"] = newNIM
 	}
 	if input.Nama != "" {
-		updates["nama"] = strings.TrimSpace(input.Nama)
+		newNama := strings.TrimSpace(input.Nama)
+		var count int64
+		config.DB.Model(&models.User{}).Where("LOWER(nama) = LOWER(?) AND id != ?", newNama, userUUID).Count(&count)
+		if count > 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Nama sudah terdaftar pada akun lain"})
+			return
+		}
+		updates["nama"] = newNama
 	}
 	if input.Email != "" {
 		updates["email"] = strings.TrimSpace(input.Email)
@@ -197,11 +228,15 @@ func UpdateUser(c *gin.Context) {
 		updates["username"] = newUsername
 	}
 	if input.Divisi != "" {
-		if userUUID.String() == currentUserIDStr && strings.ToLower(strings.TrimSpace(input.Divisi)) != "sekre" {
+		newDiv := strings.ToLower(strings.TrimSpace(input.Divisi))
+		if newDiv != "sekre" && newDiv != "humas" {
+			newDiv = "humas"
+		}
+		if userUUID.String() == currentUserIDStr && newDiv != "sekre" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Tidak dapat mengubah divisi akun sendiri menjadi non-sekre"})
 			return
 		}
-		updates["divisi"] = strings.TrimSpace(input.Divisi)
+		updates["divisi"] = newDiv
 	}
 	if input.Password != "" {
 		hashed, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)

@@ -224,8 +224,8 @@ const handleDeleteUser = (user: User) => {
 }
 
 const handleCreateUser = async () => {
-  if (!formUser.value.nama) {
-    showToast('Nama wajib diisi', 'error')
+  if (!formUser.value.nama?.trim()) {
+    showToast('Nama pengurus wajib diisi', 'error')
     return
   }
 
@@ -269,8 +269,8 @@ const openEditModal = (user: User) => {
 }
 
 const handleUpdateUser = async () => {
-  if (!editForm.value.nama) {
-    showToast('Nama wajib diisi', 'error')
+  if (!editForm.value.nama?.trim()) {
+    showToast('Nama pengurus wajib diisi', 'error')
     return
   }
 
@@ -778,11 +778,8 @@ const handleImportData = async () => {
                   <SelectValue placeholder="Pilih Divisi" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="sekre">Sekretaris</SelectItem>
                   <SelectItem value="humas">Humas</SelectItem>
-                  <SelectItem value="sekre">Sekre</SelectItem>
-                  <SelectItem value="inti">Pengurus Inti</SelectItem>
-                  <SelectItem value="acara">Divisi Acara</SelectItem>
-                  <SelectItem value="perlengkapan">Divisi Perlengkapan</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1025,11 +1022,8 @@ const handleImportData = async () => {
                 <SelectValue placeholder="Pilih Divisi" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="sekre">Sekretaris</SelectItem>
                 <SelectItem value="humas">Humas</SelectItem>
-                <SelectItem value="sekre">Sekre</SelectItem>
-                <SelectItem value="inti">Pengurus Inti</SelectItem>
-                <SelectItem value="acara">Divisi Acara</SelectItem>
-                <SelectItem value="perlengkapan">Divisi Perlengkapan</SelectItem>
               </SelectContent>
             </Select>
             <span v-if="editForm.id === currentUserId" class="text-[10px] text-zinc-400 mt-1 block">
