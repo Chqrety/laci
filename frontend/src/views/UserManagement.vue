@@ -12,6 +12,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { toast } from '@/components/ui/toast'
 
 const users = ref<User[]>([])
 const isLoading = ref(false)
@@ -24,7 +33,6 @@ const isDetailModalOpen = ref(false)
 const selectedUser = ref<User | null>(null)
 const importFile = ref<File | null>(null)
 const isSubmitting = ref(false)
-const toastMsg = ref<{ type: 'success' | 'error'; text: string } | null>(null)
 
 // Pagination state
 const currentPage = ref(1)
@@ -54,10 +62,10 @@ const formUser = ref({
 })
 
 const showToast = (text: string, type: 'success' | 'error' = 'success') => {
-  toastMsg.value = { type, text }
-  setTimeout(() => {
-    toastMsg.value = null
-  }, 4000)
+  toast({
+    title: text,
+    variant: type === 'error' ? 'destructive' : 'success',
+  })
 }
 
 const togglePasswordVisibility = (userId: string) => {
@@ -316,7 +324,10 @@ const handleImportData = async () => {
       const res = await userService.importCSV(importFile.value)
       showToast(res.message)
       if (res.skipped && res.skipped.length > 0) {
-        alert(`Catatan: ${res.skipped.length} baris dilewati karena duplikat:\n` + res.skipped.join('\n'))
+        toast({
+          title: 'Catatan Duplikasi Import',
+          description: `${res.skipped.length} baris dilewati karena duplikat: ${res.skipped.join(', ')}`,
+        })
       }
       isImportModalOpen.value = false
       importFile.value = null
@@ -337,7 +348,10 @@ const handleImportData = async () => {
       const res = await userService.importSpreadsheet(sheetUrl.value.trim())
       showToast(res.message)
       if (res.skipped && res.skipped.length > 0) {
-        alert(`Catatan: ${res.skipped.length} baris dilewati karena duplikat:\n` + res.skipped.join('\n'))
+        toast({
+          title: 'Catatan Duplikasi Import',
+          description: `${res.skipped.length} baris dilewati karena duplikat: ${res.skipped.join(', ')}`,
+        })
       }
       isImportModalOpen.value = false
       sheetUrl.value = ''
@@ -353,19 +367,6 @@ const handleImportData = async () => {
 
 <template>
   <div class="flex-1 flex flex-col gap-5">
-    <!-- Toast notification -->
-    <div
-      v-if="toastMsg"
-      class="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-2xl shadow-xl text-xs font-semibold flex items-center gap-2 border transition-all animate-bounce-in"
-      :class="
-        toastMsg.type === 'success'
-          ? 'bg-emerald-500 text-white border-emerald-400'
-          : 'bg-rose-500 text-white border-rose-400'
-      "
-    >
-      <span>{{ toastMsg.text }}</span>
-    </div>
-
     <!-- Header & Actions -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div>
@@ -697,18 +698,14 @@ const handleImportData = async () => {
     </div>
 
     <!-- Modal Tambah Pengurus -->
-    <Transition name="modal-fade">
-      <div
-        v-if="isAddModalOpen"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-      >
-        <div class="modal-panel bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-black/5 flex flex-col gap-4">
-        <div class="flex items-center justify-between">
-          <h3 class="text-base font-semibold text-zinc-900">Tambah Pengurus Baru</h3>
-          <button @click="isAddModalOpen = false" class="text-zinc-400 hover:text-zinc-700 text-sm">✕</button>
-        </div>
+    <Dialog :open="isAddModalOpen" @update:open="(val: boolean) => { if (!val) isAddModalOpen = false }">
+      <DialogContent class="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Tambah Pengurus Baru</DialogTitle>
+          <DialogDescription>Masukkan identitas pengurus untuk dibuatkan akun LACI.</DialogDescription>
+        </DialogHeader>
 
-        <form @submit.prevent="handleCreateUser" class="flex flex-col gap-3">
+        <form @submit.prevent="handleCreateUser" novalidate class="flex flex-col gap-3">
           <div class="space-y-1">
             <Label for="add-user-nama">Nama Lengkap *</Label>
             <Input
@@ -773,10 +770,10 @@ const handleImportData = async () => {
             />
           </div>
 
-          <div class="flex items-center justify-end gap-2 mt-2">
+          <DialogFooter class="pt-2">
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               size="sm"
               @click="isAddModalOpen = false"
             >
@@ -789,26 +786,18 @@ const handleImportData = async () => {
             >
               {{ isSubmitting ? 'Menyimpan...' : 'Simpan Pengurus' }}
             </Button>
-          </div>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
-    </Transition>
+      </DialogContent>
+    </Dialog>
 
     <!-- Modal Import Data (CSV atau Google Sheets) -->
-    <Transition name="modal-fade">
-      <div
-        v-if="isImportModalOpen"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-      >
-        <div class="modal-panel bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-black/5 flex flex-col gap-4">
-        <div class="flex items-center justify-between">
-          <div>
-            <h3 class="text-base font-semibold text-zinc-900">Import Data Pengurus</h3>
-            <p class="text-xs text-zinc-500 mt-0.5">Pilih metode import yang kamu inginkan</p>
-          </div>
-          <button @click="isImportModalOpen = false" class="text-zinc-400 hover:text-zinc-700 text-sm">✕</button>
-        </div>
+    <Dialog :open="isImportModalOpen" @update:open="(val: boolean) => { if (!val) isImportModalOpen = false }">
+      <DialogContent class="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Import Data Pengurus</DialogTitle>
+          <DialogDescription>Pilih metode import yang kamu inginkan (CSV atau Google Sheets).</DialogDescription>
+        </DialogHeader>
 
         <!-- Segmented Tab: CSV File vs Google Sheets Link -->
         <div class="p-1 bg-zinc-100 rounded-2xl flex items-center gap-1">
@@ -867,45 +856,41 @@ const handleImportData = async () => {
         </div>
 
         <!-- Modal Actions -->
-        <div class="flex items-center justify-end gap-2 mt-2">
+        <DialogFooter class="pt-2">
           <Button
             type="button"
-            variant="ghost"
+            variant="outline"
+            size="sm"
             @click="isImportModalOpen = false"
           >
             Batal
           </Button>
           <Button
             type="button"
+            size="sm"
             @click="handleImportData"
             :disabled="isSubmitting || (importMethod === 'csv' ? !importFile : !sheetUrl.trim())"
           >
             {{ isSubmitting ? 'Memproses...' : (importMethod === 'csv' ? 'Mulai Import CSV' : 'Tarik Data Spreadsheet') }}
           </Button>
-        </div>
-      </div>
-    </div>
-    </Transition>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
     <!-- Modal Detail Pengurus -->
-    <Transition name="modal-fade">
-      <div
-        v-if="isDetailModalOpen && selectedUser"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-      >
-        <div class="modal-panel bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-black/5 flex flex-col gap-5 relative overflow-hidden">
-        <div class="flex items-center justify-between">
+    <Dialog :open="isDetailModalOpen && !!selectedUser" @update:open="(val: boolean) => { if (!val) isDetailModalOpen = false }">
+      <DialogContent class="max-w-md" v-if="selectedUser">
+        <DialogHeader>
           <div class="flex items-center gap-3">
             <div class="w-11 h-11 rounded-2xl bg-[#0A84DC]/10 text-[#0A84DC] flex items-center justify-center font-bold text-sm">
               {{ (selectedUser.nama || selectedUser.username).charAt(0).toUpperCase() }}
             </div>
             <div>
-              <h3 class="text-base font-semibold text-zinc-900 leading-tight">Detail Pengurus</h3>
-              <p class="text-xs text-zinc-400">@{{ selectedUser.username }}</p>
+              <DialogTitle>Detail Pengurus</DialogTitle>
+              <DialogDescription>@{{ selectedUser.username }}</DialogDescription>
             </div>
           </div>
-          <button @click="isDetailModalOpen = false" class="text-zinc-400 hover:text-zinc-700 text-sm">✕</button>
-        </div>
+        </DialogHeader>
 
         <div class="grid grid-cols-1 gap-2.5 bg-zinc-50 p-4 rounded-2xl border border-zinc-200 text-xs">
           <div class="flex items-center justify-between pb-2 border-b border-zinc-200/60">
@@ -918,9 +903,9 @@ const handleImportData = async () => {
           </div>
           <div class="flex items-center justify-between pb-2 border-b border-zinc-200/60">
             <span class="text-zinc-500">Divisi</span>
-            <span class="px-2 py-0.5 rounded-lg text-[10px] font-mono font-semibold uppercase tracking-wider bg-zinc-200/70 text-zinc-800">
+            <Badge variant="mono" size="sm">
               {{ selectedUser.divisi }}
-            </span>
+            </Badge>
           </div>
           <div class="flex items-center justify-between pb-2 border-b border-zinc-200/60">
             <span class="text-zinc-500">Email</span>
@@ -934,55 +919,47 @@ const handleImportData = async () => {
           </div>
           <div class="flex items-center justify-between">
             <span class="text-zinc-500">Status Password</span>
-            <span
-              class="px-2 py-0.5 rounded-lg text-[10px] font-semibold"
-              :class="
-                selectedUser.is_password_default
-                  ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                  : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-              "
+            <Badge
+              :variant="selectedUser.is_password_default ? 'amber' : 'emerald'"
+              size="sm"
             >
               {{ selectedUser.is_password_default ? 'Default Sistem' : 'Kustom Mandiri' }}
-            </span>
+            </Badge>
           </div>
         </div>
 
-        <div class="flex items-center justify-end gap-2">
-          <button
+        <DialogFooter class="pt-2">
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             @click="isDetailModalOpen = false"
-            class="px-4 py-2 rounded-2xl text-xs text-zinc-600 hover:bg-zinc-100"
           >
             Tutup
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            size="sm"
             @click="isDetailModalOpen = false; openEditModal(selectedUser)"
-            class="px-4 py-2 rounded-2xl text-xs font-semibold text-white bg-[#0A84DC] hover:bg-[#086db8] flex items-center gap-1.5"
           >
-            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg class="w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
             Edit Pengurus
-          </button>
-        </div>
-      </div>
-    </div>
-    </Transition>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
     <!-- Modal Edit Pengurus -->
-    <Transition name="modal-fade">
-      <div
-        v-if="isEditModalOpen"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-      >
-        <div class="modal-panel bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-black/5 flex flex-col gap-4">
-        <div class="flex items-center justify-between">
-          <h3 class="text-base font-semibold text-zinc-900">Edit Data Pengurus</h3>
-          <button @click="isEditModalOpen = false" class="text-zinc-400 hover:text-zinc-700 text-sm">✕</button>
-        </div>
+    <Dialog :open="isEditModalOpen" @update:open="(val: boolean) => { if (!val) isEditModalOpen = false }">
+      <DialogContent class="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Edit Data Pengurus</DialogTitle>
+          <DialogDescription>Perbarui data profil atau atur ulang password akun.</DialogDescription>
+        </DialogHeader>
 
-        <form @submit.prevent="handleUpdateUser" class="flex flex-col gap-3">
+        <form @submit.prevent="handleUpdateUser" novalidate class="flex flex-col gap-3">
           <div class="space-y-1">
             <Label for="edit-user-nama">Nama Lengkap *</Label>
             <Input
@@ -1041,10 +1018,10 @@ const handleImportData = async () => {
             </span>
           </div>
 
-          <div class="flex items-center justify-end gap-2 mt-2">
+          <DialogFooter class="pt-2">
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               size="sm"
               @click="isEditModalOpen = false"
             >
@@ -1057,60 +1034,58 @@ const handleImportData = async () => {
             >
               {{ isSubmitting ? 'Menyimpan...' : 'Simpan Perubahan' }}
             </Button>
-          </div>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
-    </Transition>
+      </DialogContent>
+    </Dialog>
 
-    <!-- Modal Konfirmasi Hapus (Single / Batch) with Smooth Scale Transition -->
-    <Transition name="modal-fade">
-      <div
-        v-if="confirmDeleteModal.isOpen"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-      >
-        <div class="modal-panel bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-black/5 flex flex-col gap-4 text-center">
-          <!-- Trash warning icon -->
-          <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-500 mx-auto flex items-center justify-center border border-rose-100">
-            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-          </div>
-
-          <div>
-            <h3 class="text-base font-bold text-zinc-900 tracking-tight">
-              {{ confirmDeleteModal.isBatch ? 'Hapus Pengurus Terpilih?' : 'Hapus Akun Pengurus?' }}
-            </h3>
-            <p class="text-xs text-zinc-500 mt-1.5 leading-relaxed">
-              <template v-if="confirmDeleteModal.isBatch">
-                Kamu akan menghapus <b class="text-zinc-900">{{ confirmDeleteModal.count }} pengurus</b> sekaligus. Tindakan ini tidak dapat dibatalkan.
-              </template>
-              <template v-else>
-                Kamu yakin ingin menghapus akun <b class="text-zinc-900">{{ confirmDeleteModal.user?.nama || confirmDeleteModal.user?.username }}</b>?
-              </template>
-            </p>
-          </div>
-
-          <div class="flex items-center justify-center gap-2 pt-1">
-            <button
-              type="button"
-              @click="confirmDeleteModal.isOpen = false"
-              class="px-4 py-2.5 rounded-2xl text-xs font-medium text-zinc-600 hover:bg-zinc-100 transition-all flex-1"
-            >
-              Batal
-            </button>
-            <button
-              type="button"
-              @click="executeConfirmedDelete"
-              :disabled="isSubmitting"
-              class="px-4 py-2.5 rounded-2xl text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 active:scale-95 transition-all shadow-[0_8px_20px_rgba(225,29,72,0.25)] flex-1 disabled:opacity-50"
-            >
-              {{ isSubmitting ? 'Menghapus...' : 'Ya, Hapus' }}
-            </button>
-          </div>
+    <!-- Modal Konfirmasi Hapus (Single / Batch) -->
+    <Dialog :open="confirmDeleteModal.isOpen" @update:open="(val: boolean) => { if (!val) confirmDeleteModal.isOpen = false }">
+      <DialogContent class="max-w-sm text-center">
+        <!-- Trash warning icon -->
+        <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-500 mx-auto flex items-center justify-center border border-rose-100">
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
         </div>
-      </div>
-    </Transition>
+
+        <DialogHeader class="text-center sm:text-center">
+          <DialogTitle class="text-center sm:text-center">
+            {{ confirmDeleteModal.isBatch ? 'Hapus Pengurus Terpilih?' : 'Hapus Akun Pengurus?' }}
+          </DialogTitle>
+          <DialogDescription class="text-center sm:text-center mt-1.5 leading-relaxed">
+            <template v-if="confirmDeleteModal.isBatch">
+              Kamu akan menghapus <b class="text-zinc-900">{{ confirmDeleteModal.count }} pengurus</b> sekaligus. Tindakan ini tidak dapat dibatalkan.
+            </template>
+            <template v-else>
+              Kamu yakin ingin menghapus akun <b class="text-zinc-900">{{ confirmDeleteModal.user?.nama || confirmDeleteModal.user?.username }}</b>?
+            </template>
+          </DialogDescription>
+        </DialogHeader>
+
+        <DialogFooter class="flex sm:justify-center gap-2 pt-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            class="flex-1"
+            @click="confirmDeleteModal.isOpen = false"
+          >
+            Batal
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            class="flex-1"
+            :disabled="isSubmitting"
+            @click="executeConfirmedDelete"
+          >
+            {{ isSubmitting ? 'Menghapus...' : 'Ya, Hapus' }}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
@@ -1129,21 +1104,5 @@ const handleImportData = async () => {
 .slide-fade-leave-to {
   opacity: 0;
   transform: translateY(-8px) scale(0.98);
-}
-
-/* Smooth Scale-Fade for Modal Pop-up */
-.modal-pop-enter-active {
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.modal-pop-leave-active {
-  transition: all 0.18s ease-in;
-}
-.modal-pop-enter-from {
-  opacity: 0;
-  transform: scale(0.95);
-}
-.modal-pop-leave-to {
-  opacity: 0;
-  transform: scale(0.96);
 }
 </style>

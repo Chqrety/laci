@@ -29,6 +29,20 @@ function genId() {
 
 const toasts = ref<ToasterToast[]>([])
 
+function dismissToast(toastId?: string) {
+  if (toastId) {
+    toasts.value = toasts.value.map((t) => (t.id === toastId ? { ...t, open: false } : t))
+    setTimeout(() => {
+      toasts.value = toasts.value.filter((t) => t.id !== toastId)
+    }, TOAST_REMOVE_DELAY)
+  } else {
+    toasts.value = toasts.value.map((t) => ({ ...t, open: false }))
+    setTimeout(() => {
+      toasts.value = []
+    }, TOAST_REMOVE_DELAY)
+  }
+}
+
 function addToast(toast: Omit<ToasterToast, 'id' | 'open'>) {
   const id = genId()
 
@@ -36,18 +50,14 @@ function addToast(toast: Omit<ToasterToast, 'id' | 'open'>) {
     toasts.value = toasts.value.map((t) => (t.id === id ? { ...t, ...props } : t))
   }
 
-  const dismiss = () => {
-    toasts.value = toasts.value.map((t) => (t.id === id ? { ...t, open: false } : t))
-    setTimeout(() => {
-      toasts.value = toasts.value.filter((t) => t.id !== id)
-    }, TOAST_REMOVE_DELAY)
-  }
+  const dismiss = () => dismissToast(id)
 
   toasts.value = [
     {
       ...toast,
       id,
       open: true,
+      duration: toast.duration ?? 4000,
       onOpenChange: (open: boolean) => {
         if (!open) dismiss()
       },
@@ -66,13 +76,7 @@ export function useToast() {
   return {
     toasts: computed(() => toasts.value),
     toast: addToast,
-    dismiss: (toastId?: string) => {
-      if (toastId) {
-        toasts.value = toasts.value.map((t) => (t.id === toastId ? { ...t, open: false } : t))
-      } else {
-        toasts.value = toasts.value.map((t) => ({ ...t, open: false }))
-      }
-    },
+    dismiss: dismissToast,
   }
 }
 

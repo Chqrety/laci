@@ -15,6 +15,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { toast } from '@/components/ui/toast'
 
 const profile = ref<User | null>(null)
 const isLoading = ref(false)
@@ -55,12 +56,23 @@ const onSubmitUsername = async (values: Record<string, any>) => {
   isSubmittingUsername.value = true
   try {
     const res = await authService.changeUsername(String(values.username).trim())
-    msg.value = { type: 'success', text: res.message || 'Username berhasil diperbarui!' }
+    const text = res.message || 'Username berhasil diperbarui!'
+    msg.value = { type: 'success', text }
+    toast({
+      title: 'Berhasil',
+      description: text,
+    })
     if (profile.value) {
       profile.value.username = res.username
     }
   } catch (err: any) {
-    msg.value = { type: 'error', text: err.response?.data?.error || 'Gagal mengubah username' }
+    const text = err.response?.data?.error || 'Gagal mengubah username'
+    msg.value = { type: 'error', text }
+    toast({
+      title: 'Gagal',
+      description: text,
+      variant: 'destructive',
+    })
   } finally {
     isSubmittingUsername.value = false
   }
@@ -69,24 +81,47 @@ const onSubmitUsername = async (values: Record<string, any>) => {
 const handleChangePassword = async () => {
   msg.value = null
   if (!newPassword.value || newPassword.value.length < 6) {
-    msg.value = { type: 'error', text: 'Password baru minimal 6 karakter' }
+    const text = 'Password baru minimal 6 karakter'
+    msg.value = { type: 'error', text }
+    toast({
+      title: 'Validasi Gagal',
+      description: text,
+      variant: 'destructive',
+    })
     return
   }
   if (newPassword.value !== confirmPassword.value) {
-    msg.value = { type: 'error', text: 'Konfirmasi password tidak cocok' }
+    const text = 'Konfirmasi password tidak cocok'
+    msg.value = { type: 'error', text }
+    toast({
+      title: 'Validasi Gagal',
+      description: text,
+      variant: 'destructive',
+    })
     return
   }
 
   isSubmitting.value = true
   try {
     const res = await authService.changePassword(newPassword.value, oldPassword.value)
-    msg.value = { type: 'success', text: res.message || 'Password berhasil diperbarui!' }
+    const text = res.message || 'Password berhasil diperbarui!'
+    msg.value = { type: 'success', text }
+    toast({
+      title: 'Berhasil',
+      description: text,
+    })
     oldPassword.value = ''
     newPassword.value = ''
     confirmPassword.value = ''
     await fetchProfile()
   } catch (err: any) {
-    msg.value = { type: 'error', text: err.response?.data?.error || 'Gagal mengubah password' }
+    const text = err.response?.data?.error || 'Gagal mengubah password'
+    msg.value = { type: 'error', text }
+    toast({
+      title: 'Gagal',
+      description: text,
+      variant: 'destructive',
+    })
   } finally {
     isSubmitting.value = false
   }
@@ -210,7 +245,7 @@ const handleChangePassword = async () => {
         <p class="text-xs text-zinc-400 mt-0.5">Ganti password akun kamu kapan saja demi keamanan</p>
       </div>
 
-      <form @submit.prevent="handleChangePassword" class="flex flex-col gap-3.5">
+      <form @submit.prevent="handleChangePassword" novalidate class="flex flex-col gap-3.5">
         <div v-if="!profile?.is_password_default" class="space-y-1.5">
           <Label for="old-password">Password Saat Ini</Label>
           <Input

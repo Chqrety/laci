@@ -9,7 +9,9 @@ interface Props extends ToastRootProps {
   variant?: ToastVariants['variant']
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  duration: 4000,
+})
 const emits = defineEmits<ToastRootEmits>()
 
 const forwarded = useForwardPropsEmits(props, emits)

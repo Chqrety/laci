@@ -12,11 +12,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { toast } from '@/components/ui/toast'
 
 const suratList = ref<Surat[]>([])
 const isLoading = ref(false)
 const errorMessage = ref('')
 const deletingId = ref<string | null>(null)
+
+// Delete confirm dialog
+const isDeleteModalOpen = ref(false)
+const suratToDelete = ref<Surat | null>(null)
+const isDeleting = ref(false)
 
 // Detail modal
 const selectedSurat = ref<Surat | null>(null)
@@ -92,19 +106,36 @@ const getStatusBadgeVariant = (status: string) => {
   return 'secondary'
 }
 
-const handleDeleteSurat = async (surat: Surat) => {
-  if (!window.confirm(`Hapus surat "${surat.nomor_surat}" beserta semua log riwayatnya?`)) return
+const confirmDeleteSurat = (surat: Surat) => {
+  suratToDelete.value = surat
+  isDeleteModalOpen.value = true
+}
 
+const executeDeleteSurat = async () => {
+  if (!suratToDelete.value) return
+
+  const surat = suratToDelete.value
   deletingId.value = surat.id
-  errorMessage.value = ''
+  isDeleting.value = true
   try {
     await suratService.delete(surat.id)
     if (selectedSurat.value?.id === surat.id) closeDetail()
+    toast({
+      title: 'Berhasil',
+      description: `Surat "${surat.nomor_surat}" berhasil dihapus`,
+    })
+    isDeleteModalOpen.value = false
+    suratToDelete.value = null
     await fetchSurat()
   } catch (err: any) {
-    errorMessage.value = err.response?.data?.error || err.message || 'Gagal menghapus surat'
+    toast({
+      title: 'Gagal Menghapus Surat',
+      description: err.response?.data?.error || err.message || 'Gagal menghapus surat',
+      variant: 'destructive',
+    })
   } finally {
     deletingId.value = null
+    isDeleting.value = false
   }
 }
 
@@ -258,7 +289,7 @@ onMounted(fetchSurat)
                     type="button"
                     variant="ghost"
                     size="icon"
-                    @click="handleDeleteSurat(surat)"
+                    @click="confirmDeleteSurat(surat)"
                     :disabled="deletingId === surat.id"
                     class="h-8 w-8 rounded-xl text-zinc-400 hover:text-rose-600 hover:bg-rose-50 disabled:opacity-50"
                     title="Hapus Surat"
@@ -326,6 +357,31 @@ onMounted(fetchSurat)
         </div>
       </footer>
     </div>
+
+    <!-- Modal Konfirmasi Hapus Surat -->
+    <Dialog :open="isDeleteModalOpen" @update:open="(val: boolean) => { if (!val) isDeleteModalOpen = false }">
+      <DialogContent class="max-w-sm text-center">
+        <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-500 mx-auto flex items-center justify-center border border-rose-100">
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </div>
+        <DialogHeader class="text-center sm:text-center">
+          <DialogTitle class="text-center sm:text-center">Hapus Surat Resmi?</DialogTitle>
+          <DialogDescription class="text-center sm:text-center mt-1 leading-relaxed">
+            Yakin ingin menghapus surat <b class="text-zinc-900 font-mono">{{ suratToDelete?.nomor_surat }}</b> beserta seluruh log riwayatnya?
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter class="flex sm:justify-center gap-2 pt-2">
+          <Button type="button" variant="outline" size="sm" class="flex-1" @click="isDeleteModalOpen = false">
+            Batal
+          </Button>
+          <Button type="button" variant="destructive" size="sm" class="flex-1" :disabled="isDeleting" @click="executeDeleteSurat">
+            {{ isDeleting ? 'Menghapus...' : 'Ya, Hapus' }}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
     <!-- Modal Detail Component Integration -->
     <Transition

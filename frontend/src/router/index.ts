@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { authService } from '@/services/api'
+import { authService, currentRole } from '@/services/api'
 import Login from '@/views/Login.vue'
 import KanbanBoard from '@/views/KanbanBoard.vue'
 import ProkerManagement from '@/views/ProkerManagement.vue'
@@ -53,7 +53,7 @@ const router = createRouter({
 
 router.beforeEach((to, _from, next) => {
   const isAuth = authService.isAuthenticated()
-  const role = authService.getRole()
+  const role = currentRole.value
 
   if (to.meta.requiresAuth && !isAuth) {
     next({ name: 'login' })

@@ -5,6 +5,15 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { toast } from '@/components/ui/toast'
 
 const prokerList = ref<Proker[]>([])
 const isLoading = ref(false)
@@ -21,6 +30,11 @@ const formProker = ref({
   deskripsi: '',
 })
 
+// Modal state (Delete Confirmation)
+const isDeleteModalOpen = ref(false)
+const prokerToDelete = ref<Proker | null>(null)
+const isDeleting = ref(false)
+
 const fetchProker = async () => {
   isLoading.value = true
   errorMessage.value = ''
@@ -28,6 +42,11 @@ const fetchProker = async () => {
     prokerList.value = await prokerService.getAll()
   } catch (err: any) {
     errorMessage.value = err.response?.data?.error || err.message || 'Gagal memuat data program kerja'
+    toast({
+      title: 'Gagal Memuat Data',
+      description: errorMessage.value,
+      variant: 'destructive',
+    })
   } finally {
     isLoading.value = false
   }
@@ -48,6 +67,11 @@ const handleSubmit = async () => {
   const trimmedNama = formProker.value.nama_proker.trim()
   if (!trimmedNama) {
     formError.value = 'Nama program kerja wajib diisi.'
+    toast({
+      title: 'Validasi Gagal',
+      description: formError.value,
+      variant: 'destructive',
+    })
     return
   }
 
@@ -56,28 +80,57 @@ const handleSubmit = async () => {
   try {
     if (isEditing.value && editingId.value) {
       await prokerService.update(editingId.value, trimmedNama, formProker.value.deskripsi.trim())
+      toast({
+        title: 'Berhasil',
+        description: 'Program kerja berhasil diperbarui',
+      })
     } else {
       await prokerService.create(trimmedNama, formProker.value.deskripsi.trim())
+      toast({
+        title: 'Berhasil',
+        description: 'Program kerja berhasil ditambahkan',
+      })
     }
     isModalOpen.value = false
     await fetchProker()
   } catch (err: any) {
     formError.value = err.response?.data?.error || err.message || 'Gagal menyimpan program kerja.'
+    toast({
+      title: 'Gagal Menyimpan Proker',
+      description: formError.value,
+      variant: 'destructive',
+    })
   } finally {
     isSubmitting.value = false
   }
 }
 
-const handleDeleteProker = async (proker: Proker) => {
-  if (!window.confirm(`Hapus program kerja "${proker.nama_proker}"?`)) {
-    return
-  }
+const confirmDeleteProker = (proker: Proker) => {
+  prokerToDelete.value = proker
+  isDeleteModalOpen.value = true
+}
 
+const executeDeleteProker = async () => {
+  if (!prokerToDelete.value) return
+
+  isDeleting.value = true
   try {
-    await prokerService.delete(proker.id)
+    await prokerService.delete(prokerToDelete.value.id)
+    toast({
+      title: 'Berhasil',
+      description: `Program kerja "${prokerToDelete.value.nama_proker}" berhasil dihapus`,
+    })
+    isDeleteModalOpen.value = false
+    prokerToDelete.value = null
     await fetchProker()
   } catch (err: any) {
-    alert(err.response?.data?.error || err.message || 'Gagal menghapus program kerja.')
+    toast({
+      title: 'Gagal Menghapus Proker',
+      description: err.response?.data?.error || err.message || 'Gagal menghapus program kerja.',
+      variant: 'destructive',
+    })
+  } finally {
+    isDeleting.value = false
   }
 }
 
@@ -190,7 +243,7 @@ onMounted(() => {
                   type="button"
                   variant="ghost"
                   size="icon"
-                  @click="handleDeleteProker(proker)"
+                  @click="confirmDeleteProker(proker)"
                   class="h-8 w-8 rounded-xl text-zinc-400 hover:text-rose-600 hover:bg-rose-50"
                   title="Hapus Program Kerja"
                   aria-label="Hapus Program Kerja"
@@ -212,27 +265,16 @@ onMounted(() => {
     </div>
 
     <!-- Modal Form (Tambah / Edit Proker) -->
-    <Transition
-      enter-active-class="transition duration-200 ease-out"
-      enter-from-class="opacity-0 scale-95"
-      enter-to-class="opacity-100 scale-100"
-      leave-active-class="transition duration-150 ease-in"
-      leave-from-class="opacity-100 scale-100"
-      leave-to-class="opacity-0 scale-95"
-    >
-      <div
-        v-if="isModalOpen"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto"
-      >
-        <div class="bg-white rounded-3xl border border-black/10 max-w-md w-full p-6 sm:p-7 space-y-5 shadow-xl">
-          <header>
-            <h3 class="text-lg font-semibold text-zinc-900 tracking-tight">
-              {{ isEditing ? 'Edit Program Kerja' : 'Tambah Program Kerja' }}
-            </h3>
-            <p class="text-xs text-zinc-500 mt-0.5">Masukkan nama program kerja dan keterangan fungsinya.</p>
-          </header>
+    <Dialog :open="isModalOpen" @update:open="(val: boolean) => { if (!val) isModalOpen = false }">
+      <DialogContent class="max-w-md space-y-4">
+        <DialogHeader>
+          <DialogTitle>
+            {{ isEditing ? 'Edit Program Kerja' : 'Tambah Program Kerja' }}
+          </DialogTitle>
+          <DialogDescription>Masukkan nama program kerja dan keterangan fungsinya.</DialogDescription>
+        </DialogHeader>
 
-          <form @submit.prevent="handleSubmit" class="space-y-4">
+          <form @submit.prevent="handleSubmit" novalidate class="space-y-4">
             <div class="space-y-3">
               <div class="space-y-1.5">
                 <Label for="nama_proker">Nama Proker</Label>
@@ -240,7 +282,6 @@ onMounted(() => {
                   id="nama_proker"
                   v-model="formProker.nama_proker"
                   type="text"
-                  required
                   placeholder="Dies Natalis, Oprec, Workshop"
                 />
               </div>
@@ -260,7 +301,7 @@ onMounted(() => {
               {{ formError }}
             </p>
 
-            <footer class="flex justify-end gap-2.5 pt-2">
+            <DialogFooter>
               <Button
                 type="button"
                 variant="outline"
@@ -276,10 +317,34 @@ onMounted(() => {
               >
                 {{ isSubmitting ? 'Menyimpan...' : (isEditing ? 'Perbarui Proker' : 'Simpan Proker') }}
               </Button>
-            </footer>
+            </DialogFooter>
           </form>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Modal Konfirmasi Hapus Proker -->
+    <Dialog :open="isDeleteModalOpen" @update:open="(val: boolean) => { if (!val) isDeleteModalOpen = false }">
+      <DialogContent class="max-w-sm text-center">
+        <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-500 mx-auto flex items-center justify-center border border-rose-100">
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
         </div>
-      </div>
-    </Transition>
+        <DialogHeader class="text-center sm:text-center">
+          <DialogTitle class="text-center sm:text-center">Hapus Program Kerja?</DialogTitle>
+          <DialogDescription class="text-center sm:text-center mt-1 leading-relaxed">
+            Yakin ingin menghapus <b class="text-zinc-900">{{ prokerToDelete?.nama_proker }}</b>? Tindakan ini tidak dapat dibatalkan.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter class="flex sm:justify-center gap-2 pt-2">
+          <Button type="button" variant="outline" size="sm" class="flex-1" @click="isDeleteModalOpen = false">
+            Batal
+          </Button>
+          <Button type="button" variant="destructive" size="sm" class="flex-1" :disabled="isDeleting" @click="executeDeleteProker">
+            {{ isDeleting ? 'Menghapus...' : 'Ya, Hapus' }}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>

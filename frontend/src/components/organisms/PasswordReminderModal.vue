@@ -4,6 +4,15 @@ import { authService, currentUser } from '@/services/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { toast } from '@/components/ui/toast'
 
 const showModal = ref(false)
 const newPassword = ref('')
@@ -40,10 +49,20 @@ const handleSubmit = async () => {
   errorMsg.value = ''
   if (!newPassword.value || newPassword.value.length < 6) {
     errorMsg.value = 'Password baru minimal 6 karakter'
+    toast({
+      title: 'Validasi Gagal',
+      description: 'Password baru minimal 6 karakter',
+      variant: 'destructive',
+    })
     return
   }
   if (newPassword.value !== confirmPassword.value) {
     errorMsg.value = 'Konfirmasi password tidak cocok'
+    toast({
+      title: 'Validasi Gagal',
+      description: 'Konfirmasi password tidak cocok',
+      variant: 'destructive',
+    })
     return
   }
 
@@ -51,11 +70,20 @@ const handleSubmit = async () => {
   try {
     await authService.changePassword(newPassword.value)
     successMsg.value = 'Password berhasil diubah!'
+    toast({
+      title: 'Berhasil',
+      description: 'Password akun kamu berhasil diperbarui!',
+    })
     setTimeout(() => {
       showModal.value = false
     }, 1200)
   } catch (err: any) {
     errorMsg.value = err.response?.data?.error || 'Gagal mengubah password'
+    toast({
+      title: 'Gagal Mengubah Password',
+      description: errorMsg.value,
+      variant: 'destructive',
+    })
   } finally {
     isSubmitting.value = false
   }
@@ -63,19 +91,13 @@ const handleSubmit = async () => {
 </script>
 
 <template>
-  <Transition name="modal-fade">
-    <div
-      v-if="showModal"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-    >
-      <div
-        class="modal-panel bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-black/5 flex flex-col gap-5 relative overflow-hidden"
-      >
+  <Dialog :open="showModal" @update:open="(val: boolean) => { if (!val) handleDismiss() }">
+    <DialogContent class="max-w-md gap-5 overflow-hidden">
       <!-- Background decoration -->
       <div class="absolute -top-12 -right-12 w-32 h-32 bg-[#0A84DC]/10 rounded-full blur-2xl pointer-events-none" />
 
       <!-- Header -->
-      <div class="flex items-start gap-4">
+      <DialogHeader class="flex flex-row items-start gap-4 space-y-0 text-left">
         <div class="w-12 h-12 rounded-2xl bg-[#0A84DC]/10 text-[#0A84DC] flex items-center justify-center shrink-0">
           <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path
@@ -87,12 +109,12 @@ const handleSubmit = async () => {
           </svg>
         </div>
         <div>
-          <h3 class="text-base font-semibold text-zinc-900 tracking-tight">Saran Keamanan Akun</h3>
-          <p class="text-xs text-zinc-500 mt-1 leading-relaxed">
+          <DialogTitle class="text-base font-semibold text-zinc-900 tracking-tight">Saran Keamanan Akun</DialogTitle>
+          <DialogDescription class="text-xs text-zinc-500 mt-1 leading-relaxed">
             Kamu saat ini masih menggunakan password default dari sistem. Disarankan untuk mengganti password baru yang kamu ingat.
-          </p>
+          </DialogDescription>
         </div>
-      </div>
+      </DialogHeader>
 
       <div
         v-if="successMsg"
@@ -109,7 +131,7 @@ const handleSubmit = async () => {
       </div>
 
       <!-- Form -->
-      <form v-if="!successMsg" @submit.prevent="handleSubmit" class="flex flex-col gap-3.5">
+      <form v-if="!successMsg" @submit.prevent="handleSubmit" novalidate class="flex flex-col gap-3.5">
         <div class="space-y-1.5">
           <Label for="new-password">Password Baru</Label>
           <Input
@@ -131,10 +153,10 @@ const handleSubmit = async () => {
         </div>
 
         <!-- Action Buttons -->
-        <div class="flex items-center justify-end gap-2.5 mt-2">
+        <DialogFooter>
           <Button
             type="button"
-            variant="ghost"
+            variant="outline"
             @click="handleDismiss"
           >
             Nanti Saja (Gunakan Default)
@@ -145,9 +167,8 @@ const handleSubmit = async () => {
           >
             {{ isSubmitting ? 'Menyimpan...' : 'Ganti Password' }}
           </Button>
-        </div>
+        </DialogFooter>
       </form>
-    </div>
-  </div>
-  </Transition>
+    </DialogContent>
+  </Dialog>
 </template>

@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onBeforeUnmount } from 'vue'
-import { api, getBackendAssetUrl, suratService, authService, type Surat } from '@/services/api'
+import { api, getBackendAssetUrl, suratService, currentRole, type Surat } from '@/services/api'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { toast } from '@/components/ui/toast'
 import {
   Select,
   SelectContent,
@@ -23,7 +24,7 @@ const emit = defineEmits<{
   (e: 'updated'): void
 }>()
 
-const userRole = computed(() => authService.getRole())
+const userRole = computed(() => currentRole.value)
 const isSekre = computed(() => userRole.value === 'sekre')
 
 // Status & Note update state
@@ -132,10 +133,19 @@ const captureAndSave = async () => {
 
     stopCamera()
     uploadDokumenMessage.value = 'Foto arsip berhasil dijepret & diunggah'
+    toast({
+      title: 'Berhasil',
+      description: 'Foto arsip berhasil dijepret & diunggah',
+    })
     emit('updated')
   } catch (err: any) {
     console.error('Capture and upload error:', err)
     cameraError.value = err.response?.data?.error || err.message || 'Gagal menyimpan foto arsip'
+    toast({
+      title: 'Gagal',
+      description: cameraError.value,
+      variant: 'destructive',
+    })
   } finally {
     isCapturing.value = false
   }
@@ -159,9 +169,18 @@ const handleFileUpload = async (event: Event) => {
       },
     })
     uploadDokumenMessage.value = 'Arsip dokumen berhasil diunggah'
+    toast({
+      title: 'Berhasil',
+      description: 'Arsip dokumen berhasil diunggah',
+    })
     emit('updated')
   } catch (err: any) {
     uploadDokumenError.value = err.response?.data?.error || err.message || 'Gagal mengunggah dokumen'
+    toast({
+      title: 'Gagal',
+      description: uploadDokumenError.value,
+      variant: 'destructive',
+    })
   } finally {
     isUploadingDokumen.value = false
     target.value = ''
@@ -202,9 +221,17 @@ const handleUpdateStatusAndNote = async () => {
       catatan_log: newNote.value,
     })
     updateMessage.value = isSekre.value ? 'Status & catatan berhasil diperbarui' : 'Catatan berhasil diperbarui'
+    toast({
+      title: 'Berhasil',
+      description: updateMessage.value,
+    })
     emit('updated')
   } catch (err: any) {
-    alert(err.response?.data?.error || err.message || 'Gagal memperbarui data surat')
+    toast({
+      title: 'Gagal',
+      description: err.response?.data?.error || err.message || 'Gagal memperbarui data surat',
+      variant: 'destructive',
+    })
   } finally {
     isUpdatingStatus.value = false
   }
@@ -264,7 +291,7 @@ const formatDate = (dateString?: string) => {
         <section class="space-y-2.5">
           <h3 class="text-xs font-semibold uppercase tracking-wider text-zinc-500 px-1">Status & Catatan</h3>
 
-          <form @submit.prevent="handleUpdateStatusAndNote" class="space-y-3">
+          <form @submit.prevent="handleUpdateStatusAndNote" novalidate class="space-y-3">
             <div class="rounded-2xl border border-black/10 bg-white overflow-hidden divide-y divide-black/5 shadow-2xs">
               <!-- Status Input (Dropdown for Sekre, Read-Only for Humas) -->
               <div class="px-4 py-2.5 focus-within:bg-zinc-50/50 transition-colors">

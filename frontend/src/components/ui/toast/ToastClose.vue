@@ -9,6 +9,7 @@ const props = defineProps<ToastCloseProps & { class?: HTMLAttributes['class'] }>
 <template>
   <ToastClose
     v-bind="props"
+    aria-label="Tutup notifikasi"
     :class="
       cn(
         'absolute right-2 top-2 rounded-xl p-1 text-zinc-400 opacity-70 transition-opacity hover:text-zinc-900 hover:opacity-100 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 cursor-pointer',

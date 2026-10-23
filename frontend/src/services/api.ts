@@ -2,12 +2,7 @@ import axios from 'axios'
 import { ref } from 'vue'
 
 export function parseJwtPayload(token: string | null) {
-  try {
-    const part = token?.split('.')[1]
-    return part ? JSON.parse(atob(part)) : null
-  } catch {
-    return null
-  }
+  try { return token ? JSON.parse(atob(token.split('.')[1] || '')) : null } catch { return null }
 }
 
 export const currentToken = ref<string | null>(typeof window !== 'undefined' ? localStorage.getItem('token') : null)
@@ -176,31 +171,6 @@ export const authService = {
     currentUserId.value = null
     currentUser.value = null
     window.location.href = '/login'
-  },
-
-  getToken(): string | null {
-    return currentToken.value
-  },
-
-  getRole(): string | null {
-    return currentRole.value
-  },
-
-  getDivisi(): string | null {
-    return currentRole.value
-  },
-
-  getUsername(): string | null {
-    return currentUsername.value
-  },
-
-  getUser() {
-    return {
-      id: currentUserId.value,
-      username: currentUsername.value,
-      role: currentRole.value,
-      divisi: currentRole.value,
-    }
   },
 
   isAuthenticated(): boolean {

@@ -7,12 +7,23 @@ import ToastClose from './ToastClose.vue'
 import ToastViewport from './ToastViewport.vue'
 import ToastProvider from './ToastProvider.vue'
 
-const { toasts } = useToast()
+const { toasts, dismiss } = useToast()
 </script>
 
 <template>
   <ToastProvider>
-    <Toast v-for="toast in toasts" :key="toast.id" :variant="toast.variant" :open="toast.open">
+    <Toast
+      v-for="toast in toasts"
+      :key="toast.id"
+      :variant="toast.variant"
+      :open="toast.open"
+      :duration="toast.duration ?? 4000"
+      @update:open="(val: boolean) => {
+        if (!val) {
+          dismiss(toast.id)
+        }
+      }"
+    >
       <div class="grid gap-1">
         <ToastTitle v-if="toast.title">
           {{ toast.title }}
@@ -21,7 +32,7 @@ const { toasts } = useToast()
           {{ toast.description }}
         </ToastDescription>
       </div>
-      <ToastClose />
+      <ToastClose @click="dismiss(toast.id)" />
     </Toast>
     <ToastViewport />
   </ToastProvider>

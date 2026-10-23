@@ -4,7 +4,7 @@ import {
   fetchSurat as apiFetchSurat,
   fetchProker as apiFetchProker,
   updateSuratStatus,
-  authService,
+  currentRole,
   STATUS_COLUMNS,
   type Surat,
   type Proker,
@@ -15,6 +15,7 @@ import KanbanFilter from '@/components/molecules/KanbanFilter.vue'
 import KanbanCard from '@/components/organisms/KanbanCard.vue'
 import KanbanModalForm from '@/components/organisms/KanbanModalForm.vue'
 import { Button } from '@/components/ui/button'
+import { toast } from '@/components/ui/toast'
 
 const suratList = ref<Surat[]>([])
 const filteredSuratList = ref<Surat[]>([])
@@ -26,7 +27,7 @@ const selectedSurat = ref<Surat | null>(null)
 // Modal tambah surat baru
 const isCreateModalOpen = ref(false)
 
-const userRole = computed(() => authService.getRole())
+const userRole = computed(() => currentRole.value)
 const isSekre = computed(() => userRole.value === 'sekre')
 const isHumas = computed(() => userRole.value === 'humas')
 const canCreateSurat = computed(() => isSekre.value || isHumas.value)
@@ -96,10 +97,18 @@ const executeStatusUpdate = async (suratId: string, targetStatus: string) => {
       status_saat_ini: targetStatus,
     })
     await loadSurat()
+    toast({
+      title: 'Status Diperbarui',
+      description: `Surat berhasil dipindahkan ke kolom "${targetStatus}"`,
+    })
   } catch (err: any) {
     surat.status_saat_ini = previousStatus
     filteredSuratList.value = [...filteredSuratList.value]
-    alert(err.response?.data?.error || err.message || 'Gagal memindahkan status surat')
+    toast({
+      title: 'Gagal Memindahkan Surat',
+      description: err.response?.data?.error || err.message || 'Gagal memindahkan status surat',
+      variant: 'destructive',
+    })
   }
 }
 

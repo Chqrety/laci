@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { authService, type Surat, type Proker } from '@/services/api'
+import { currentRole, currentUsername, currentUserId, type Surat, type Proker } from '@/services/api'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
@@ -84,15 +84,14 @@ const filteredSuratList = computed(() => {
 
     // 3. Filter Hanya Surat Saya (Assigned to Me)
     if (filterOnlyMe.value) {
-      const currentRole = authService.getRole() || ''
-      const currentUname = (authService.getUsername() || currentRole).trim().toLowerCase()
-      const currentRoleVal = currentRole.trim().toLowerCase()
-      const currentUid = (authService.getUser().id || '').trim().toLowerCase()
+      const roleVal = (currentRole.value || '').trim().toLowerCase()
+      const currentUname = (currentUsername.value || roleVal).trim().toLowerCase()
+      const currentUid = (currentUserId.value || '').trim().toLowerCase()
       const pic = (s.pic_nama || '').trim().toLowerCase()
 
       const matchesMe =
         (currentUname && (pic === currentUname || pic.includes(currentUname))) ||
-        (currentRoleVal && (pic === currentRoleVal || pic.includes(currentRoleVal))) ||
+        (roleVal && (pic === roleVal || pic.includes(roleVal))) ||
         (currentUid && (s as any).user_id === currentUid)
 
       if (!matchesMe) {

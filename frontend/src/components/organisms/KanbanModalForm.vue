@@ -21,6 +21,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { toast } from '@/components/ui/toast'
 
 const props = defineProps<{
   isOpen: boolean
@@ -187,15 +196,27 @@ watch(
 
 const handleCreateSurat = async () => {
   if (!noUrut.value.trim()) {
-    alert('Nomor urut surat wajib diisi.')
+    toast({
+      title: 'Validasi Gagal',
+      description: 'Nomor urut surat wajib diisi.',
+      variant: 'destructive',
+    })
     return
   }
   if (!selectedProker.value) {
-    alert('Silakan pilih Program Kerja (Proker).')
+    toast({
+      title: 'Validasi Gagal',
+      description: 'Silakan pilih Program Kerja (Proker).',
+      variant: 'destructive',
+    })
     return
   }
   if (!selectedTahun.value.trim()) {
-    alert('Tahun surat wajib diisi.')
+    toast({
+      title: 'Validasi Gagal',
+      description: 'Tahun surat wajib diisi.',
+      variant: 'destructive',
+    })
     return
   }
 
@@ -210,10 +231,18 @@ const handleCreateSurat = async () => {
   isCreating.value = true
   try {
     await suratService.create(createForm.value)
+    toast({
+      title: 'Berhasil',
+      description: 'Surat baru berhasil didaftarkan.',
+    })
     emit('created')
     emit('close')
   } catch (err: any) {
-    alert(err.response?.data?.error || 'Gagal membuat surat')
+    toast({
+      title: 'Gagal',
+      description: err.response?.data?.error || 'Gagal membuat surat',
+      variant: 'destructive',
+    })
   } finally {
     isCreating.value = false
   }
@@ -221,16 +250,12 @@ const handleCreateSurat = async () => {
 </script>
 
 <template>
-  <Transition name="modal-fade">
-    <div
-      v-if="isOpen"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto"
-    >
-      <div class="modal-panel bg-white rounded-3xl border border-black/10 max-w-xl w-full p-6 sm:p-7 space-y-5 shadow-xl">
-        <header>
-          <h3 class="text-lg font-semibold text-zinc-900 tracking-tight">Tambah Surat Baru</h3>
-          <p class="text-xs text-zinc-500 mt-0.5">Lengkapi parameter nomor surat dan informasi dokumen resmi.</p>
-        </header>
+  <Dialog :open="isOpen" @update:open="(val: boolean) => { if (!val) emit('close') }">
+    <DialogContent class="max-w-xl max-h-[90vh] overflow-y-auto space-y-4">
+      <DialogHeader>
+        <DialogTitle>Tambah Surat Baru</DialogTitle>
+        <DialogDescription>Lengkapi parameter nomor surat dan informasi dokumen resmi.</DialogDescription>
+      </DialogHeader>
 
         <!-- OCR Auto-Fill Area -->
         <div class="p-3 bg-zinc-50 border border-dashed border-zinc-300 rounded-2xl flex flex-col gap-2">
@@ -288,7 +313,7 @@ const handleCreateSurat = async () => {
           </p>
         </div>
 
-        <form @submit.prevent="handleCreateSurat" class="space-y-4">
+        <form @submit.prevent="handleCreateSurat" novalidate class="space-y-4">
           <!-- Inset Grouped Form Container -->
           <div class="rounded-2xl border border-black/10 bg-white overflow-hidden divide-y divide-black/5 shadow-2xs">
             <!-- 1. Nomor Surat Group (Format Standar DOSCOM) -->
@@ -301,7 +326,6 @@ const handleCreateSurat = async () => {
                 <Input
                   v-model="noUrut"
                   type="text"
-                  required
                   placeholder="01"
                   class="w-16 sm:w-20 px-2 py-1.5 h-8 text-xs font-mono font-semibold text-center"
                 />
@@ -317,35 +341,35 @@ const handleCreateSurat = async () => {
 
                 <span class="text-zinc-400 font-semibold text-xs select-none">/</span>
 
-                <select
-                  v-model="selectedProker"
-                  required
-                  class="flex-1 min-w-[120px] px-2.5 py-1.5 text-xs font-medium border border-black/10 rounded-xl bg-white focus:outline-none focus:ring-1 focus:ring-[#0A84DC] truncate"
-                >
-                  <option value="" disabled>-- Pilih Proker --</option>
-                  <option v-for="proker in availableProkers" :key="proker.id" :value="proker.nama_proker">
-                    {{ proker.nama_proker }}
-                  </option>
-                </select>
+                <Select v-model="selectedProker">
+                  <SelectTrigger class="flex-1 min-w-[120px] h-8 text-xs font-medium">
+                    <SelectValue placeholder="Pilih Proker" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem v-for="proker in availableProkers" :key="proker.id" :value="proker.nama_proker">
+                      {{ proker.nama_proker }}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
 
                 <span class="text-zinc-400 font-semibold text-xs select-none">/</span>
 
-                <select
-                  v-model="selectedBulan"
-                  required
-                  class="w-16 sm:w-20 px-2 py-1.5 text-xs font-mono font-semibold text-center border border-black/10 rounded-xl bg-white focus:outline-none focus:ring-1 focus:ring-[#0A84DC]"
-                >
-                  <option v-for="bulan in romanMonths" :key="bulan" :value="bulan">
-                    {{ bulan }}
-                  </option>
-                </select>
+                <Select v-model="selectedBulan">
+                  <SelectTrigger class="w-16 sm:w-20 h-8 text-xs font-mono font-semibold text-center">
+                    <SelectValue :placeholder="selectedBulan" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem v-for="bulan in romanMonths" :key="bulan" :value="bulan">
+                      {{ bulan }}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
 
                 <span class="text-zinc-400 font-semibold text-xs select-none">/</span>
 
                 <Input
                   v-model="selectedTahun"
                   type="number"
-                  required
                   placeholder="2026"
                   class="min-w-[4rem] flex-1 sm:w-20 px-2 py-1.5 h-8 text-xs font-mono font-semibold text-center"
                 />
@@ -444,7 +468,7 @@ const handleCreateSurat = async () => {
             </div>
           </div>
 
-          <footer class="flex justify-end gap-2.5 pt-2">
+          <DialogFooter>
             <Button
               type="button"
               variant="outline"
@@ -458,9 +482,8 @@ const handleCreateSurat = async () => {
             >
               {{ isCreating ? 'Menyimpan...' : 'Simpan Surat' }}
             </Button>
-          </footer>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
-  </Transition>
+    </DialogContent>
+  </Dialog>
 </template>
