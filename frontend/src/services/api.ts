@@ -67,7 +67,7 @@ export interface Surat {
   status_saat_ini: string
   pic_nama: string
   arsip_url?: string | null
-  file_arsip?: string | null
+
   catatan?: string
   logs?: LogTracking[]
 }
@@ -315,7 +315,7 @@ export const suratService = {
     id: string,
     file: File | Blob,
     filename?: string,
-  ): Promise<{ message: string; file_arsip: string; arsip_url: string; surat: Surat }> {
+  ): Promise<{ message: string; arsip_url: string; surat: Surat }> {
     const formData = new FormData()
     if (filename) {
       formData.append('file', file, filename)

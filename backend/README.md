@@ -153,10 +153,6 @@ go run .
 # Menjalankan Database Seeder inti kebutuhan real (Users & Proker)
 go run cmd/seed/main.go
 
-# Menjalankan Seeder lengkap beserta data dummy surat & tracking (khusus dev)
-go run cmd/seed/main.go -dummy
-
 # Atau jika menjalankan via Docker Compose:
 docker compose exec backend ./laci-seed
-docker compose exec backend ./laci-seed -dummy
 ```

@@ -31,7 +31,6 @@ type Surat struct {
 	StatusSaatIni string        `gorm:"type:varchar(100);not null" json:"status_saat_ini"`
 	PICNama       string        `gorm:"type:varchar(100);not null" json:"pic_nama"`
 	ArsipURL      *string       `gorm:"type:text" json:"arsip_url"`
-	FileArsip     string        `gorm:"type:text" json:"file_arsip"`
 	Catatan       string        `gorm:"type:text" json:"catatan"`
 	ProkerID      *uuid.UUID    `gorm:"type:uuid" json:"proker_id,omitempty"`
 	Logs          []LogTracking `gorm:"foreignKey:SuratID" json:"logs,omitempty"`

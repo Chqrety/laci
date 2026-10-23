@@ -27,8 +27,6 @@ type CreateSuratInput struct {
 
 type UpdateSuratInput struct {
 	StatusSaatIni string  `json:"status_saat_ini"`
-	StatusBaru    string  `json:"status_baru"`
-	Status        string  `json:"status"`
 	Tujuan        *string `json:"tujuan"`
 	Catatan       *string `json:"catatan"`
 	CatatanLog    *string `json:"catatan_log"`
@@ -53,10 +51,6 @@ func CreateSurat(c *gin.Context) {
 
 	divisiVal, _ := c.Get("divisi")
 	divisi, _ := divisiVal.(string)
-	if divisi == "" {
-		roleVal, _ := c.Get("role")
-		divisi, _ = roleVal.(string)
-	}
 
 	status := input.StatusSaatIni
 	if strings.ToLower(divisi) != "sekre" || strings.TrimSpace(status) == "" {
@@ -116,21 +110,12 @@ func UpdateSurat(c *gin.Context) {
 	}
 
 	var input UpdateSuratInput
-
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	newStatus := input.StatusSaatIni
-	if newStatus == "" {
-		newStatus = input.StatusBaru
-	}
-	if newStatus == "" {
-		newStatus = input.Status
-	}
-
-	// If no status is supplied, retain the current status
+	newStatus := strings.TrimSpace(input.StatusSaatIni)
 	if newStatus == "" {
 		newStatus = surat.StatusSaatIni
 	}
@@ -227,22 +212,16 @@ func UploadSurat(c *gin.Context) {
 	}
 
 	fileArsipURL := "/uploads/" + newFileName
-	updates := map[string]interface{}{
-		"file_arsip": fileArsipURL,
-		"arsip_url":  fileArsipURL,
-	}
-	if err := config.DB.Model(&surat).Updates(updates).Error; err != nil {
+	if err := config.DB.Model(&surat).Update("arsip_url", fileArsipURL).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	surat.FileArsip = fileArsipURL
 	surat.ArsipURL = &fileArsipURL
 	c.JSON(http.StatusOK, gin.H{
-		"message":    "File arsip berhasil diunggah",
-		"file_arsip": fileArsipURL,
-		"arsip_url":  fileArsipURL,
-		"surat":      surat,
+		"message":   "File arsip berhasil diunggah",
+		"arsip_url": fileArsipURL,
+		"surat":     surat,
 	})
 }
 

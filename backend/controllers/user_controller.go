@@ -3,9 +3,9 @@ package controllers
 import (
 	"crypto/rand"
 	"encoding/csv"
+	"encoding/hex"
 	"fmt"
 	"io"
-	"math/big"
 	"net/http"
 	"strings"
 
@@ -35,18 +35,11 @@ type UpdateUserInput struct {
 	Password string `json:"password"`
 }
 
-// generateRandomPassword menghasilkan password acak sederhana 8 karakter
+// generateRandomPassword menghasilkan password acak hex sederhana
 func generateRandomPassword(length int) string {
-	const charset = "abcdefghjkmnpqrstuvwxyz23456789"
-	b := make([]byte, length)
-	for i := range b {
-		num, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
-		if err != nil {
-			return "doscom123"
-		}
-		b[i] = charset[num.Int64()]
-	}
-	return string(b)
+	b := make([]byte, (length+1)/2)
+	rand.Read(b)
+	return hex.EncodeToString(b)[:length]
 }
 
 func sanitizeUsername(name string, nim string) string {

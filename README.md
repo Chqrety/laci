@@ -92,15 +92,9 @@ Jika kamu ingin mengembangkan fitur dengan _Hot-Reload_:
 
 Setelah container berjalan (`docker compose up -d`), jalankan seeder langsung ke dalam container backend:
 
-* **Seeder Inti / Kebutuhan Real (Akun Default Sekre/Humas & Master Proker):**
-  ```bash
-  docker compose exec backend ./laci-seed
-  ```
-
-* **Seeder Lengkap beserta Data Dummy Surat (Khusus Dev/Testing):**
-  ```bash
-  docker compose exec backend ./laci-seed -dummy
-  ```
+```bash
+docker compose exec backend ./laci-seed
+```
 
 ---
 

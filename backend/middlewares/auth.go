@@ -51,12 +51,7 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		c.Set("userID", claims["sub"])
 		c.Set("username", claims["username"])
-		divisiVal := claims["divisi"]
-		if divisiVal == nil || divisiVal == "" {
-			divisiVal = claims["role"]
-		}
-		c.Set("divisi", divisiVal)
-		c.Set("role", divisiVal)
+		c.Set("divisi", claims["divisi"])
 		c.Next()
 	}
 }

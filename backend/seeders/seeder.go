@@ -2,8 +2,6 @@ package seeders
 
 import (
 	"log"
-	"strings"
-	"time"
 
 	"laci-backend/models"
 
@@ -14,8 +12,6 @@ import (
 
 type User = models.User
 type Proker = models.Proker
-type Surat = models.Surat
-type LogTracking = models.LogTracking
 
 // SeedCore menjalankan seeder kebutuhan dasar (Users & Proker) untuk production & inisialisasi sistem
 func SeedCore(db *gorm.DB) {
@@ -23,15 +19,8 @@ func SeedCore(db *gorm.DB) {
 	SeedProker(db)
 }
 
-// SeedDummySurat menjalankan seeder data dummy surat & tracking untuk keperluan dev/testing
-func SeedDummySurat(db *gorm.DB) {
-	seedSurat(db)
-	seedLogTracking(db)
-}
-
 func RunAllSeeders(db *gorm.DB) {
 	SeedCore(db)
-	SeedDummySurat(db)
 }
 
 func SeedUsers(db *gorm.DB) {
@@ -97,196 +86,6 @@ func SeedProker(db *gorm.DB) {
 		p.ID = uuid.New()
 		if err := db.Where(Proker{NamaProker: p.NamaProker}).FirstOrCreate(&proker, p).Error; err != nil {
 			log.Printf("Warning: failed to seed proker %s: %v", p.NamaProker, err)
-		}
-	}
-}
-
-func seedSurat(db *gorm.DB) {
-	var prokers []Proker
-	db.Find(&prokers)
-
-	prokerMap := make(map[string]uuid.UUID)
-	for _, p := range prokers {
-		prokerMap[p.NamaProker] = p.ID
-	}
-
-	getProkerID := func(nama string) *uuid.UUID {
-		if id, exists := prokerMap[nama]; exists {
-			return &id
-		}
-		if len(prokers) > 0 {
-			return &prokers[0].ID
-		}
-		return nil
-	}
-
-	dummyList := []struct {
-		Nomor   string
-		Perihal string
-		Tujuan  string
-		Proker  string
-		Status  string
-		PIC     string
-		Catatan string
-	}{
-		{
-			Nomor:   "015/DOSCOM/MAKRAB/X/2026",
-			Perihal: "Permohonan Peminjaman Ruang Gedung H",
-			Tujuan:  "Kepala Bagian Rumah Tangga & Sarpras",
-			Proker:  "MAKRAB",
-			Status:  "Standby",
-			PIC:     "Ahmad Fauzi",
-			Catatan: "Menunggu lampiran denah ruang untuk kegiatan Malam Keakraban",
-		},
-		{
-			Nomor:   "018/DOSCOM/OPREC/X/2026",
-			Perihal: "Surat Izin Penyelenggaraan Acara",
-			Tujuan:  "Koordinator Kemahasiswaan Fakultas",
-			Proker:  "OPREC",
-			Status:  "Cetak",
-			PIC:     "Nabila Putri",
-			Catatan: "Disposisi disetujui, siap cetak fisik untuk ditandatangani",
-		},
-		{
-			Nomor:   "021/DOSCOM/DST/X/2026",
-			Perihal: "Peminjaman Proyektor dan Sound System",
-			Tujuan:  "Laboratorium Komputer & Multimedia",
-			Proker:  "DST",
-			Status:  "TTD Lapis 1",
-			PIC:     "Dimas Arya",
-			Catatan: "Menunggu tanda tangan sekretaris umum DOSCOM",
-		},
-		{
-			Nomor:   "022/DOSCOM/DU/X/2026",
-			Perihal: "Permohonan SK Kepengurusan",
-			Tujuan:  "Ketua BEM Fakultas Ilmu Komputer",
-			Proker:  "DU",
-			Status:  "TTD Ketum",
-			PIC:     "Siti Rahma",
-			Catatan: "Menunggu tanda tangan dan validasi Ketua Umum DOSCOM",
-		},
-		{
-			Nomor:   "025/DOSCOM/RP/X/2026",
-			Perihal: "Surat Undangan Pembicara",
-			Tujuan:  "Bapak Dosen Pembina Organisasi",
-			Proker:  "RP",
-			Status:  "TTD Pembina",
-			PIC:     "Rian Pratama",
-			Catatan: "Sudah disetujui Ketum, saat ini menunggu tanda tangan Pembina DOSCOM",
-		},
-		{
-			Nomor:   "028/DOSCOM/OOTS/X/2026",
-			Perihal: "Permohonan Izin Stand Bazaar Kampus",
-			Tujuan:  "Biro Kemahasiswaan Universitas",
-			Proker:  "OOTS",
-			Status:  "Paraf Koormawa",
-			PIC:     "Fajar Santoso",
-			Catatan: "Telah diajukan ke BEM, sedang proses paraf Koordinator Kemahasiswaan",
-		},
-		{
-			Nomor:   "030/DOSCOM/MAKRAB/X/2026",
-			Perihal: "Permohonan Rekomendasi Kegiatan Luar Kampus",
-			Tujuan:  "Wakil Dekan III Bidang Kemahasiswaan",
-			Proker:  "MAKRAB",
-			Status:  "TTD Tertinggi",
-			PIC:     "Lestari Widya",
-			Catatan: "Menunggu tanda tangan Dekan / Wakil Rektor III",
-		},
-		{
-			Nomor:   "032/DOSCOM/DST/X/2026",
-			Perihal: "Surat Tugas Instruktur Workshop",
-			Tujuan:  "Ketua Program Studi Teknik Informatika",
-			Proker:  "DST",
-			Status:  "Selesai",
-			PIC:     "Bayu Saputra",
-			Catatan: "Semua tanda tangan lengkap dan surat fisik telah diarsipkan",
-		},
-	}
-
-	for _, d := range dummyList {
-		var s Surat
-		newSurat := Surat{
-			ID:            uuid.New(),
-			NomorSurat:    d.Nomor,
-			Perihal:       d.Perihal,
-			Tujuan:        d.Tujuan,
-			StatusSaatIni: d.Status,
-			PICNama:       d.PIC,
-			Catatan:       d.Catatan,
-			ProkerID:      getProkerID(d.Proker),
-		}
-
-		if err := db.Where(Surat{NomorSurat: d.Nomor}).FirstOrCreate(&s, newSurat).Error; err != nil {
-			log.Printf("Warning: failed to seed surat %s: %v", d.Nomor, err)
-			continue
-		}
-	}
-}
-
-func seedLogTracking(db *gorm.DB) {
-	statusHierarchy := []string{
-		"Standby",
-		"Cetak",
-		"TTD Lapis 1",
-		"TTD Ketum",
-		"TTD Pembina",
-		"Paraf Koormawa",
-		"TTD Tertinggi",
-		"Selesai",
-	}
-
-	statusNoteMap := map[string]string{
-		"Standby":        "Surat dibuat dan masuk ke sistem tracking",
-		"Cetak":          "Surat telah dicetak fisik dan disiapkan untuk penandatanganan",
-		"TTD Lapis 1":    "Surat telah ditandatangani oleh Sekretaris Umum",
-		"TTD Ketum":      "Surat telah ditandatangani oleh Ketua Umum DOSCOM",
-		"TTD Pembina":    "Surat telah ditandatangani oleh Pembina DOSCOM",
-		"Paraf Koormawa": "Surat telah diparaf oleh Koordinator Kemahasiswaan",
-		"TTD Tertinggi":  "Surat telah ditandatangani oleh Pimpinan Tertinggi Kampus",
-		"Selesai":        "Surat selesai diproses, diarsipkan, dan siap didistribusikan",
-	}
-
-	var allSurat []Surat
-	if err := db.Find(&allSurat).Error; err != nil {
-		log.Printf("Warning: failed to query surat for log tracking seeder: %v", err)
-		return
-	}
-
-	for _, s := range allSurat {
-		targetIdx := -1
-		for idx, st := range statusHierarchy {
-			if strings.EqualFold(st, s.StatusSaatIni) {
-				targetIdx = idx
-				break
-			}
-		}
-
-		if targetIdx == -1 {
-			targetIdx = 0
-		}
-
-		for i := 0; i <= targetIdx; i++ {
-			stepStatus := statusHierarchy[i]
-			note := statusNoteMap[stepStatus]
-			if i == targetIdx && s.Catatan != "" {
-				note = s.Catatan
-			}
-
-			offsetHours := time.Duration((targetIdx-i)*14 + 2)
-			logTime := time.Now().Add(-offsetHours * time.Hour)
-
-			newLog := LogTracking{
-				ID:          uuid.New(),
-				SuratID:     s.ID,
-				StatusBaru:  stepStatus,
-				CatatanLog:  note,
-				WaktuUpdate: logTime,
-			}
-
-			var existing LogTracking
-			if err := db.Where("surat_id = ? AND status_baru = ?", s.ID, stepStatus).FirstOrCreate(&existing, newLog).Error; err != nil {
-				log.Printf("Warning: failed to seed log tracking for surat %s status %s: %v", s.NomorSurat, stepStatus, err)
-			}
 		}
 	}
 }

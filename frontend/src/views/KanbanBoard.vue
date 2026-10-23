@@ -27,9 +27,9 @@ const selectedSurat = ref<Surat | null>(null)
 // Modal tambah surat baru
 const isCreateModalOpen = ref(false)
 
-const userRole = computed(() => currentRole.value)
-const isSekre = computed(() => userRole.value === 'sekre')
-const isHumas = computed(() => userRole.value === 'humas')
+
+const isSekre = computed(() => currentRole.value === 'sekre')
+const isHumas = computed(() => currentRole.value === 'humas')
 const canCreateSurat = computed(() => isSekre.value || isHumas.value)
 
 const totalSuratCount = computed(() => suratList.value.length)

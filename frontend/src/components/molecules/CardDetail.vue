@@ -46,7 +46,7 @@ const uploadDokumenMessage = ref('')
 const uploadDokumenError = ref('')
 
 const fileArsipUrl = computed(() => {
-  return props.surat.file_arsip || props.surat.arsip_url || null
+  return props.surat.arsip_url || null
 })
 
 const isPdf = computed(() => {
