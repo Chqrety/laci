@@ -1,6 +1,19 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import * as z from 'zod'
+import { toTypedSchema } from '@vee-validate/zod'
 import { authService, type User } from '@/services/api'
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+  FormDescription,
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 const profile = ref<User | null>(null)
 const isLoading = ref(false)
@@ -8,17 +21,23 @@ const oldPassword = ref('')
 const newPassword = ref('')
 const confirmPassword = ref('')
 const isSubmitting = ref(false)
-const newUsername = ref('')
 const isSubmittingUsername = ref(false)
 const msg = ref<{ type: 'success' | 'error'; text: string } | null>(null)
+
+const usernameFormSchema = toTypedSchema(
+  z.object({
+    username: z
+      .string({ required_error: 'Username wajib diisi' })
+      .min(1, 'Username wajib diisi')
+      .min(3, 'Username minimal 3 karakter')
+      .regex(/^\S+$/, 'Username tidak boleh mengandung spasi'),
+  }),
+)
 
 const fetchProfile = async () => {
   isLoading.value = true
   try {
     profile.value = await authService.getProfile()
-    if (profile.value?.username) {
-      newUsername.value = profile.value.username
-    }
   } catch (err: any) {
     msg.value = { type: 'error', text: err.response?.data?.error || 'Gagal memuat profil' }
   } finally {
@@ -30,11 +49,11 @@ onMounted(() => {
   fetchProfile()
 })
 
-const handleChangeUsername = async () => {
+const onSubmitUsername = async (values: Record<string, any>) => {
   msg.value = null
   isSubmittingUsername.value = true
   try {
-    const res = await authService.changeUsername(newUsername.value.trim())
+    const res = await authService.changeUsername(String(values.username).trim())
     msg.value = { type: 'success', text: res.message || 'Username berhasil diperbarui!' }
     if (profile.value) {
       profile.value.username = res.username
@@ -135,44 +154,52 @@ const handleChangePassword = async () => {
       </div>
     </div>
 
-    <!-- Form Ganti Username -->
+    <!-- Form Ganti Username (Shadcn-vue + Vee-Validate + Zod) -->
     <div class="bg-white rounded-3xl p-6 border border-slate-200/90 shadow-xs flex flex-col gap-4">
       <div>
         <h3 class="text-sm font-semibold text-zinc-900">Ubah Username</h3>
         <p class="text-xs text-zinc-400 mt-0.5">Ubah username kamu agar lebih mudah diingat saat login</p>
       </div>
 
-      <form @submit.prevent="handleChangeUsername" class="flex flex-col gap-3.5">
-        <div>
-          <label class="block text-xs font-medium text-zinc-700 mb-1">Username Baru</label>
-          <div class="relative">
-            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-zinc-400 font-medium">@</span>
-            <input
-              v-model="newUsername"
-              type="text"
-              required
-              minlength="3"
-              pattern="^\S+$"
-              title="Minimal 3 karakter tanpa spasi"
-              placeholder="username_kamu"
-              class="w-full pl-8 pr-3.5 py-2.5 rounded-2xl bg-zinc-50 border border-zinc-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 focus:border-[#0A84DC]"
-            />
-          </div>
-          <p class="text-[11px] text-zinc-400 mt-1">
-            Default akun menggunakan format persis NIM (misal: {{ profile?.nim || 'A11.2022.14000' }}). Anda dapat menggantinya menjadi username personal tanpa spasi.
-          </p>
-        </div>
+      <Form
+        :key="profile?.username || 'user-form'"
+        :validation-schema="usernameFormSchema"
+        :initial-values="{ username: profile?.username || '' }"
+        novalidate
+        @submit="onSubmitUsername"
+        class="flex flex-col gap-3.5"
+        v-slot="{ values }"
+      >
+        <FormField name="username" v-slot="{ componentField }">
+          <FormItem>
+            <FormLabel>Username Baru</FormLabel>
+            <FormControl>
+              <div class="relative">
+                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-zinc-400 font-medium z-10 pointer-events-none">@</span>
+                <Input
+                  type="text"
+                  placeholder="username_kamu"
+                  class="pl-8"
+                  v-bind="componentField"
+                />
+              </div>
+            </FormControl>
+            <FormMessage />
+            <FormDescription>
+              Default akun menggunakan format persis NIM (misal: {{ profile?.nim || 'A11.2022.14000' }}). Anda dapat menggantinya menjadi username personal tanpa spasi.
+            </FormDescription>
+          </FormItem>
+        </FormField>
 
         <div class="flex justify-end pt-1">
-          <button
+          <Button
             type="submit"
-            :disabled="isSubmittingUsername || !newUsername.trim() || newUsername.trim() === profile?.username"
-            class="px-6 py-2.5 rounded-full text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 active:scale-[0.98] transition-all shadow-xs disabled:opacity-50 cursor-pointer"
+            :disabled="isSubmittingUsername || !values.username || values.username === profile?.username"
           >
             {{ isSubmittingUsername ? 'Menyimpan...' : 'Simpan Username Baru' }}
-          </button>
+          </Button>
         </div>
-      </form>
+      </Form>
     </div>
 
     <!-- Form Ganti Password -->
