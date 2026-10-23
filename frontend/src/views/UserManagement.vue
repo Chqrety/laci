@@ -3,6 +3,15 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { userService, currentUserId, type User } from '@/services/api'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 const users = ref<User[]>([])
 const isLoading = ref(false)
@@ -84,7 +93,7 @@ const filteredUsers = computed(() => {
       u.username?.toLowerCase().includes(q) ||
       u.email?.toLowerCase().includes(q)
 
-    const matchesDivisi = !selectedDivisi.value || u.divisi === selectedDivisi.value
+    const matchesDivisi = !selectedDivisi.value || selectedDivisi.value === 'all' || u.divisi === selectedDivisi.value
     return matchesSearch && matchesDivisi
   })
 })
@@ -401,15 +410,17 @@ const handleImportData = async () => {
         class="flex-1 min-w-[200px]"
       />
 
-      <select
-        v-model="selectedDivisi"
-        class="px-3.5 py-2 text-xs rounded-full bg-white border border-slate-200 text-slate-800 focus:outline-none focus:ring-4 focus:ring-sky-100 focus:border-sky-500 shadow-xs transition-all cursor-pointer"
-      >
-        <option value="">Semua Divisi</option>
-        <option v-for="d in divisiOptions" :key="d" :value="d">
-         {{ d.toUpperCase() }}
-        </option>
-      </select>
+      <Select v-model="selectedDivisi">
+        <SelectTrigger class="w-40 sm:w-48">
+          <SelectValue placeholder="Semua Divisi" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Semua Divisi</SelectItem>
+          <SelectItem v-for="d in divisiOptions" :key="d" :value="d">
+            {{ d.toUpperCase() }}
+          </SelectItem>
+        </SelectContent>
+      </Select>
     </div>
 
     <!-- Bulk Selection Bar (Clean iOS HIG: rounded-2xl, border-black/5, shadow-[0_8px_30px_rgb(0,0,0,0.05)]) -->
@@ -428,24 +439,26 @@ const handleImportData = async () => {
         </div>
 
         <div class="flex items-center gap-2">
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             @click="selectedUserIds = []"
-            class="px-3 py-1.5 rounded-xl text-xs font-medium text-zinc-500 hover:text-zinc-800 hover:bg-black/[0.04] transition-colors"
           >
             Batal Pilih
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="destructive"
+            size="sm"
             @click="handleBatchDelete"
             :disabled="isSubmitting"
-            class="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 active:scale-95 transition-all flex items-center gap-1.5 disabled:opacity-50"
           >
-            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg class="w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
             Hapus Terpilih ({{ selectedUserIds.length }})
-          </button>
+          </Button>
         </div>
       </div>
     </Transition>
@@ -544,16 +557,12 @@ const handleImportData = async () => {
               </td>
               <td class="py-3.5 px-4">
                 <div class="flex items-center gap-1.5">
-                  <span
-                    class="px-2 py-0.5 rounded-lg text-[10px] font-semibold"
-                    :class="
-                      u.is_password_default
-                        ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                        : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                    "
+                  <Badge
+                    :variant="u.is_password_default ? 'amber' : 'emerald'"
+                    size="xs"
                   >
                     {{ u.is_password_default ? 'Default' : 'Kustom' }}
-                  </span>
+                  </Badge>
 
                   <span
                     v-if="!u.has_seen_password_prompt"
@@ -567,10 +576,12 @@ const handleImportData = async () => {
               <td class="py-3.5 px-4 text-right">
                 <div class="flex items-center justify-end gap-1">
                   <!-- Tombol Detail Pengurus (Info / User Card Icon) -->
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="icon"
                     @click="openDetailModal(u)"
-                    class="p-2 rounded-xl text-zinc-400 hover:text-zinc-800 hover:bg-zinc-100 active:scale-95 transition-all"
+                    class="rounded-xl text-zinc-400 hover:text-zinc-800"
                     title="Lihat Detail Pengurus"
                     aria-label="Lihat Detail Pengurus"
                   >
@@ -582,13 +593,15 @@ const handleImportData = async () => {
                         d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                       />
                     </svg>
-                  </button>
+                  </Button>
 
                   <!-- Tombol Edit Pengurus (Pencil Icon) -->
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="icon"
                     @click="openEditModal(u)"
-                    class="p-2 rounded-xl text-zinc-400 hover:text-amber-600 hover:bg-amber-50 active:scale-95 transition-all"
+                    class="rounded-xl text-zinc-400 hover:text-amber-600 hover:bg-amber-50"
                     title="Edit Data Pengurus"
                     aria-label="Edit Data Pengurus"
                   >
@@ -600,13 +613,15 @@ const handleImportData = async () => {
                         d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
                       />
                     </svg>
-                  </button>
+                  </Button>
 
                   <!-- Tombol Ingatkan Ganti Password (Bell / Reminder Icon) -->
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="icon"
                     @click="handleResetPrompt(u)"
-                    class="p-2 rounded-xl text-zinc-400 hover:text-[#0A84DC] hover:bg-[#0A84DC]/10 active:scale-95 transition-all"
+                    class="rounded-xl text-zinc-400 hover:text-[#0A84DC] hover:bg-[#0A84DC]/10"
                     title="Ingatkan Ganti Password (Picu modal saat login berikutnya)"
                     aria-label="Ingatkan Ganti Password"
                   >
@@ -618,14 +633,16 @@ const handleImportData = async () => {
                         d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
                       />
                     </svg>
-                  </button>
+                  </Button>
 
                   <!-- Tombol Hapus Pengurus (Trash Icon) -->
-                  <button
+                  <Button
                     v-if="u.id !== currentUserId"
                     type="button"
+                    variant="ghost"
+                    size="icon"
                     @click="handleDeleteUser(u)"
-                    class="p-2 rounded-xl text-zinc-400 hover:text-rose-600 hover:bg-rose-50 active:scale-95 transition-all"
+                    class="rounded-xl text-zinc-400 hover:text-rose-600 hover:bg-rose-50"
                     title="Hapus Pengurus"
                     aria-label="Hapus Pengurus"
                   >
@@ -637,7 +654,7 @@ const handleImportData = async () => {
                         d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                       />
                     </svg>
-                  </button>
+                  </Button>
                 </div>
               </td>
             </tr>
@@ -654,25 +671,27 @@ const handleImportData = async () => {
           Menampilkan {{ (currentPage - 1) * itemsPerPage + 1 }} - {{ Math.min(currentPage * itemsPerPage, filteredUsers.length) }} dari {{ filteredUsers.length }} pengurus
         </span>
         <div class="flex items-center gap-1.5">
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             @click="currentPage--"
             :disabled="currentPage === 1"
-            class="px-3 py-1 rounded-xl border border-black/5 bg-white text-zinc-700 hover:bg-zinc-50 active:scale-95 disabled:opacity-40 transition-all font-medium"
           >
             Sebelumnya
-          </button>
+          </Button>
           <span class="px-2 font-mono text-[11px] font-semibold text-zinc-700">
             {{ currentPage }} / {{ totalPages }}
           </span>
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             @click="currentPage++"
             :disabled="currentPage === totalPages"
-            class="px-3 py-1 rounded-xl border border-black/5 bg-white text-zinc-700 hover:bg-zinc-50 active:scale-95 disabled:opacity-40 transition-all font-medium"
           >
             Selanjutnya
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -690,26 +709,29 @@ const handleImportData = async () => {
         </div>
 
         <form @submit.prevent="handleCreateUser" class="flex flex-col gap-3">
-          <div>
-            <label class="block text-xs font-medium text-zinc-700 mb-1">Nama Lengkap *</label>
+          <div class="space-y-1">
+            <Label for="add-user-nama">Nama Lengkap *</Label>
             <Input
+              id="add-user-nama"
               v-model="formUser.nama"
               required
               placeholder="Contoh: Budi Santoso"
             />
           </div>
 
-          <div>
-            <label class="block text-xs font-medium text-zinc-700 mb-1">NIM (Nomor Induk Mahasiswa)</label>
+          <div class="space-y-1">
+            <Label for="add-user-nim">NIM (Nomor Induk Mahasiswa)</Label>
             <Input
+              id="add-user-nim"
               v-model="formUser.nim"
               placeholder="Contoh: A11.2023.12345"
             />
           </div>
 
-          <div>
-            <label class="block text-xs font-medium text-zinc-700 mb-1">Email</label>
+          <div class="space-y-1">
+            <Label for="add-user-email">Email</Label>
             <Input
+              id="add-user-email"
               v-model="formUser.email"
               type="email"
               placeholder="budi@doscom.org"
@@ -717,31 +739,35 @@ const handleImportData = async () => {
           </div>
 
           <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-xs font-medium text-zinc-700 mb-1">Username (Opsional)</label>
+            <div class="space-y-1">
+              <Label for="add-user-username">Username (Opsional)</Label>
               <Input
+                id="add-user-username"
                 v-model="formUser.username"
                 placeholder="Auto dari NIM/Nama"
               />
             </div>
-            <div>
-              <label class="block text-xs font-medium text-zinc-700 mb-1">Divisi</label>
-              <select
-                v-model="formUser.divisi"
-                class="w-full px-3 py-2 rounded-2xl bg-zinc-50 border border-zinc-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 focus:border-[#0A84DC]"
-              >
-                <option value="humas">Humas</option>
-                <option value="sekre">Sekre</option>
-                <option value="inti">Pengurus Inti</option>
-                <option value="acara">Divisi Acara</option>
-                <option value="perlengkapan">Divisi Perlengkapan</option>
-              </select>
+            <div class="space-y-1">
+              <Label for="add-user-divisi">Divisi</Label>
+              <Select v-model="formUser.divisi">
+                <SelectTrigger id="add-user-divisi">
+                  <SelectValue placeholder="Pilih Divisi" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="humas">Humas</SelectItem>
+                  <SelectItem value="sekre">Sekre</SelectItem>
+                  <SelectItem value="inti">Pengurus Inti</SelectItem>
+                  <SelectItem value="acara">Divisi Acara</SelectItem>
+                  <SelectItem value="perlengkapan">Divisi Perlengkapan</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
-          <div>
-            <label class="block text-xs font-medium text-zinc-700 mb-1">Password Awal (Opsional)</label>
+          <div class="space-y-1">
+            <Label for="add-user-password">Password Awal (Opsional)</Label>
             <Input
+              id="add-user-password"
               v-model="formUser.password"
               placeholder="Kosongkan untuk acak otomatis"
             />
@@ -817,7 +843,7 @@ const handleImportData = async () => {
 
         <!-- Input Tab CSV -->
         <div v-if="importMethod === 'csv'" class="flex flex-col gap-2">
-          <label class="block text-xs font-medium text-zinc-700">Pilih File CSV</label>
+          <Label>Pilih File CSV</Label>
           <input
             type="file"
             accept=".csv"
@@ -828,12 +854,12 @@ const handleImportData = async () => {
 
         <!-- Input Tab Google Sheets -->
         <div v-else class="flex flex-col gap-2">
-          <label class="block text-xs font-medium text-zinc-700">URL / Link Google Sheets</label>
-          <input
+          <Label for="sheet-url">URL / Link Google Sheets</Label>
+          <Input
+            id="sheet-url"
             v-model="sheetUrl"
             type="url"
             placeholder="https://docs.google.com/spreadsheets/d/.../edit"
-            class="w-full px-3.5 py-2.5 rounded-2xl bg-zinc-50 border border-zinc-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 focus:border-[#0A84DC] transition-all"
           />
           <span class="text-[11px] text-zinc-400">
             *Pastikan akses link sheet diset ke: <b>"Siapa saja yang memiliki link dapat melihat"</b>.
@@ -842,21 +868,20 @@ const handleImportData = async () => {
 
         <!-- Modal Actions -->
         <div class="flex items-center justify-end gap-2 mt-2">
-          <button
+          <Button
             type="button"
+            variant="ghost"
             @click="isImportModalOpen = false"
-            class="px-4 py-2 rounded-2xl text-xs text-zinc-600 hover:bg-zinc-100"
           >
             Batal
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             @click="handleImportData"
             :disabled="isSubmitting || (importMethod === 'csv' ? !importFile : !sheetUrl.trim())"
-            class="px-5 py-2 rounded-2xl text-xs font-semibold text-white bg-[#0A84DC] hover:bg-[#086db8] active:scale-[0.98] transition-all shadow-[0_8px_20px_rgba(10,132,220,0.25)] disabled:opacity-50"
           >
             {{ isSubmitting ? 'Memproses...' : (importMethod === 'csv' ? 'Mulai Import CSV' : 'Tarik Data Spreadsheet') }}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -958,51 +983,56 @@ const handleImportData = async () => {
         </div>
 
         <form @submit.prevent="handleUpdateUser" class="flex flex-col gap-3">
-          <div>
-            <label class="block text-xs font-medium text-zinc-700 mb-1">Nama Lengkap *</label>
+          <div class="space-y-1">
+            <Label for="edit-user-nama">Nama Lengkap *</Label>
             <Input
+              id="edit-user-nama"
               v-model="editForm.nama"
               required
             />
           </div>
 
-          <div>
-            <label class="block text-xs font-medium text-zinc-700 mb-1">NIM (Nomor Induk Mahasiswa)</label>
+          <div class="space-y-1">
+            <Label for="edit-user-nim">NIM (Nomor Induk Mahasiswa)</Label>
             <Input
+              id="edit-user-nim"
               v-model="editForm.nim"
               placeholder="Contoh: A11.2023.12345"
             />
           </div>
 
-          <div>
-            <label class="block text-xs font-medium text-zinc-700 mb-1">Email</label>
+          <div class="space-y-1">
+            <Label for="edit-user-email">Email</Label>
             <Input
+              id="edit-user-email"
               v-model="editForm.email"
               type="email"
             />
           </div>
 
-          <div>
-            <label class="block text-xs font-medium text-zinc-700 mb-1">Divisi</label>
-            <select
-              v-model="editForm.divisi"
-              :disabled="editForm.id === currentUserId"
-              class="w-full px-3 py-2 rounded-2xl bg-zinc-50 border border-zinc-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 focus:border-[#0A84DC] disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              <option value="humas">Humas</option>
-              <option value="sekre">Sekre</option>
-              <option value="inti">Pengurus Inti</option>
-              <option value="acara">Divisi Acara</option>
-              <option value="perlengkapan">Divisi Perlengkapan</option>
-            </select>
+          <div class="space-y-1">
+            <Label for="edit-user-divisi">Divisi</Label>
+            <Select v-model="editForm.divisi" :disabled="editForm.id === currentUserId">
+              <SelectTrigger id="edit-user-divisi">
+                <SelectValue placeholder="Pilih Divisi" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="humas">Humas</SelectItem>
+                <SelectItem value="sekre">Sekre</SelectItem>
+                <SelectItem value="inti">Pengurus Inti</SelectItem>
+                <SelectItem value="acara">Divisi Acara</SelectItem>
+                <SelectItem value="perlengkapan">Divisi Perlengkapan</SelectItem>
+              </SelectContent>
+            </Select>
             <span v-if="editForm.id === currentUserId" class="text-[10px] text-zinc-400 mt-1 block">
               *Divisi akun Anda sendiri terkunci sebagai Sekre demi keamanan akses.
             </span>
           </div>
 
-          <div>
-            <label class="block text-xs font-medium text-zinc-700 mb-1">Reset Password Baru (Opsional)</label>
+          <div class="space-y-1">
+            <Label for="edit-user-password">Reset Password Baru (Opsional)</Label>
             <Input
+              id="edit-user-password"
               v-model="editForm.password"
               placeholder="Kosongkan jika tidak ingin mengubah password"
             />

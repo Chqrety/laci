@@ -2,6 +2,9 @@
 import { ref, onMounted } from 'vue'
 import { prokerService, type Proker } from '@/services/api'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 
 const prokerList = ref<Proker[]>([])
 const isLoading = ref(false)
@@ -163,10 +166,12 @@ onMounted(() => {
             <td class="px-5 py-3 text-right">
               <div class="inline-flex items-center justify-end gap-1">
                 <!-- Tombol Edit Proker (Pencil Icon) -->
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon"
                   @click="openModal(proker)"
-                  class="p-2 rounded-xl text-zinc-400 hover:text-[#0A84DC] hover:bg-[#0A84DC]/10 active:scale-95 transition-all cursor-pointer"
+                  class="h-8 w-8 rounded-xl text-zinc-400 hover:text-[#0A84DC] hover:bg-[#0A84DC]/10"
                   title="Edit Program Kerja"
                   aria-label="Edit Program Kerja"
                 >
@@ -178,13 +183,15 @@ onMounted(() => {
                       d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
                     />
                   </svg>
-                </button>
+                </Button>
 
                 <!-- Tombol Hapus Proker (Trash Icon) -->
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon"
                   @click="handleDeleteProker(proker)"
-                  class="p-2 rounded-xl text-zinc-400 hover:text-rose-600 hover:bg-rose-50 active:scale-95 transition-all cursor-pointer"
+                  class="h-8 w-8 rounded-xl text-zinc-400 hover:text-rose-600 hover:bg-rose-50"
                   title="Hapus Program Kerja"
                   aria-label="Hapus Program Kerja"
                 >
@@ -196,7 +203,7 @@ onMounted(() => {
                       d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                     />
                   </svg>
-                </button>
+                </Button>
               </div>
             </td>
           </tr>
@@ -226,29 +233,26 @@ onMounted(() => {
           </header>
 
           <form @submit.prevent="handleSubmit" class="space-y-4">
-            <!-- Inset Grouped Inputs -->
-            <div class="rounded-2xl border border-black/10 bg-white overflow-hidden divide-y divide-black/5 shadow-2xs">
-              <div class="px-4 py-2.5 focus-within:bg-zinc-50/50 transition-colors">
-                <label for="nama_proker" class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Nama Proker</label>
-                <input
+            <div class="space-y-3">
+              <div class="space-y-1.5">
+                <Label for="nama_proker">Nama Proker</Label>
+                <Input
                   id="nama_proker"
                   v-model="formProker.nama_proker"
                   type="text"
                   required
                   placeholder="Dies Natalis, Oprec, Workshop"
-                  class="w-full text-xs font-semibold text-zinc-900 bg-transparent focus:outline-none placeholder:text-zinc-400 pt-0.5"
                 />
               </div>
 
-              <div class="px-4 py-2.5 focus-within:bg-zinc-50/50 transition-colors">
-                <label for="deskripsi_proker" class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Deskripsi (Opsional)</label>
-                <textarea
+              <div class="space-y-1.5">
+                <Label for="deskripsi_proker">Deskripsi (Opsional)</Label>
+                <Textarea
                   id="deskripsi_proker"
                   v-model="formProker.deskripsi"
                   rows="3"
                   placeholder="Keterangan singkat program kerja..."
-                  class="w-full text-xs font-medium text-zinc-900 bg-transparent focus:outline-none placeholder:text-zinc-400 resize-none pt-0.5"
-                ></textarea>
+                />
               </div>
             </div>
 

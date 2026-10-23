@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { authService, currentRole, type LoginResponse } from '@/services/api'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
 
 const router = useRouter()
 
@@ -250,9 +251,9 @@ const handleSkipPasswordChange = async () => {
             <form @submit.prevent="handleLogin" class="space-y-5" novalidate>
               <!-- Field: Username / NIM -->
               <div class="space-y-2">
-                <label for="username" class="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                <Label for="username" class="block text-xs font-bold uppercase tracking-wider text-slate-700">
                   Username atau NIM
-                </label>
+                </Label>
                 <Input
                   id="username"
                   v-model="username"
@@ -267,16 +268,18 @@ const handleSkipPasswordChange = async () => {
               <!-- Field: Password -->
               <div class="space-y-2">
                 <div class="flex items-center justify-between">
-                  <label for="password" class="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                  <Label for="password" class="block text-xs font-bold uppercase tracking-wider text-slate-700">
                     Kata Sandi
-                  </label>
-                  <button
+                  </Label>
+                  <Button
                     type="button"
+                    variant="link"
+                    size="sm"
                     @click="showPassword = !showPassword"
-                    class="text-xs font-bold text-sky-600 hover:text-sky-700 tracking-wide cursor-pointer"
+                    class="h-auto p-0 text-xs font-bold text-sky-600 hover:text-sky-700"
                   >
                     {{ showPassword ? 'Sembunyikan' : 'Perlihatkan' }}
-                  </button>
+                  </Button>
                 </div>
                 <Input
                   id="password"
@@ -361,16 +364,18 @@ const handleSkipPasswordChange = async () => {
               <!-- Field: New Password -->
               <div class="space-y-2">
                 <div class="flex items-center justify-between">
-                  <label for="newPass" class="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                  <Label for="newPass" class="block text-xs font-bold uppercase tracking-wider text-slate-700">
                     Kata Sandi Baru
-                  </label>
-                  <button
+                  </Label>
+                  <Button
                     type="button"
+                    variant="link"
+                    size="sm"
                     @click="showNewPassword = !showNewPassword"
-                    class="text-xs font-bold text-sky-600 hover:text-sky-700 tracking-wide cursor-pointer"
+                    class="h-auto p-0 text-xs font-bold text-sky-600 hover:text-sky-700"
                   >
                     {{ showNewPassword ? 'Sembunyikan' : 'Perlihatkan' }}
-                  </button>
+                  </Button>
                 </div>
                 <Input
                   id="newPass"
@@ -385,16 +390,18 @@ const handleSkipPasswordChange = async () => {
               <!-- Field: Confirm Password -->
               <div class="space-y-2">
                 <div class="flex items-center justify-between">
-                  <label for="confPass" class="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                  <Label for="confPass" class="block text-xs font-bold uppercase tracking-wider text-slate-700">
                     Konfirmasi Kata Sandi
-                  </label>
-                  <button
+                  </Label>
+                  <Button
                     type="button"
+                    variant="link"
+                    size="sm"
                     @click="showConfirmPassword = !showConfirmPassword"
-                    class="text-xs font-bold text-sky-600 hover:text-sky-700 tracking-wide cursor-pointer"
+                    class="h-auto p-0 text-xs font-bold text-sky-600 hover:text-sky-700"
                   >
                     {{ showConfirmPassword ? 'Sembunyikan' : 'Perlihatkan' }}
-                  </button>
+                  </Button>
                 </div>
                 <Input
                   id="confPass"

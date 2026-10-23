@@ -3,6 +3,13 @@ import { ref, computed, watch } from 'vue'
 import { authService, type Surat, type Proker } from '@/services/api'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 const props = defineProps<{
   suratList: Surat[]
@@ -28,8 +35,8 @@ const clearFilters = () => {
 
 const isFilterActive = computed(() => {
   return !!(
-    filterTahun.value ||
-    filterProker.value ||
+    (filterTahun.value && filterTahun.value !== 'all') ||
+    (filterProker.value && filterProker.value !== 'all') ||
     filterOnlyMe.value ||
     searchQuery.value.trim()
   )
@@ -54,7 +61,7 @@ const availableYears = computed(() => {
 const filteredSuratList = computed(() => {
   return props.suratList.filter((s) => {
     // 1. Filter Tahun
-    if (filterTahun.value) {
+    if (filterTahun.value && filterTahun.value !== 'all') {
       const match = s.nomor_surat.match(/\b(20\d{2})\b/)
       const year = match ? match[1] : ''
       if (year !== filterTahun.value && !s.nomor_surat.includes(filterTahun.value)) {
@@ -63,7 +70,7 @@ const filteredSuratList = computed(() => {
     }
 
     // 2. Filter Proker
-    if (filterProker.value) {
+    if (filterProker.value && filterProker.value !== 'all') {
       const prokerCode = filterProker.value.toUpperCase().replace(/\s+/g, '-')
       const prokerLower = filterProker.value.toLowerCase()
       const matchesProker =
@@ -148,26 +155,32 @@ watch(
 
       <!-- Dropdown Tahun -->
       <div class="flex-1 w-full">
-        <select
-          v-model="filterTahun"
-          class="w-full px-3 py-2 text-xs rounded-2xl bg-zinc-50 border border-zinc-200 text-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 focus:border-[#0A84DC] transition-all cursor-pointer"
-        >
-          <option value="">Semua Tahun</option>
-          <option v-for="yr in availableYears" :key="yr" :value="yr">Tahun {{ yr }}</option>
-        </select>
+        <Select v-model="filterTahun">
+          <SelectTrigger class="w-full">
+            <SelectValue placeholder="Semua Tahun" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua Tahun</SelectItem>
+            <SelectItem v-for="yr in availableYears" :key="yr" :value="yr">
+              Tahun {{ yr }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <!-- Dropdown Proker -->
       <div class="flex-1 w-full">
-        <select
-          v-model="filterProker"
-          class="w-full px-3 py-2 text-xs rounded-2xl bg-zinc-50 border border-zinc-200 text-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 focus:border-[#0A84DC] transition-all cursor-pointer"
-        >
-          <option value="">Semua Proker</option>
-          <option v-for="proker in prokerList" :key="proker.id" :value="proker.nama_proker">
-            {{ proker.nama_proker }}
-          </option>
-        </select>
+        <Select v-model="filterProker">
+          <SelectTrigger class="w-full">
+            <SelectValue placeholder="Semua Proker" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua Proker</SelectItem>
+            <SelectItem v-for="proker in prokerList" :key="proker.id" :value="proker.nama_proker">
+              {{ proker.nama_proker }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <!-- Toggle & Clear Filter Container -->

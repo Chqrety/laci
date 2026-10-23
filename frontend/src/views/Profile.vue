@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
 
 const profile = ref<User | null>(null)
 const isLoading = ref(false)
@@ -210,18 +211,20 @@ const handleChangePassword = async () => {
       </div>
 
       <form @submit.prevent="handleChangePassword" class="flex flex-col gap-3.5">
-        <div v-if="!profile?.is_password_default">
-          <label class="block text-xs font-medium text-zinc-700 mb-1">Password Saat Ini</label>
+        <div v-if="!profile?.is_password_default" class="space-y-1.5">
+          <Label for="old-password">Password Saat Ini</Label>
           <Input
+            id="old-password"
             v-model="oldPassword"
             type="password"
             placeholder="Masukkan password saat ini"
           />
         </div>
 
-        <div>
-          <label class="block text-xs font-medium text-zinc-700 mb-1">Password Baru</label>
+        <div class="space-y-1.5">
+          <Label for="new-password">Password Baru</Label>
           <Input
+            id="new-password"
             v-model="newPassword"
             type="password"
             required
@@ -229,9 +232,10 @@ const handleChangePassword = async () => {
           />
         </div>
 
-        <div>
-          <label class="block text-xs font-medium text-zinc-700 mb-1">Konfirmasi Password Baru</label>
+        <div class="space-y-1.5">
+          <Label for="confirm-password">Konfirmasi Password Baru</Label>
           <Input
+            id="confirm-password"
             v-model="confirmPassword"
             type="password"
             required

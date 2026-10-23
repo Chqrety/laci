@@ -5,6 +5,13 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 const props = defineProps<{
   surat: Surat
@@ -262,16 +269,19 @@ const formatDate = (dateString?: string) => {
               <!-- Status Input (Dropdown for Sekre, Read-Only for Humas) -->
               <div class="px-4 py-2.5 focus-within:bg-zinc-50/50 transition-colors">
                 <Label for="update-status" class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Status Saat Ini</Label>
-                <select
+                <Select
                   v-if="isSekre"
-                  id="update-status"
                   v-model="selectedStatus"
-                  class="w-full text-xs font-semibold text-zinc-900 bg-transparent focus:outline-none pt-0.5"
                 >
-                  <option v-for="opt in props.statusOptions" :key="opt" :value="opt">
-                    {{ opt }}
-                  </option>
-                </select>
+                  <SelectTrigger id="update-status" class="mt-1">
+                    <SelectValue :placeholder="selectedStatus || 'Pilih Status'" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem v-for="opt in props.statusOptions" :key="opt" :value="opt">
+                      {{ opt }}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
                 <div v-else class="text-xs font-semibold text-zinc-900 pt-0.5 flex items-center justify-between">
                   <span>{{ props.surat.status_saat_ini }}</span>
                   <span class="text-[10px] text-zinc-400 font-normal italic">Hanya Sekre yang dapat mengubah status</span>

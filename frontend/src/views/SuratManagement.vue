@@ -4,6 +4,14 @@ import { suratService, STATUS_COLUMNS, type Surat } from '@/services/api'
 import CardDetail from '@/components/molecules/CardDetail.vue'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 const suratList = ref<Surat[]>([])
 const isLoading = ref(false)
@@ -49,7 +57,7 @@ const filteredSurat = computed(() => {
       s.nomor_surat.toLowerCase().includes(q) ||
       s.perihal.toLowerCase().includes(q) ||
       (s.tujuan && s.tujuan.toLowerCase().includes(q))
-    const matchStatus = !sf || s.status_saat_ini.toLowerCase() === sf
+    const matchStatus = !sf || sf === 'all' || s.status_saat_ini.toLowerCase() === sf
     return matchSearch && matchStatus
   })
 })
@@ -75,15 +83,13 @@ const closeDetail = () => {
   selectedSurat.value = null
 }
 
-const getStatusBadgeClass = (status: string) => {
+const getStatusBadgeVariant = (status: string) => {
   const s = status.toLowerCase()
-  if (s.includes('selesai')) return 'bg-emerald-50 text-emerald-700 border-emerald-200'
-  if (s.includes('cetak')) return 'bg-sky-50 text-sky-700 border-sky-200'
-  if (s.includes('lapis') || s.includes('ketum')) return 'bg-amber-50 text-amber-700 border-amber-200'
-  if (s.includes('pembina') || s.includes('koormawa') || s.includes('tertinggi')) {
-    return 'bg-purple-50 text-purple-700 border-purple-200'
-  }
-  return 'bg-zinc-100 text-zinc-700 border-zinc-200'
+  if (s.includes('selesai')) return 'emerald'
+  if (s.includes('cetak')) return 'default'
+  if (s.includes('lapis') || s.includes('ketum')) return 'amber'
+  if (s.includes('pembina') || s.includes('koormawa') || s.includes('tertinggi')) return 'purple'
+  return 'secondary'
 }
 
 const handleDeleteSurat = async (surat: Surat) => {
@@ -123,15 +129,17 @@ onMounted(fetchSurat)
           class="w-48 sm:w-60"
         />
 
-        <select
-          v-model="statusFilter"
-          class="px-3.5 py-2 text-xs rounded-full bg-white border border-slate-200 text-slate-800 focus:outline-none focus:ring-4 focus:ring-sky-100 focus:border-sky-500 shadow-xs transition-all cursor-pointer"
-        >
-          <option value="">Semua Status</option>
-          <option v-for="status in STATUS_COLUMNS" :key="status" :value="status">
-            {{ status }}
-          </option>
-        </select>
+        <Select v-model="statusFilter">
+          <SelectTrigger class="w-40 sm:w-48">
+            <SelectValue placeholder="Semua Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua Status</SelectItem>
+            <SelectItem v-for="status in STATUS_COLUMNS" :key="status" :value="status">
+              {{ status }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
 
         <Button
           type="button"
@@ -210,20 +218,22 @@ onMounted(fetchSurat)
                 {{ surat.pic_nama }}
               </td>
               <td class="px-5 py-4 whitespace-nowrap">
-                <span
-                  class="inline-flex items-center px-2.5 py-1 text-[11px] font-semibold rounded-xl border"
-                  :class="getStatusBadgeClass(surat.status_saat_ini)"
+                <Badge
+                  :variant="getStatusBadgeVariant(surat.status_saat_ini)"
+                  size="sm"
                 >
                   {{ surat.status_saat_ini }}
-                </span>
+                </Badge>
               </td>
               <td class="px-5 py-3 text-right whitespace-nowrap">
                 <div class="inline-flex items-center justify-end gap-1">
                   <!-- Tombol Detail Surat (Eye Icon) -->
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="icon"
                     @click="openDetail(surat)"
-                    class="p-2 rounded-xl text-zinc-400 hover:text-[#0A84DC] hover:bg-[#0A84DC]/10 active:scale-95 transition-all cursor-pointer"
+                    class="h-8 w-8 rounded-xl text-zinc-400 hover:text-[#0A84DC] hover:bg-[#0A84DC]/10"
                     title="Lihat Detail Surat"
                     aria-label="Lihat Detail Surat"
                   >
@@ -241,14 +251,16 @@ onMounted(fetchSurat)
                         d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
                       />
                     </svg>
-                  </button>
+                  </Button>
 
                   <!-- Tombol Hapus Surat (Trash Icon) -->
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="icon"
                     @click="handleDeleteSurat(surat)"
                     :disabled="deletingId === surat.id"
-                    class="p-2 rounded-xl text-zinc-400 hover:text-rose-600 hover:bg-rose-50 disabled:opacity-50 active:scale-95 transition-all cursor-pointer"
+                    class="h-8 w-8 rounded-xl text-zinc-400 hover:text-rose-600 hover:bg-rose-50 disabled:opacity-50"
                     title="Hapus Surat"
                     aria-label="Hapus Surat"
                   >
@@ -260,7 +272,7 @@ onMounted(fetchSurat)
                         d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                       />
                     </svg>
-                  </button>
+                  </Button>
                 </div>
               </td>
             </tr>

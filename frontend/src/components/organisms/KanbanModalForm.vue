@@ -14,6 +14,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 const props = defineProps<{
   isOpen: boolean
@@ -291,21 +298,21 @@ const handleCreateSurat = async () => {
               </Label>
 
               <div class="flex flex-row flex-wrap items-center gap-2">
-                <input
+                <Input
                   v-model="noUrut"
                   type="text"
                   required
                   placeholder="01"
-                  class="w-16 sm:w-20 px-2 py-1.5 text-xs font-mono font-semibold text-center border border-black/10 rounded-xl bg-black/[0.02] focus:outline-none focus:ring-1 focus:ring-[#0A84DC]"
+                  class="w-16 sm:w-20 px-2 py-1.5 h-8 text-xs font-mono font-semibold text-center"
                 />
 
                 <span class="text-zinc-400 font-semibold text-xs select-none">/</span>
 
-                <input
+                <Input
                   type="text"
                   value="DOSCOM"
                   disabled
-                  class="w-20 sm:w-24 px-2 py-1.5 text-xs font-mono font-semibold text-center border border-black/10 rounded-xl bg-black/[0.04] text-zinc-600 cursor-not-allowed select-none"
+                  class="w-20 sm:w-24 px-2 py-1.5 h-8 text-xs font-mono font-semibold text-center select-none"
                 />
 
                 <span class="text-zinc-400 font-semibold text-xs select-none">/</span>
@@ -335,12 +342,12 @@ const handleCreateSurat = async () => {
 
                 <span class="text-zinc-400 font-semibold text-xs select-none">/</span>
 
-                <input
+                <Input
                   v-model="selectedTahun"
                   type="number"
                   required
                   placeholder="2026"
-                  class="min-w-[4rem] flex-1 sm:w-20 px-2 py-1.5 text-xs font-mono font-semibold text-center border border-black/10 rounded-xl bg-white focus:outline-none focus:ring-1 focus:ring-[#0A84DC]"
+                  class="min-w-[4rem] flex-1 sm:w-20 px-2 py-1.5 h-8 text-xs font-mono font-semibold text-center"
                 />
               </div>
 
@@ -382,37 +389,44 @@ const handleCreateSurat = async () => {
               </div>
               <!-- Akun Sekre: Dropdown daftar pengurus terdaftar -->
               <div v-else>
-                <select
+                <Select
                   v-model="createForm.pic_nama"
                   required
-                  class="w-full text-xs font-semibold text-zinc-900 bg-transparent focus:outline-none pt-0.5 cursor-pointer"
                 >
-                  <option value="" disabled>-- Pilih Pengurus PIC --</option>
-                  <option v-for="user in userList" :key="user.id" :value="user.nama || user.username">
-                    {{ user.nama }} ({{ user.divisi || user.role || 'Pengurus' }})
-                  </option>
-                  <option
-                    v-if="createForm.pic_nama && !userList.some((u) => (u.nama || u.username) === createForm.pic_nama)"
-                    :value="createForm.pic_nama"
-                  >
-                    {{ createForm.pic_nama }}
-                  </option>
-                </select>
+                  <SelectTrigger class="mt-1">
+                    <SelectValue placeholder="-- Pilih Pengurus PIC --" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem v-for="user in userList" :key="user.id" :value="user.nama || user.username">
+                      {{ user.nama }} ({{ user.divisi || user.role || 'Pengurus' }})
+                    </SelectItem>
+                    <SelectItem
+                      v-if="createForm.pic_nama && !userList.some((u) => (u.nama || u.username) === createForm.pic_nama)"
+                      :value="createForm.pic_nama"
+                    >
+                      {{ createForm.pic_nama }}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
             <!-- 5. Status Awal -->
             <div class="px-4 py-2.5 focus-within:bg-zinc-50/50 transition-colors">
               <Label class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Status Awal</Label>
-              <select
+              <Select
                 v-if="!isHumas"
                 v-model="createForm.status_saat_ini"
-                class="w-full text-xs font-semibold text-zinc-900 bg-transparent focus:outline-none pt-0.5"
               >
-                <option v-for="col in statusColumns" :key="col" :value="col">
-                  {{ col }}
-                </option>
-              </select>
+                <SelectTrigger class="mt-1">
+                  <SelectValue :placeholder="createForm.status_saat_ini || 'Pilih Status'" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem v-for="col in statusColumns" :key="col" :value="col">
+                    {{ col }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
               <div v-else class="text-xs font-semibold text-zinc-700 pt-0.5">
                 Standby (Otomatis)
               </div>
