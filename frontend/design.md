@@ -191,12 +191,7 @@ Untuk menjaga konsistensi antarmuka, keandalan data, serta pengalaman pengguna y
 - Semua pengembangan elemen antarmuka (seperti `Button`, `Input`, `Textarea`, `Badge`, `Label`, `Dialog`/Modal, `Select`, dan `Toast`) **WAJIB** menggunakan komponen terpusat dari `@/components/ui/*` (`shadcn-vue`).
 - **Dilarang** membuat komponen form mentah dari nol atau menulis tag HTML dasar secara manual jika komponen Shadcn-Vue yang sesuai sudah tersedia di dalam proyek.
 
-### 8.2 Form State & Schema Validation (Vee-Validate + Zod)
-- **Ekosistem Validasi**: Seluruh manajemen form wajib menggunakan ekosistem `vee-validate`, `@vee-validate/zod`, dan `zod` untuk pendefinisian skema validasi deklaratif.
-- **Tanpa State Error Manual**: Dilarang mengelola state error secara manual (contoh: `const error = ref('')`, `const isInvalid = ref(false)`) atau mengandalkan validasi HTML native browser.
-- **Atribut Form**: Wajib menyertakan atribut `novalidate` pada setiap tag `<form>` untuk menonaktifkan tooltip bawaan browser dan memastikan konsistensi interaksi visual kustom.
-
-### 8.3 Error Handling Visual (<FormMessage>)
-- Pesan kesalahan validasi wajib dirender secara otomatis menggunakan komponen `<FormMessage />` dari Shadcn-Vue.
-- Input yang berada dalam kondisi error otomatis mendapatkan border berwarna merah (`border-destructive` / `border-rose-500`) dan pesan teks peringatan merah di bawah input, sepenuhnya selaras dengan token warna semantik DOSCOM di atas.
+### 8.2 Form State & Native Validation
+- **Native Vue & HTML5**: Form di Laci DOSCOM menggunakan native Vue `v-model` dan HTML5 validation (`required`, `minlength`, `type="email"`, dll.) untuk menjaga performa dan meminimalisir boilerplate.
+- **Feedback & Notifikasi**: Feedback error atau kesuksesan form **WAJIB** menggunakan komponen Toast dari `shadcn-vue` (`toast({ ... })`). Hindari boilerplate wrapper form berlebih demi performa rendering yang instan di seluruh perangkat mobile.
 
