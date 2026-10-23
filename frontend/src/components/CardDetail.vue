@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onBeforeUnmount } from 'vue'
 import { api, getBackendAssetUrl, suratService, authService, type Surat } from '@/services/api'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 
 const props = defineProps<{
   surat: Surat
@@ -225,24 +229,26 @@ const formatDate = (dateString?: string) => {
       <!-- Header -->
       <header class="p-6 border-b border-black/5 flex items-start justify-between bg-white">
         <div class="space-y-1.5">
-          <span class="inline-block px-2.5 py-0.5 text-[11px] font-mono font-semibold bg-[#0A84DC]/10 text-[#0A84DC] border border-[#0A84DC]/20 rounded-xl">
+          <Badge variant="mono" size="sm">
             {{ props.surat.nomor_surat }}
-          </span>
+          </Badge>
           <h2 class="text-base font-semibold text-zinc-900 leading-snug">{{ props.surat.perihal }}</h2>
           <p v-if="props.surat.tujuan" class="text-xs text-zinc-600 font-medium">Tujuan: <span class="text-zinc-900 font-semibold">{{ props.surat.tujuan }}</span></p>
           <p class="text-xs text-zinc-500">PIC: <span class="text-zinc-800 font-semibold">{{ props.surat.pic_nama }}</span></p>
         </div>
 
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon"
           @click="handleClosePanel"
           aria-label="Tutup Panel"
-          class="p-2 rounded-2xl text-zinc-400 hover:text-zinc-700 hover:bg-black/5 transition-all duration-200 active:scale-95"
+          class="rounded-2xl text-zinc-400 hover:text-zinc-700"
         >
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
-        </button>
+        </Button>
       </header>
 
       <!-- Scrollable Body Content -->
@@ -255,7 +261,7 @@ const formatDate = (dateString?: string) => {
             <div class="rounded-2xl border border-black/10 bg-white overflow-hidden divide-y divide-black/5 shadow-2xs">
               <!-- Status Input (Dropdown for Sekre, Read-Only for Humas) -->
               <div class="px-4 py-2.5 focus-within:bg-zinc-50/50 transition-colors">
-                <label for="update-status" class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Status Saat Ini</label>
+                <Label for="update-status" class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Status Saat Ini</Label>
                 <select
                   v-if="isSekre"
                   id="update-status"
@@ -274,26 +280,26 @@ const formatDate = (dateString?: string) => {
 
               <!-- Catatan Dokumen (Always editable for both Sekre and Humas) -->
               <div class="px-4 py-2.5 focus-within:bg-zinc-50/50 transition-colors">
-                <label for="update-note" class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Catatan Dokumen</label>
-                <textarea
+                <Label for="update-note" class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">Catatan Dokumen</Label>
+                <Textarea
                   id="update-note"
                   v-model="newNote"
                   rows="2"
                   placeholder="Tambahkan catatan instruksi..."
-                  class="w-full text-xs font-medium text-zinc-900 bg-transparent focus:outline-none placeholder:text-zinc-400 resize-none pt-0.5"
-                ></textarea>
+                  class="text-xs"
+                />
               </div>
             </div>
 
             <div class="flex items-center justify-between pt-1">
               <span v-if="updateMessage" class="text-[11px] text-emerald-600 font-semibold">{{ updateMessage }}</span>
-              <button
+              <Button
                 type="submit"
                 :disabled="isUpdatingStatus"
-                class="ml-auto px-4 py-2 text-xs font-semibold bg-[#0A84DC] text-white rounded-2xl hover:bg-[#0872be] shadow-md disabled:opacity-50 transition-all duration-200 active:scale-95"
+                class="ml-auto"
               >
                 {{ isUpdatingStatus ? 'Menyimpan...' : (isSekre ? 'Perbarui Status' : 'Simpan Catatan') }}
-              </button>
+              </Button>
             </div>
           </form>
         </section>
@@ -302,12 +308,13 @@ const formatDate = (dateString?: string) => {
         <section class="space-y-3">
           <div class="flex items-center justify-between px-1">
             <h3 class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Arsip Dokumen</h3>
-            <span
+            <Badge
               v-if="fileArsipUrl"
-              class="text-[11px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-xl"
+              variant="emerald"
+              size="sm"
             >
               Tersedia
-            </span>
+            </Badge>
           </div>
 
           <!-- In-App Camera View with Smooth Transition -->
@@ -343,87 +350,94 @@ const formatDate = (dateString?: string) => {
 
               <!-- Camera Controls -->
               <div class="flex items-center justify-between px-1 pt-0.5">
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
+                  size="sm"
                   @click="stopCamera"
-                  class="px-3.5 py-2 text-xs font-semibold rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 transition-all duration-200 active:scale-95"
                 >
                   Tutup
-                </button>
+                </Button>
 
                 <!-- iOS Round / Rounded-xl Camera Shutter Button -->
-                <button
+                <Button
                   type="button"
+                  size="sm"
                   @click="captureAndSave"
                   :disabled="isCapturing || !mediaStream"
-                  class="inline-flex items-center gap-2 px-5 py-2 text-xs font-semibold rounded-xl bg-[#0A84DC] hover:bg-[#0872be] text-white shadow-md transition-all duration-200 active:scale-95 disabled:opacity-50"
                 >
-                  <span v-if="!isCapturing" class="w-3 h-3 rounded-full bg-white border-2 border-[#0A84DC]"></span>
+                  <span v-if="!isCapturing" class="w-2.5 h-2.5 rounded-full bg-white mr-1"></span>
                   <span>{{ isCapturing ? 'Menyimpan...' : 'Jepret & Simpan' }}</span>
-                </button>
+                </Button>
               </div>
             </div>
           </transition>
 
           <!-- Fallback Native Camera Button (Saat WebRTC Gagal/HTTP Network) -->
           <div v-if="useNativeCamera" class="flex items-center gap-2">
-            <label class="inline-flex items-center gap-2 px-4 py-2.5 bg-[#0A84DC] hover:bg-[#0872be] text-white text-xs font-semibold rounded-xl shadow-md cursor-pointer transition-all duration-200 active:scale-95">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              <span>{{ fileArsipUrl ? 'Buka Kamera (Foto Ulang)' : 'Buka Kamera Perangkat' }}</span>
-              <input
-                type="file"
-                accept="image/*,application/pdf"
-                capture="environment"
-                class="hidden"
-                @change="handleFileUpload"
-              />
-            </label>
+            <Button as-child size="sm" class="cursor-pointer">
+              <label>
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span>{{ fileArsipUrl ? 'Buka Kamera (Foto Ulang)' : 'Buka Kamera Perangkat' }}</span>
+                <input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  capture="environment"
+                  class="hidden"
+                  @change="handleFileUpload"
+                />
+              </label>
+            </Button>
 
             <!-- File Upload Fallback -->
-            <label class="inline-flex items-center gap-1.5 px-3 py-2.5 bg-white hover:bg-zinc-50 text-zinc-700 text-xs font-semibold rounded-xl border border-black/10 cursor-pointer shadow-2xs transition-all duration-200 active:scale-95">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-              </svg>
-              <span>Pilih File</span>
-              <input
-                type="file"
-                accept="image/*,application/pdf"
-                class="hidden"
-                @change="handleFileUpload"
-              />
-            </label>
+            <Button as-child variant="outline" size="sm" class="cursor-pointer">
+              <label>
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 mr-1.5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                <span>Pilih File</span>
+                <input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  class="hidden"
+                  @change="handleFileUpload"
+                />
+              </label>
+            </Button>
           </div>
 
           <!-- Buka Kamera Button (When Camera Closed) -->
           <div v-else-if="!isCameraOpen" class="flex items-center gap-2">
-            <button
+            <Button
               type="button"
+              size="sm"
               @click="openCamera"
-              class="inline-flex items-center gap-2 px-4 py-2.5 bg-[#0A84DC] hover:bg-[#0872be] text-white text-xs font-semibold rounded-xl shadow-md transition-all duration-200 active:scale-95"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
               <span>{{ fileArsipUrl ? 'Buka Kamera (Foto Ulang)' : 'Buka Kamera' }}</span>
-            </button>
+            </Button>
 
             <!-- File Upload Fallback -->
-            <label class="inline-flex items-center gap-1.5 px-3 py-2.5 bg-white hover:bg-zinc-50 text-zinc-700 text-xs font-semibold rounded-xl border border-black/10 cursor-pointer shadow-2xs transition-all duration-200 active:scale-95">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-              </svg>
-              <span>Pilih File</span>
-              <input
-                type="file"
-                accept="image/*,application/pdf"
-                class="hidden"
-                @change="handleFileUpload"
-              />
-            </label>
+            <Button as-child variant="outline" size="sm" class="cursor-pointer">
+              <label>
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 mr-1.5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                <span>Pilih File</span>
+                <input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  class="hidden"
+                  @change="handleFileUpload"
+                />
+              </label>
+            </Button>
           </div>
 
           <!-- Status feedback messages -->
@@ -453,17 +467,19 @@ const formatDate = (dateString?: string) => {
                 </div>
               </div>
 
-              <a
-                :href="getBackendAssetUrl(fileArsipUrl)"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="shrink-0 px-3.5 py-1.5 bg-white border border-black/10 text-xs font-semibold text-[#0A84DC] rounded-xl hover:bg-zinc-50 shadow-2xs transition-all duration-200 active:scale-95 flex items-center gap-1.5"
-              >
-                <span>Lihat Dokumen</span>
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-              </a>
+              <Button as-child variant="outline" size="sm" class="shrink-0">
+                <a
+                  :href="getBackendAssetUrl(fileArsipUrl)"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="flex items-center gap-1.5"
+                >
+                  <span>Lihat Dokumen</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              </Button>
             </div>
 
             <!-- Image Document Preview -->
@@ -522,13 +538,15 @@ const formatDate = (dateString?: string) => {
             </TransitionGroup>
 
             <div v-if="reversedLogs.length > 5" class="pl-2.5">
-              <button
+              <Button
                 type="button"
+                variant="link"
+                size="sm"
                 @click="showAllLogs = !showAllLogs"
-                class="text-xs font-medium text-[#0A84DC] hover:text-[#0872be] transition-colors py-1 cursor-pointer active:opacity-70"
+                class="h-auto p-0 text-xs font-medium text-[#0A84DC] hover:text-[#0872be]"
               >
                 {{ showAllLogs ? 'Sembunyikan' : 'Lihat Semua' }}
-              </button>
+              </Button>
             </div>
           </div>
         </section>
