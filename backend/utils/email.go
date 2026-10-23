@@ -33,7 +33,7 @@ func SendAccountCredentialsEmail(payload MailAccountPayload) {
 	smtpUser := config.GetEnv("SMTP_USER", "")
 	smtpPass := config.GetEnv("SMTP_PASS", "")
 	smtpFrom := config.GetEnv("SMTP_FROM", smtpUser)
-	appURL := config.GetEnv("APP_URL", "http://localhost:5173")
+	appURL := config.GetEnv("APP_URL", "https://laci.doscom.org")
 
 	if smtpHost == "" || smtpUser == "" || smtpPass == "" {
 		log.Printf("[MAIL] SMTP tidak dikonfigurasi. Lewati kirim email ke: %s (Username: %s)", payload.ToEmail, payload.Username)
