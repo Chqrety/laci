@@ -234,6 +234,7 @@ const handleCreateSurat = async () => {
     toast({
       title: 'Berhasil',
       description: 'Surat baru berhasil didaftarkan.',
+      variant: 'success',
     })
     emit('created')
     emit('close')
@@ -251,7 +252,11 @@ const handleCreateSurat = async () => {
 
 <template>
   <Dialog :open="isOpen" @update:open="(val: boolean) => { if (!val) emit('close') }">
-    <DialogContent class="max-w-xl max-h-[90vh] overflow-y-auto space-y-4">
+    <DialogContent
+      class="max-w-xl max-h-[90vh] overflow-y-auto space-y-4"
+      @pointer-down-outside="(e: Event) => e.preventDefault()"
+      @interact-outside="(e: Event) => e.preventDefault()"
+    >
       <DialogHeader>
         <DialogTitle>Tambah Surat Baru</DialogTitle>
         <DialogDescription>Lengkapi parameter nomor surat dan informasi dokumen resmi.</DialogDescription>
@@ -259,7 +264,7 @@ const handleCreateSurat = async () => {
 
         <!-- OCR Auto-Fill Area -->
         <div class="p-3 bg-zinc-50 border border-dashed border-zinc-300 rounded-2xl flex flex-col gap-2">
-          <div class="flex items-center justify-between gap-3">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div class="flex items-center gap-2.5">
               <div class="w-8 h-8 rounded-xl bg-[#0A84DC]/10 text-[#0A84DC] flex items-center justify-center shrink-0">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -272,26 +277,58 @@ const handleCreateSurat = async () => {
                 <p class="text-[10px] text-zinc-500">Pindai foto fisik surat untuk mengisi No. Surat & Perihal</p>
               </div>
             </div>
-            <Button
-              as-child
-              variant="outline"
-              size="sm"
-              :class="{ 'opacity-50 pointer-events-none': isScanning }"
-              class="cursor-pointer"
-            >
-              <label>
-                <input
-                  ref="fileInputRef"
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  class="hidden"
-                  :disabled="isScanning"
-                  @change="handleFileChange"
-                />
-                <span>{{ isScanning ? 'Memindai...' : 'Ambil Foto / Scan' }}</span>
-              </label>
-            </Button>
+
+            <!-- Opsi Input: Kamera atau Upload File -->
+            <div class="flex items-center gap-2 shrink-0">
+              <!-- Opsi 1: Kamera langsung -->
+              <Button
+                as-child
+                variant="outline"
+                size="sm"
+                :class="{ 'opacity-50 pointer-events-none': isScanning }"
+                class="cursor-pointer h-8 px-2.5 rounded-xl border-slate-200/90 text-xs shadow-2xs"
+              >
+                <label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    class="hidden"
+                    :disabled="isScanning"
+                    @change="handleFileChange"
+                  />
+                  <svg class="w-3.5 h-3.5 mr-1.5 text-zinc-500 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span>{{ isScanning ? 'Memindai...' : 'Kamera' }}</span>
+                </label>
+              </Button>
+
+              <!-- Opsi 2: Upload File / Dokumen Scan -->
+              <Button
+                as-child
+                variant="outline"
+                size="sm"
+                :class="{ 'opacity-50 pointer-events-none': isScanning }"
+                class="cursor-pointer h-8 px-2.5 rounded-xl border-slate-200/90 text-xs shadow-2xs"
+              >
+                <label>
+                  <input
+                    ref="fileInputRef"
+                    type="file"
+                    accept="image/*,application/pdf"
+                    class="hidden"
+                    :disabled="isScanning"
+                    @change="handleFileChange"
+                  />
+                  <svg class="w-3.5 h-3.5 mr-1.5 text-zinc-500 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                  <span>Pilih File</span>
+                </label>
+              </Button>
+            </div>
           </div>
 
           <!-- Progress Bar -->

@@ -114,6 +114,63 @@ export function extractTujuanSurat(text: string): string {
   return match?.[1] ? match[1].trim() : ''
 }
 
+/**
+ * Preprocessing foto kamera HP sebelum OCR:
+ * 1. Downscale resolusi raksasa (12-48MP) ke max 1500px agar Tesseract WASM ringan dan super cepat.
+ * 2. Grayscale + kontras agar teks hitam pada kertas putih terbaca optimal.
+ */
+async function preprocessImageForOcr(file: File | Blob, maxDimension = 1500): Promise<Blob> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      let { width, height } = img
+
+      if (width > maxDimension || height > maxDimension) {
+        if (width > height) {
+          height = Math.round((height * maxDimension) / width)
+          width = maxDimension
+        } else {
+          width = Math.round((width * maxDimension) / height)
+          height = maxDimension
+        }
+      }
+
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      if (!ctx) {
+        resolve(file)
+        return
+      }
+
+      ctx.drawImage(img, 0, 0, width, height)
+      const imgData = ctx.getImageData(0, 0, width, height)
+      const d = imgData.data
+      for (let i = 0; i < d.length; i += 4) {
+        const r = d[i] ?? 0
+        const g = d[i + 1] ?? 0
+        const b = d[i + 2] ?? 0
+        const gray = 0.299 * r + 0.587 * g + 0.114 * b
+        const contrast = gray < 130 ? Math.max(0, gray - 25) : Math.min(255, gray + 25)
+        d[i] = contrast
+        d[i + 1] = contrast
+        d[i + 2] = contrast
+      }
+      ctx.putImageData(imgData, 0, 0)
+
+      canvas.toBlob((blob) => resolve(blob || file), 'image/jpeg', 0.85)
+    }
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      resolve(file)
+    }
+    img.src = url
+  })
+}
+
 export function useDocumentScanner() {
   const isScanning = ref(false)
   const scanProgress = ref(0)
@@ -125,7 +182,8 @@ export function useDocumentScanner() {
     scanResult.value = null
 
     try {
-      const { data } = await Tesseract.recognize(file, 'ind+eng', {
+      const optimizedFile = await preprocessImageForOcr(file)
+      const { data } = await Tesseract.recognize(optimizedFile, 'ind', {
         logger: (m) => {
           if (m?.status === 'recognizing text' && typeof m.progress === 'number') {
             scanProgress.value = Math.min(100, Math.round(m.progress * 100))
