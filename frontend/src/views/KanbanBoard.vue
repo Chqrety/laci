@@ -30,6 +30,12 @@ const isSekre = computed(() => userRole.value === 'sekre')
 const isHumas = computed(() => userRole.value === 'humas')
 const canCreateSurat = computed(() => isSekre.value || isHumas.value)
 
+const totalSuratCount = computed(() => suratList.value.length)
+const completedSuratCount = computed(() =>
+  suratList.value.filter((s) => s.status_saat_ini.toLowerCase().includes('selesai') || s.status_saat_ini.toLowerCase().includes('arsip')).length
+)
+const activeSuratCount = computed(() => Math.max(0, totalSuratCount.value - completedSuratCount.value))
+
 // Status columns array defined from shared constant
 const statusColumns = [...STATUS_COLUMNS]
 
@@ -125,7 +131,7 @@ onMounted(() => {
     <!-- Top Bar Controls -->
     <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-1">
       <div>
-        <h2 class="text-lg font-semibold tracking-tight text-zinc-900">Alur Tracking Surat</h2>
+        <h2 class="text-xl font-medium tracking-tight text-slate-900 leading-snug">Alur Tracking Surat</h2>
         <p class="text-xs text-zinc-500 mt-0.5">Tarik dan lepas kartu atau geser horisontal untuk mengelola status surat.</p>
       </div>
 
@@ -134,7 +140,7 @@ onMounted(() => {
           type="button"
           @click="loadSurat"
           :disabled="isLoading"
-          class="flex-1 sm:flex-initial px-4 py-2 text-xs font-semibold rounded-2xl bg-white/80 border border-black/5 text-zinc-700 hover:bg-white shadow-[0_8px_30px_rgb(0,0,0,0.05)] transition-all active:scale-[0.98] disabled:opacity-50"
+          class="flex-1 sm:flex-initial px-4 py-2 text-xs font-semibold rounded-full bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-xs transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
         >
           {{ isLoading ? 'Memuat...' : 'Muat Ulang' }}
         </button>
@@ -142,12 +148,39 @@ onMounted(() => {
         <button
           type="button"
           @click="isCreateModalOpen = true"
-          class="flex-1 sm:flex-initial px-4 py-2 text-xs font-semibold rounded-2xl bg-[#0A84DC] text-white hover:bg-[#0872be] shadow-[0_8px_30px_rgb(0,0,0,0.05)] transition-all active:scale-[0.98] cursor-pointer"
+          class="flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-full bg-sky-600 text-white hover:bg-sky-700 shadow-xs transition-all active:scale-[0.98] cursor-pointer"
         >
           + Tambah Surat
         </button>
       </div>
     </header>
+
+    <!-- Floema Micro-Metrics Strip (Architectural Quick Status) -->
+    <div class="grid grid-cols-3 gap-2 sm:gap-4">
+      <div class="rounded-2xl border border-slate-200/90 bg-white/90 backdrop-blur-sm p-3 sm:px-4 flex items-center justify-between shadow-2xs">
+        <div>
+          <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Total Surat</span>
+          <span class="text-base sm:text-lg font-bold text-slate-900 leading-none mt-1 block">{{ totalSuratCount }}</span>
+        </div>
+        <span class="w-2 h-2 rounded-full bg-sky-500 shrink-0" />
+      </div>
+
+      <div class="rounded-2xl border border-slate-200/90 bg-white/90 backdrop-blur-sm p-3 sm:px-4 flex items-center justify-between shadow-2xs">
+        <div>
+          <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Sedang Berjalan</span>
+          <span class="text-base sm:text-lg font-bold text-orange-600 leading-none mt-1 block">{{ activeSuratCount }}</span>
+        </div>
+        <span class="w-2 h-2 rounded-full bg-orange-500 shrink-0" />
+      </div>
+
+      <div class="rounded-2xl border border-slate-200/90 bg-white/90 backdrop-blur-sm p-3 sm:px-4 flex items-center justify-between shadow-2xs">
+        <div>
+          <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Selesai / Terarsip</span>
+          <span class="text-base sm:text-lg font-bold text-emerald-600 leading-none mt-1 block">{{ completedSuratCount }}</span>
+        </div>
+        <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+      </div>
+    </div>
 
     <!-- Advanced Multi-Filter Bar -->
     <KanbanFilter
@@ -242,12 +275,12 @@ onMounted(() => {
         :class="[
           'w-full min-w-full sm:w-[320px] sm:min-w-[320px] shrink-0 snap-center flex flex-col rounded-3xl border transition-all duration-200 max-h-[calc(100vh-12rem)] shadow-[0_8px_30px_rgb(0,0,0,0.05)]',
           dragOverColumn === status
-            ? 'bg-[#0A84DC]/10 border-[#0A84DC]/40 ring-2 ring-[#0A84DC]/30'
-            : 'bg-white/70 backdrop-blur-md border-black/5'
+            ? 'bg-sky-50 border-sky-400 ring-2 ring-sky-200'
+            : 'bg-white/85 backdrop-blur-md border-slate-200/80 shadow-xs'
         ]"
       >
         <!-- Column Header -->
-        <header class="p-4 flex items-center justify-between border-b border-black/5 bg-white/40 rounded-t-3xl select-none">
+        <header class="p-4 flex items-center justify-between border-b border-slate-200/60 bg-slate-50/60 rounded-t-3xl select-none">
           <div class="flex items-center gap-2">
             <h3 class="text-xs font-semibold text-zinc-900 tracking-tight">{{ status }}</h3>
             <span class="text-[11px] font-mono text-zinc-500 bg-white/90 border border-black/5 px-2 py-0.5 rounded-xl font-semibold shadow-2xs">
@@ -296,14 +329,7 @@ onMounted(() => {
     </main>
 
     <!-- Slide-over Card Detail with Transition -->
-    <Transition
-      enter-active-class="transition-opacity duration-200 ease-out"
-      enter-from-class="opacity-0"
-      enter-to-class="opacity-100"
-      leave-active-class="transition-opacity duration-150 ease-in"
-      leave-from-class="opacity-100"
-      leave-to-class="opacity-0"
-    >
+    <Transition name="drawer">
       <CardDetail
         v-if="selectedSurat"
         :surat="selectedSurat"

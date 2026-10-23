@@ -60,13 +60,14 @@ const handleSubmit = async () => {
 </script>
 
 <template>
-  <div
-    v-if="showModal"
-    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in"
-  >
+  <Transition name="modal-fade">
     <div
-      class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-black/5 flex flex-col gap-5 relative overflow-hidden"
+      v-if="showModal"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
     >
+      <div
+        class="modal-panel bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-black/5 flex flex-col gap-5 relative overflow-hidden"
+      >
       <!-- Background decoration -->
       <div class="absolute -top-12 -right-12 w-32 h-32 bg-[#0A84DC]/10 rounded-full blur-2xl pointer-events-none" />
 
@@ -146,4 +147,5 @@ const handleSubmit = async () => {
       </form>
     </div>
   </div>
+  </Transition>
 </template>

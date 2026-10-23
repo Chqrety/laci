@@ -1,25 +1,41 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { authService } from '@/services/api'
+import { authService, currentRole, type LoginResponse } from '@/services/api'
 
 const router = useRouter()
 
+// --- Form & State Management ---
+const currentStep = ref<'login' | 'force-password'>('login')
+
+// State: Login
 const username = ref('')
 const password = ref('')
 const showPassword = ref(false)
 const isLoading = ref(false)
 const errorMessage = ref('')
 
+// State: Force Password Change
+const newPassword = ref('')
+const confirmPassword = ref('')
+const showNewPassword = ref(false)
+const showConfirmPassword = ref(false)
+const isUpdatingPassword = ref(false)
+const passwordSuccessMessage = ref('')
+
+const loggedUsername = ref('')
+
+// Quick Demo Injection
 const fillQuickAccount = (roleUser: 'sekre' | 'humas') => {
   username.value = roleUser
   password.value = 'password123'
   errorMessage.value = ''
 }
 
+// Handle Login Submission
 const handleLogin = async () => {
   if (!username.value.trim() || !password.value) {
-    errorMessage.value = 'Silakan isi username dan password terlebih dahulu.'
+    errorMessage.value = 'Harap lengkapi username atau NIM dan kata sandi.'
     return
   }
 
@@ -27,261 +43,414 @@ const handleLogin = async () => {
   errorMessage.value = ''
 
   try {
-    await authService.login(username.value.trim(), password.value)
-    router.push({ name: 'board' })
+    const res: LoginResponse = await authService.login(username.value.trim(), password.value)
+    loggedUsername.value = res.username || username.value
+
+    if (res.is_password_default) {
+      currentStep.value = 'force-password'
+      errorMessage.value = ''
+    } else {
+      router.push({ name: 'board' })
+    }
   } catch (err: any) {
     errorMessage.value =
-      err.response?.data?.error || err.message || 'Login gagal. Periksa kembali kredensial Anda.'
+      err.response?.data?.error || err.message || 'Otentikasi gagal. Periksa kembali data login Anda.'
   } finally {
     isLoading.value = false
   }
+}
+
+// Password Validation
+const isMinLength = computed(() => newPassword.value.length >= 6)
+const isPasswordMatched = computed(
+  () => newPassword.value.length > 0 && newPassword.value === confirmPassword.value,
+)
+const canSubmitPasswordChange = computed(
+  () => isMinLength.value && isPasswordMatched.value && !isUpdatingPassword.value,
+)
+
+// Handle Force Change Password
+const handleForceChangePassword = async () => {
+  if (!canSubmitPasswordChange.value) return
+
+  isUpdatingPassword.value = true
+  errorMessage.value = ''
+
+  try {
+    await authService.changePassword(newPassword.value, password.value)
+    passwordSuccessMessage.value = 'Kredensial berhasil diperbarui. Mengalihkan ke sistem...'
+
+    setTimeout(() => {
+      router.push({ name: 'board' })
+    }, 800)
+  } catch (err: any) {
+    errorMessage.value =
+      err.response?.data?.error || err.message || 'Gagal memperbarui kata sandi. Silakan coba kembali.'
+  } finally {
+    isUpdatingPassword.value = false
+  }
+}
+
+const handleSkipPasswordChange = async () => {
+  try {
+    await authService.dismissPasswordPrompt()
+  } catch {
+    // Ignore error and proceed
+  }
+  router.push({ name: 'board' })
 }
 </script>
 
 <template>
   <div
-    class="relative min-h-dvh flex flex-col items-center justify-center p-4 sm:p-6 bg-[#F2F2F4] text-zinc-900 overflow-hidden select-none"
+    class="min-h-[100dvh] w-full bg-[#F8FAFC] text-slate-900 antialiased relative overflow-hidden flex flex-col justify-between p-4 sm:p-6 md:p-10 lg:p-12 select-none"
   >
-    <!-- Subtle Ambient Background Lighting & Dot Grid -->
-    <div
-      class="pointer-events-none absolute inset-0 bg-[radial-gradient(50%_45%_at_50%_0%,rgba(10,132,220,0.10),transparent_70%),radial-gradient(40%_35%_at_80%_90%,rgba(10,132,220,0.06),transparent_70%)]"
-    />
-    <div
-      class="pointer-events-none absolute inset-0 opacity-[0.35] bg-[radial-gradient(#a1a1aa_1px,transparent_1px)] [background-size:20px_20px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_60%,transparent_100%)]"
-    />
+    <!-- ================= FLOEMA BACKGROUND: SUBTLE GEOMETRIC & ORGANIC ACCENTS ================= -->
+    <div class="pointer-events-none absolute inset-0 overflow-hidden">
+      <!-- Architectural Grid Lines (Ultra Subtle) -->
+      <div
+        class="absolute inset-0 bg-[linear-gradient(to_right,#0284C7_1px,transparent_1px),linear-gradient(to_bottom,#0284C7_1px,transparent_1px)] bg-[size:64px_64px] opacity-[0.03]"
+      />
 
-    <!-- Main Glassmorphic Login Container -->
-    <section
-      aria-label="Panel Masuk LACI"
-      class="relative z-10 w-full max-w-[390px] bg-white/85 backdrop-blur-2xl border border-black/[0.06] rounded-[28px] p-6 sm:p-8 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.07),0_0_0_1px_rgba(255,255,255,0.8)_inset] space-y-6"
-    >
-      <!-- Brand Header -->
-      <header class="text-center space-y-3">
-        <!-- App Squircle Icon -->
-        <div
-          class="w-12 h-12 mx-auto rounded-[18px] bg-gradient-to-b from-[#1690E8] to-[#0A84DC] text-white flex items-center justify-center shadow-[0_10px_25px_-5px_rgba(10,132,220,0.45)] ring-1 ring-inset ring-white/30"
-        >
-          <svg
-            class="w-6 h-6"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
-            />
-          </svg>
-        </div>
+      <!-- Subtle Geometric Circle 1 (DOSCOM Blue Soft Glow) -->
+      <div
+        class="absolute -top-32 -right-32 w-[520px] h-[520px] rounded-full bg-gradient-to-br from-sky-400/10 to-transparent blur-2xl"
+      />
 
-        <div class="space-y-1">
-          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#0A84DC]/10 border border-[#0A84DC]/15 text-[#0A84DC] text-[10px] font-mono font-semibold uppercase tracking-wider">
-            <span class="w-1.5 h-1.5 rounded-full bg-[#0A84DC]" />
-            DOSCOM Archive
-          </div>
-          <h1 class="text-xl font-semibold tracking-tight text-zinc-900">Masuk ke LACI</h1>
-          <p class="text-xs text-zinc-500 leading-relaxed">
-            Sistem Pelacakan &amp; Pengarsipan Surat Resmi
-          </p>
-        </div>
-      </header>
+      <!-- Subtle Geometric Circle 2 (DOSCOM Orange Accent Glow) -->
+      <div
+        class="absolute -bottom-40 -left-40 w-[560px] h-[560px] rounded-full bg-gradient-to-tr from-orange-400/8 to-transparent blur-3xl"
+      />
 
-      <!-- Animated Error Alert -->
-      <Transition
-        enter-active-class="transition duration-200 ease-out"
-        enter-from-class="opacity-0 -translate-y-1 scale-95"
-        enter-to-class="opacity-100 translate-y-0 scale-100"
-        leave-active-class="transition duration-150 ease-in"
-        leave-from-class="opacity-100 translate-y-0 scale-100"
-        leave-to-class="opacity-0 -translate-y-1 scale-95"
+      <!-- Architectural Delicate Rings (Floema Motif) -->
+      <div
+        class="absolute top-1/4 right-8 lg:right-24 w-72 h-72 rounded-full border border-sky-300/25 pointer-events-none"
+      />
+      <div
+        class="absolute top-1/4 right-8 lg:right-24 w-48 h-48 rounded-full border border-dashed border-sky-400/20 pointer-events-none"
+      />
+
+      <!-- Subtle Floating Organic Arc (Bottom Right) -->
+      <svg
+        class="absolute -bottom-20 right-1/4 w-96 h-96 text-orange-500/5"
+        viewBox="0 0 200 200"
+        fill="currentColor"
       >
-        <div
-          v-if="errorMessage"
-          role="alert"
-          class="flex items-start gap-2.5 p-3 text-xs bg-rose-50/90 border border-rose-200/80 text-rose-700 rounded-2xl font-medium"
-        >
-          <svg
-            class="w-4 h-4 text-rose-500 shrink-0 mt-0.5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
-            />
-          </svg>
-          <span class="flex-1 leading-snug">{{ errorMessage }}</span>
-          <button
-            type="button"
-            @click="errorMessage = ''"
-            aria-label="Tutup pesan error"
-            class="text-rose-400 hover:text-rose-600 transition-colors cursor-pointer"
-          >
-            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+        <path
+          d="M45.7,-77.9C58.9,-71.1,69.1,-58.5,76.5,-44.6C83.9,-30.7,88.5,-15.3,87.3,-0.7C86.1,13.9,79.1,27.8,70.8,40.1C62.4,52.4,52.8,63,40.7,70.6C28.7,78.2,14.3,82.8,-0.9,84.4C-16.1,86,-32.2,84.5,-45.8,77.5C-59.4,70.4,-70.6,57.7,-77.9,43.2C-85.2,28.7,-88.7,12.3,-87.3,-3.8C-85.9,-19.9,-79.6,-35.8,-69.8,-48.5C-60,-61.2,-46.8,-70.7,-32.8,-77C-18.7,-83.4,-3.8,-86.6,10.5,-85.4C24.8,-84.2,32.5,-84.7,45.7,-77.9Z"
+          transform="translate(100 100)"
+        />
+      </svg>
+
+      <!-- Corner Crosshair Ticks -->
+      <span class="absolute top-6 left-6 text-slate-300 font-mono text-xs select-none">+</span>
+      <span class="absolute top-6 right-6 text-slate-300 font-mono text-xs select-none">+</span>
+      <span class="absolute bottom-6 left-6 text-slate-300 font-mono text-xs select-none">+</span>
+      <span class="absolute bottom-6 right-6 text-slate-300 font-mono text-xs select-none">+</span>
+    </div>
+
+    <!-- ================= TOP ARCHITECTURAL HEADER ================= -->
+    <header class="relative z-10 w-full max-w-5xl mx-auto flex items-center justify-between py-2">
+      <!-- DOSCOM Pill Logo Badge -->
+      <div class="flex items-center gap-3">
+        <div class="h-9 w-9 rounded-full bg-sky-600 text-white flex items-center justify-center font-black text-sm shadow-xs">
+          D
         </div>
-      </Transition>
+        <div>
+          <span class="text-xs font-bold tracking-widest uppercase text-slate-900 block leading-tight">
+            DOSCOM
+          </span>
+          <span class="text-[10px] font-medium tracking-wider text-slate-400 block uppercase">
+            Sistem Laci Digital
+          </span>
+        </div>
+      </div>
 
-      <!-- iOS Inset Grouped Form -->
-      <form @submit.prevent="handleLogin" class="space-y-4">
-        <div
-          class="rounded-2xl border border-black/[0.08] bg-white/95 overflow-hidden divide-y divide-black/[0.06] shadow-2xs transition-all focus-within:border-[#0A84DC]/40 focus-within:ring-3 focus-within:ring-[#0A84DC]/10"
+      <!-- Architectural Status Pill -->
+      <div class="hidden sm:inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-slate-200/80 bg-white/80 backdrop-blur-sm text-xs font-semibold text-slate-600">
+        <span class="w-2 h-2 rounded-full bg-emerald-500" />
+        <span class="tracking-wide">Portal Resmi Ormawa</span>
+      </div>
+    </header>
+
+    <!-- ================= CENTER FRAMED LOGIN CONTAINER (FLOEMA CLEAN FRAMING) ================= -->
+    <main class="relative z-10 w-full max-w-xl mx-auto my-auto py-8">
+      <!-- Outer Architectural Card -->
+      <div
+        class="border border-slate-200/90 bg-white/95 backdrop-blur-md rounded-3xl p-6 sm:p-10 md:p-12 shadow-[0_12px_40px_-16px_rgba(2,132,199,0.08)] relative"
+      >
+        <!-- Fine Accent Bar at Card Top (DOSCOM Blue & Orange) -->
+        <div class="absolute top-0 left-10 right-10 h-[2px] bg-gradient-to-r from-sky-500 via-sky-400 to-orange-400 rounded-full" />
+
+        <!-- Feedback Alert -->
+        <Transition
+          enter-active-class="transition duration-200 ease-out"
+          enter-from-class="opacity-0 -translate-y-2 scale-95"
+          enter-to-class="opacity-100 translate-y-0 scale-100"
+          leave-active-class="transition duration-150 ease-in"
+          leave-from-class="opacity-100 translate-y-0 scale-100"
+          leave-to-class="opacity-0 -translate-y-2 scale-95"
         >
-          <!-- Username Field -->
-          <div class="group px-3.5 py-2.5 flex items-center gap-3 focus-within:bg-[#0A84DC]/[0.02] transition-colors">
-            <div class="w-7 h-7 rounded-xl bg-zinc-100 group-focus-within:bg-[#0A84DC]/10 text-zinc-400 group-focus-within:text-[#0A84DC] flex items-center justify-center shrink-0 transition-colors">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </div>
-            <div class="flex-1 min-w-0">
-              <label
-                for="username"
-                class="block text-[10px] font-semibold text-zinc-400 group-focus-within:text-[#0A84DC] uppercase tracking-wider transition-colors"
-              >
-                Username
-              </label>
-              <input
-                id="username"
-                v-model="username"
-                type="text"
-                autocomplete="username"
-                required
-                placeholder="sekre atau humas"
-                class="w-full text-sm font-medium text-zinc-900 bg-transparent focus:outline-none placeholder:text-zinc-300 pt-0.5"
-              />
-            </div>
-          </div>
-
-          <!-- Password Field -->
-          <div class="group px-3.5 py-2.5 flex items-center gap-3 focus-within:bg-[#0A84DC]/[0.02] transition-colors">
-            <div class="w-7 h-7 rounded-xl bg-zinc-100 group-focus-within:bg-[#0A84DC]/10 text-zinc-400 group-focus-within:text-[#0A84DC] flex items-center justify-center shrink-0 transition-colors">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-            </div>
-            <div class="flex-1 min-w-0">
-              <label
-                for="password"
-                class="block text-[10px] font-semibold text-zinc-400 group-focus-within:text-[#0A84DC] uppercase tracking-wider transition-colors"
-              >
-                Password
-              </label>
-              <input
-                id="password"
-                v-model="password"
-                :type="showPassword ? 'text' : 'password'"
-                autocomplete="current-password"
-                required
-                placeholder="••••••••"
-                class="w-full text-sm font-medium text-zinc-900 bg-transparent focus:outline-none placeholder:text-zinc-300 pt-0.5"
-              />
-            </div>
+          <div
+            v-if="errorMessage"
+            role="alert"
+            class="mb-6 flex items-start gap-3 p-3.5 bg-rose-50 border border-rose-200/80 text-rose-800 rounded-2xl text-xs sm:text-sm font-medium"
+          >
+            <span class="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0 mt-1.5" />
+            <span class="flex-1 leading-snug">{{ errorMessage }}</span>
             <button
               type="button"
-              @click="showPassword = !showPassword"
-              :aria-label="showPassword ? 'Sembunyikan password' : 'Tampilkan password'"
-              class="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-600 hover:bg-black/[0.04] transition-colors cursor-pointer focus:outline-none"
+              @click="errorMessage = ''"
+              aria-label="Tutup pesan"
+              class="text-rose-400 hover:text-rose-700 cursor-pointer"
             >
-              <svg
-                v-if="!showPassword"
-                class="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-              <svg
-                v-else
-                class="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-              </svg>
+              &times;
             </button>
           </div>
-        </div>
 
-        <!-- Submit Button -->
-        <button
-          type="submit"
-          :disabled="isLoading"
-          class="group w-full py-3 px-4 text-sm font-semibold rounded-2xl bg-[#0A84DC] text-white hover:bg-[#0872be] focus:outline-none focus:ring-3 focus:ring-[#0A84DC]/30 shadow-[0_8px_20px_-4px_rgba(10,132,220,0.4)] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
+          <div
+            v-else-if="passwordSuccessMessage"
+            role="status"
+            class="mb-6 flex items-center gap-3 p-3.5 bg-emerald-50 border border-emerald-200/80 text-emerald-800 rounded-2xl text-xs sm:text-sm font-medium"
+          >
+            <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+            <span class="flex-1 leading-snug">{{ passwordSuccessMessage }}</span>
+          </div>
+        </Transition>
+
+        <!-- Dynamic State View: Login vs Force Password -->
+        <Transition
+          mode="out-in"
+          enter-active-class="transition duration-250 ease-out"
+          enter-from-class="opacity-0 translate-y-2"
+          enter-to-class="opacity-100 translate-y-0"
+          leave-active-class="transition duration-150 ease-in"
+          leave-from-class="opacity-100 translate-y-0"
+          leave-to-class="opacity-0 -translate-y-2"
         >
-          <svg
-            v-if="isLoading"
-            class="w-4 h-4 animate-spin text-white"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          <span>{{ isLoading ? 'Memverifikasi...' : 'Masuk ke Dashboard' }}</span>
-          <svg
-            v-if="!isLoading"
-            class="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-          </svg>
-        </button>
-      </form>
+          <!-- STATE 1: STANDARD FLOEMA LOGIN -->
+          <div v-if="currentStep === 'login'" key="floema-login" class="space-y-8">
+            <!-- Headline & Framing Description -->
+            <div class="space-y-2">
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 border border-sky-200/60 text-sky-800 text-[11px] font-bold uppercase tracking-wider">
+                <span class="w-1.5 h-1.5 rounded-full bg-sky-600" />
+                <span>Otentikasi Akun</span>
+              </div>
+              <h1 class="text-2xl sm:text-3xl font-medium tracking-tight text-slate-900 leading-snug">
+                Akses Berkas &amp; Persuratan
+              </h1>
+              <p class="text-sm text-slate-500 font-normal leading-relaxed">
+                Silakan masukkan kredensial resmi pengurus DOSCOM untuk membuka repositori.
+              </p>
+            </div>
 
-      <!-- Quick Role Switcher / Demo Account Helper -->
-      <footer class="pt-3 border-t border-black/[0.06] space-y-2">
-        <div class="flex items-center justify-between text-[11px] text-zinc-400">
-          <span>Akses cepat akun demo:</span>
-          <span class="font-mono text-[10px]">pw: password123</span>
-        </div>
+            <!-- Login Form -->
+            <form @submit.prevent="handleLogin" class="space-y-5" novalidate>
+              <!-- Field: Username / NIM -->
+              <div class="space-y-2">
+                <label for="username" class="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                  Username atau NIM
+                </label>
+                <input
+                  id="username"
+                  v-model="username"
+                  type="text"
+                  autocomplete="username"
+                  required
+                  placeholder="sekre atau humas"
+                  class="w-full px-4 py-3.5 text-sm sm:text-base font-medium rounded-2xl border border-slate-200 bg-slate-50/70 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-sky-500 focus:ring-4 focus:ring-sky-100 transition-all duration-200"
+                />
+              </div>
 
-        <div class="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            @click="fillQuickAccount('sekre')"
-            class="px-3 py-1.5 rounded-xl border text-xs font-medium transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
-            :class="
-              username === 'sekre'
-                ? 'bg-[#0A84DC]/10 border-[#0A84DC]/30 text-[#0A84DC] font-semibold'
-                : 'bg-black/[0.02] border-black/[0.06] text-zinc-600 hover:bg-black/[0.05] hover:text-zinc-900'
-            "
-          >
-            <span class="w-1.5 h-1.5 rounded-full" :class="username === 'sekre' ? 'bg-[#0A84DC]' : 'bg-zinc-400'" />
-            Sekretaris
-          </button>
+              <!-- Field: Password -->
+              <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <label for="password" class="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                    Kata Sandi
+                  </label>
+                  <button
+                    type="button"
+                    @click="showPassword = !showPassword"
+                    class="text-xs font-bold text-sky-600 hover:text-sky-700 tracking-wide cursor-pointer"
+                  >
+                    {{ showPassword ? 'Sembunyikan' : 'Perlihatkan' }}
+                  </button>
+                </div>
+                <input
+                  id="password"
+                  v-model="password"
+                  :type="showPassword ? 'text' : 'password'"
+                  autocomplete="current-password"
+                  required
+                  placeholder="Masukkan kata sandi"
+                  class="w-full px-4 py-3.5 text-sm sm:text-base font-medium rounded-2xl border border-slate-200 bg-slate-50/70 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-sky-500 focus:ring-4 focus:ring-sky-100 transition-all duration-200 tracking-wider"
+                />
+              </div>
 
-          <button
-            type="button"
-            @click="fillQuickAccount('humas')"
-            class="px-3 py-1.5 rounded-xl border text-xs font-medium transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
-            :class="
-              username === 'humas'
-                ? 'bg-[#0A84DC]/10 border-[#0A84DC]/30 text-[#0A84DC] font-semibold'
-                : 'bg-black/[0.02] border-black/[0.06] text-zinc-600 hover:bg-black/[0.05] hover:text-zinc-900'
-            "
-          >
-            <span class="w-1.5 h-1.5 rounded-full" :class="username === 'humas' ? 'bg-[#0A84DC]' : 'bg-zinc-400'" />
-            Humas
-          </button>
-        </div>
-      </footer>
-    </section>
+              <!-- Pill Button CTA (Floema Hallmark) -->
+              <div class="pt-3">
+                <button
+                  type="submit"
+                  :disabled="isLoading"
+                  class="w-full py-4 px-8 rounded-full bg-sky-600 hover:bg-sky-700 active:scale-[0.98] text-white font-bold text-sm sm:text-base shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <span v-if="isLoading" class="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>{{ isLoading ? 'Memverifikasi...' : 'Masuk ke Repositori' }}</span>
+                  <span v-if="!isLoading" class="text-sm tracking-widest">&rarr;</span>
+                </button>
+              </div>
+            </form>
+
+            <!-- Floema Style Demo Selector -->
+            <div class="pt-6 border-t border-slate-100 space-y-3">
+              <div class="flex items-center justify-between text-[11px] font-semibold text-slate-400 uppercase tracking-widest">
+                <span>Preset Akun Uji Coba</span>
+                <span class="font-mono text-slate-500">pw: password123</span>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  @click="fillQuickAccount('sekre')"
+                  class="py-2.5 px-4 rounded-full border text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                  :class="
+                    username === 'sekre'
+                      ? 'border-sky-500 bg-sky-50 text-sky-800'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900'
+                  "
+                >
+                  <span class="w-2 h-2 rounded-full" :class="username === 'sekre' ? 'bg-sky-600' : 'bg-slate-300'" />
+                  <span>Sekretaris</span>
+                </button>
+
+                <button
+                  type="button"
+                  @click="fillQuickAccount('humas')"
+                  class="py-2.5 px-4 rounded-full border text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                  :class="
+                    username === 'humas'
+                      ? 'border-orange-500 bg-orange-50 text-orange-800'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900'
+                  "
+                >
+                  <span class="w-2 h-2 rounded-full" :class="username === 'humas' ? 'bg-orange-500' : 'bg-slate-300'" />
+                  <span>Humas</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- STATE 2: FORCE PASSWORD ROTATION (FLOEMA MINIMALIST ARCHITECTURE) -->
+          <div v-else key="floema-force-password" class="space-y-8">
+            <div class="space-y-2">
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-50 border border-orange-200/60 text-orange-800 text-[11px] font-bold uppercase tracking-wider">
+                <span class="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                <span>Rotasi Keamanan</span>
+              </div>
+              <h1 class="text-2xl sm:text-3xl font-medium tracking-tight text-slate-900 leading-snug">
+                Pembaruan Kata Sandi
+              </h1>
+              <p class="text-sm text-slate-500 font-normal leading-relaxed">
+                Akun pengurus <strong class="text-slate-800">{{ loggedUsername }}</strong> masih memakai kredensial awal. Tentukan sandi baru untuk melanjutkan.
+              </p>
+            </div>
+
+            <form @submit.prevent="handleForceChangePassword" class="space-y-5" novalidate>
+              <!-- Field: New Password -->
+              <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <label for="newPass" class="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                    Kata Sandi Baru
+                  </label>
+                  <button
+                    type="button"
+                    @click="showNewPassword = !showNewPassword"
+                    class="text-xs font-bold text-sky-600 hover:text-sky-700 tracking-wide cursor-pointer"
+                  >
+                    {{ showNewPassword ? 'Sembunyikan' : 'Perlihatkan' }}
+                  </button>
+                </div>
+                <input
+                  id="newPass"
+                  v-model="newPassword"
+                  :type="showNewPassword ? 'text' : 'password'"
+                  required
+                  placeholder="Minimal 6 karakter"
+                  class="w-full px-4 py-3.5 text-sm sm:text-base font-medium rounded-2xl border border-slate-200 bg-slate-50/70 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-sky-500 focus:ring-4 focus:ring-sky-100 transition-all duration-200"
+                />
+              </div>
+
+              <!-- Field: Confirm Password -->
+              <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <label for="confPass" class="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                    Konfirmasi Kata Sandi
+                  </label>
+                  <button
+                    type="button"
+                    @click="showConfirmPassword = !showConfirmPassword"
+                    class="text-xs font-bold text-sky-600 hover:text-sky-700 tracking-wide cursor-pointer"
+                  >
+                    {{ showConfirmPassword ? 'Sembunyikan' : 'Perlihatkan' }}
+                  </button>
+                </div>
+                <input
+                  id="confPass"
+                  v-model="confirmPassword"
+                  :type="showConfirmPassword ? 'text' : 'password'"
+                  required
+                  placeholder="Ketik ulang kata sandi baru"
+                  class="w-full px-4 py-3.5 text-sm sm:text-base font-medium rounded-2xl border border-slate-200 bg-slate-50/70 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-sky-500 focus:ring-4 focus:ring-sky-100 transition-all duration-200"
+                />
+              </div>
+
+              <!-- Criteria Badges -->
+              <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70 flex flex-wrap gap-4 text-xs font-semibold">
+                <div class="flex items-center gap-1.5" :class="isMinLength ? 'text-emerald-700' : 'text-slate-400'">
+                  <span class="w-1.5 h-1.5 rounded-full" :class="isMinLength ? 'bg-emerald-500' : 'bg-slate-300'" />
+                  <span>Min. 6 Karakter</span>
+                </div>
+                <div class="flex items-center gap-1.5" :class="isPasswordMatched ? 'text-emerald-700' : 'text-slate-400'">
+                  <span class="w-1.5 h-1.5 rounded-full" :class="isPasswordMatched ? 'bg-emerald-500' : 'bg-slate-300'" />
+                  <span>Sandi Cocok</span>
+                </div>
+              </div>
+
+              <!-- Submit Button (DOSCOM Orange Accent Pill) -->
+              <div class="space-y-3 pt-2">
+                <button
+                  type="submit"
+                  :disabled="!canSubmitPasswordChange"
+                  class="w-full py-4 px-8 rounded-full bg-orange-500 hover:bg-orange-600 active:scale-[0.98] text-white font-bold text-sm sm:text-base shadow-sm hover:shadow transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span v-if="isUpdatingPassword" class="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>{{ isUpdatingPassword ? 'Menyimpan...' : 'Konfirmasi & Masuk' }}</span>
+                  <span v-if="!isUpdatingPassword" class="text-sm tracking-widest">&rarr;</span>
+                </button>
+
+                <button
+                  type="button"
+                  @click="handleSkipPasswordChange"
+                  class="w-full py-2.5 text-xs font-bold text-slate-400 hover:text-slate-700 tracking-wider uppercase transition-colors text-center cursor-pointer"
+                >
+                  Lewati untuk sementara &gt;
+                </button>
+              </div>
+            </form>
+          </div>
+        </Transition>
+      </div>
+    </main>
+
+    <!-- ================= FLOEMA ARCHITECTURAL FOOTER ================= -->
+    <footer class="relative z-10 w-full max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between text-xs font-medium text-slate-400 py-2 border-t border-slate-200/60 gap-2">
+      <div>
+        <span>&copy; {{ new Date().getFullYear() }} DOSCOM</span>
+        <span class="mx-2">&bull;</span>
+        <span>Kelompok Studi Linux &amp; Open Source</span>
+      </div>
+      <div class="flex items-center gap-4 text-[11px] text-slate-400">
+        <span>LACI PERSURATAN // PORTAL RESMI</span>
+      </div>
+    </footer>
   </div>
 </template>

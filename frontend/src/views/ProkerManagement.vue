@@ -87,8 +87,8 @@ onMounted(() => {
     <!-- Top Bar -->
     <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 px-1">
       <div>
-        <h2 class="text-xl font-semibold tracking-tight text-zinc-900">Program Kerja</h2>
-        <p class="text-xs text-zinc-500 mt-0.5">Kelola data program kerja DOSCOM untuk klasifikasi dan penomoran surat resmi.</p>
+        <h2 class="text-xl font-medium tracking-tight text-slate-900 leading-snug">Program Kerja</h2>
+        <p class="text-xs text-slate-500 mt-0.5">Kelola data program kerja DOSCOM untuk klasifikasi dan penomoran surat resmi.</p>
       </div>
 
       <div class="flex items-center gap-2">
@@ -96,7 +96,7 @@ onMounted(() => {
           type="button"
           @click="fetchProker"
           :disabled="isLoading"
-          class="px-4 py-2 text-xs font-semibold border border-black/5 rounded-2xl bg-white/80 text-zinc-700 hover:bg-white shadow-[0_8px_30px_rgb(0,0,0,0.05)] transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+          class="px-4 py-2 text-xs font-semibold border border-slate-200 rounded-full bg-white text-slate-700 hover:bg-slate-50 shadow-xs transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
         >
           {{ isLoading ? 'Memuat...' : 'Muat Ulang' }}
         </button>
@@ -104,7 +104,7 @@ onMounted(() => {
         <button
           type="button"
           @click="openModal()"
-          class="px-4.5 py-2 text-xs font-semibold rounded-2xl bg-[#0A84DC] text-white hover:bg-[#0872be] shadow-[0_8px_30px_rgb(0,0,0,0.05)] transition-all active:scale-[0.98] cursor-pointer"
+          class="px-4.5 py-2 text-xs font-bold rounded-full bg-sky-600 text-white hover:bg-sky-700 shadow-xs transition-all active:scale-[0.98] cursor-pointer"
         >
           + Tambah Proker Baru
         </button>
@@ -121,7 +121,7 @@ onMounted(() => {
     </div>
 
     <!-- Table Container (Apple iOS HIG: rounded-2xl, soft shadow) -->
-    <div class="bg-white/85 backdrop-blur-xl border border-black/5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)] overflow-hidden">
+    <div class="bg-white/95 border border-slate-200/90 rounded-3xl shadow-xs overflow-hidden">
       <table class="w-full text-left text-xs divide-y divide-black/5">
         <thead class="bg-black/[0.02] text-zinc-500 font-semibold">
           <tr>

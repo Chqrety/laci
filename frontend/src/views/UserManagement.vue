@@ -358,17 +358,17 @@ const handleImportData = async () => {
     <!-- Header & Actions -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div>
-        <h2 class="text-xl font-bold tracking-tight text-zinc-900">Kelola Pengurus & Divisi</h2>
-        <p class="text-xs text-zinc-500 mt-0.5">Kelola data humas/pengurus, import CSV/Spreadsheet, dan monitoring password</p>
+        <h2 class="text-xl font-medium tracking-tight text-slate-900 leading-snug">Kelola Pengurus & Divisi</h2>
+        <p class="text-xs text-slate-500 mt-0.5">Kelola data humas/pengurus, import CSV/Spreadsheet, dan monitoring password</p>
       </div>
 
       <div class="flex items-center gap-2 flex-wrap">
         <button
           type="button"
           @click="isImportModalOpen = true"
-          class="px-3.5 py-2 rounded-2xl bg-white border border-black/10 hover:border-black/20 text-zinc-800 text-xs font-semibold flex items-center gap-1.5 shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:bg-zinc-50 active:scale-[0.98] transition-all"
+          class="px-4 py-2 rounded-full bg-white border border-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5 shadow-xs hover:bg-slate-50 active:scale-[0.98] transition-all cursor-pointer"
         >
-          <svg class="w-4 h-4 text-[#0A84DC]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg class="w-4 h-4 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
           </svg>
           Import Data
@@ -377,7 +377,7 @@ const handleImportData = async () => {
         <button
           type="button"
           @click="isAddModalOpen = true"
-          class="px-3.5 py-2 rounded-2xl bg-[#0A84DC] hover:bg-[#086db8] text-white text-xs font-semibold flex items-center gap-1.5 shadow-[0_8px_20px_rgba(10,132,220,0.25)] active:scale-[0.98] transition-all"
+          class="px-4.5 py-2 rounded-full bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs active:scale-[0.98] transition-all cursor-pointer"
         >
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -393,12 +393,12 @@ const handleImportData = async () => {
         v-model="searchQuery"
         type="search"
         placeholder="Cari nama, NIM, email, username..."
-        class="px-3.5 py-2 text-xs rounded-2xl bg-white/80 border border-black/5 text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 shadow-[0_8px_30px_rgb(0,0,0,0.05)] transition-all flex-1 min-w-[200px]"
+        class="px-4 py-2 text-xs rounded-full bg-white border border-slate-200 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-sky-100 focus:border-sky-500 shadow-xs transition-all flex-1 min-w-[200px]"
       />
 
       <select
         v-model="selectedDivisi"
-        class="px-3.5 py-2 text-xs rounded-2xl bg-white/80 border border-black/5 text-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#0A84DC]/30 shadow-[0_8px_30px_rgb(0,0,0,0.05)] transition-all cursor-pointer"
+        class="px-3.5 py-2 text-xs rounded-full bg-white border border-slate-200 text-slate-800 focus:outline-none focus:ring-4 focus:ring-sky-100 focus:border-sky-500 shadow-xs transition-all cursor-pointer"
       >
         <option value="">Semua Divisi</option>
         <option v-for="d in divisiOptions" :key="d" :value="d">
@@ -446,7 +446,7 @@ const handleImportData = async () => {
     </Transition>
 
     <!-- Table Container (Persis seperti SuratManagement & ProkerManagement: bg-white/85, backdrop-blur-xl, border border-black/5, rounded-2xl) -->
-    <div class="bg-white/85 backdrop-blur-xl border border-black/5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.05)] overflow-hidden">
+    <div class="bg-white/95 border border-slate-200/90 rounded-3xl shadow-xs overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full text-left text-xs divide-y divide-black/5 min-w-[760px]">
           <thead class="bg-black/[0.02] text-zinc-500 font-semibold">
@@ -673,11 +673,12 @@ const handleImportData = async () => {
     </div>
 
     <!-- Modal Tambah Pengurus -->
-    <div
-      v-if="isAddModalOpen"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-    >
-      <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-black/5 flex flex-col gap-4">
+    <Transition name="modal-fade">
+      <div
+        v-if="isAddModalOpen"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+      >
+        <div class="modal-panel bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-black/5 flex flex-col gap-4">
         <div class="flex items-center justify-between">
           <h3 class="text-base font-semibold text-zinc-900">Tambah Pengurus Baru</h3>
           <button @click="isAddModalOpen = false" class="text-zinc-400 hover:text-zinc-700 text-sm">✕</button>
@@ -765,13 +766,15 @@ const handleImportData = async () => {
         </form>
       </div>
     </div>
+    </Transition>
 
     <!-- Modal Import Data (CSV atau Google Sheets) -->
-    <div
-      v-if="isImportModalOpen"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-    >
-      <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-black/5 flex flex-col gap-4">
+    <Transition name="modal-fade">
+      <div
+        v-if="isImportModalOpen"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+      >
+        <div class="modal-panel bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-black/5 flex flex-col gap-4">
         <div class="flex items-center justify-between">
           <div>
             <h3 class="text-base font-semibold text-zinc-900">Import Data Pengurus</h3>
@@ -856,13 +859,15 @@ const handleImportData = async () => {
         </div>
       </div>
     </div>
+    </Transition>
 
     <!-- Modal Detail Pengurus -->
-    <div
-      v-if="isDetailModalOpen && selectedUser"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-    >
-      <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-black/5 flex flex-col gap-5 relative overflow-hidden">
+    <Transition name="modal-fade">
+      <div
+        v-if="isDetailModalOpen && selectedUser"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+      >
+        <div class="modal-panel bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-black/5 flex flex-col gap-5 relative overflow-hidden">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
             <div class="w-11 h-11 rounded-2xl bg-[#0A84DC]/10 text-[#0A84DC] flex items-center justify-center font-bold text-sm">
@@ -937,13 +942,15 @@ const handleImportData = async () => {
         </div>
       </div>
     </div>
+    </Transition>
 
     <!-- Modal Edit Pengurus -->
-    <div
-      v-if="isEditModalOpen"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-    >
-      <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-black/5 flex flex-col gap-4">
+    <Transition name="modal-fade">
+      <div
+        v-if="isEditModalOpen"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+      >
+        <div class="modal-panel bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-black/5 flex flex-col gap-4">
         <div class="flex items-center justify-between">
           <h3 class="text-base font-semibold text-zinc-900">Edit Data Pengurus</h3>
           <button @click="isEditModalOpen = false" class="text-zinc-400 hover:text-zinc-700 text-sm">✕</button>
@@ -1026,14 +1033,15 @@ const handleImportData = async () => {
         </form>
       </div>
     </div>
+    </Transition>
 
     <!-- Modal Konfirmasi Hapus (Single / Batch) with Smooth Scale Transition -->
-    <Transition name="modal-pop">
+    <Transition name="modal-fade">
       <div
         v-if="confirmDeleteModal.isOpen"
         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
       >
-        <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-black/5 flex flex-col gap-4 text-center">
+        <div class="modal-panel bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-black/5 flex flex-col gap-4 text-center">
           <!-- Trash warning icon -->
           <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-500 mx-auto flex items-center justify-center border border-rose-100">
             <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
