@@ -150,9 +150,12 @@ const handleSkipPasswordChange = async () => {
     <header class="relative z-10 w-full max-w-5xl mx-auto flex items-center justify-between py-2">
       <!-- DOSCOM Pill Logo Badge -->
       <div class="flex items-center gap-3">
-        <div class="h-9 w-9 rounded-full bg-sky-600 text-white flex items-center justify-center font-black text-sm shadow-xs">
-          D
-        </div>
+        <img
+          src="/logo-doscom.png"
+          alt="DOSCOM"
+          class="h-9 w-9 rounded-full object-contain shrink-0 shadow-xs"
+          @error="(e) => ((e.target as HTMLElement).style.display = 'none')"
+        />
         <div>
           <span class="text-xs font-bold tracking-widest uppercase text-slate-900 block leading-tight">
             DOSCOM

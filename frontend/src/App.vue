@@ -34,9 +34,12 @@ const handleLogout = () => {
         <div class="h-14 sm:h-16 flex items-center justify-between gap-4">
           <!-- Left: Brand Logo -->
           <RouterLink to="/" class="flex items-center space-x-2.5 shrink-0 select-none outline-none focus:outline-none">
-            <div class="w-8 h-8 rounded-full bg-sky-600 text-white font-black flex items-center justify-center text-xs shadow-xs">
-              L
-            </div>
+            <img
+              src="/logo-doscom.png"
+              alt="DOSCOM"
+              class="w-8 h-8 rounded-full object-contain shrink-0 shadow-xs"
+              @error="(e) => ((e.target as HTMLElement).style.display = 'none')"
+            />
             <div>
               <h1 class="text-sm font-semibold leading-none tracking-tight text-slate-900">LACI</h1>
               <p class="hidden sm:block text-[10px] text-slate-400 mt-0.5">Pelacakan Surat DOSCOM</p>
