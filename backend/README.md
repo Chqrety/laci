@@ -6,14 +6,11 @@ REST API Service untuk **Laci DOSCOM** dibangun menggunakan bahasa pemrograman *
 
 ## 🛠️ Tech Stack & Dependencies
 
-* **Language:** Golang `1.26`
-* **HTTP Web Framework:** [Gin Gonic](https://github.com/gin-gonic/gin) (`v1.12.0`)
-* **ORM:** [GORM](https://gorm.io/) (`v1.31.2`)
-* **Database Driver:** `gorm.io/driver/postgres` (`v1.6.3`)
-* **Authentication:** JWT Bearer via [golang-jwt/jwt/v5](https://github.com/golang-jwt/jwt) (`v5.3.1`)
-* **Password Encryption:** `golang.org/x/crypto/bcrypt`
-* **Identifiers:** [google/uuid](https://github.com/google/uuid) (`v1.6.0`)
-* **Config:** `joho/godotenv`
+* **Language:** Golang `1.22+`
+* **HTTP Framework:** [Gin Gonic](https://github.com/gin-gonic/gin)
+* **ORM & Database:** [GORM](https://gorm.io/) (PostgreSQL Driver)
+* **Auth & Security:** JWT (`golang-jwt/jwt/v5`), bcrypt (`golang.org/x/crypto`)
+* **Utilities:** `google/uuid`, `godotenv`
 
 ---
 
@@ -59,15 +56,14 @@ Sistem mengandalkan database relasional terstruktur dengan auto-migration:
 * `status_saat_ini` (varchar(100)) — Contoh: `draft`, `review`, `signed`, `sent`.
 * `pic_nama` (varchar(255))
 * `catatan` (text)
-* `file_surat` (varchar(255)) — Path relatif berkas scan/lampiran fisik.
+* `arsip_url` (text) — Path berkas scan atau dokumen arsip.
 
 ### 3. `log_trackings` (Riwayat Perubahan Status Surat)
 * `id` (UUID, Primary Key)
 * `surat_id` (UUID, Foreign Key `surat.id` ON DELETE CASCADE)
-* `status_sebelumnya` (varchar(100))
 * `status_baru` (varchar(100))
-* `catatan` (text)
-* `created_at` (timestamp)
+* `catatan_log` (text)
+* `waktu_update` (timestamp)
 
 ### 4. `prokers` (Master Program Kerja)
 * `id` (UUID, Primary Key)

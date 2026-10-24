@@ -52,10 +52,7 @@ Paling mudah menjalankan proyek ini adalah menggunakan **Docker Compose**, tanpa
    ```
 
 3. **Buka di Browser:**
-   Buka browser kamu dan akses 👉 **`http://localhost:5173`**
-
-> 💡 **Kenapa Port 5173?**
-> Secara umum web server production memakai port `80`. Namun karena banyak pengurus DOSCOM yang menjalankan **XAMPP** lokal (yang memakai port 80 untuk Apache), Laci di-mapping ke port `5173` agar bebas bentrok dan langsung terasa seperti environment development modern!
+   Buka browser kamu dan akses 👉 **`http://localhost`** (atau `http://localhost:5173` jika menggunakan `docker-compose.dev.yml`).
 
 ---
 
@@ -96,37 +93,6 @@ Setelah container berjalan (`docker compose up -d`), jalankan seeder langsung ke
 docker compose exec backend ./laci-seed
 ```
 
----
-
-## 🧪 Inject Dummy Data (Manual SQL Alternatif)
-
-Aplikasi kosong tentu sepi untuk ditest. Kamu bisa memasukkan **50 data surat simulasi** secara instan ke database lokal:
-
-1. **Masuk ke container database:**
-
-   ```bash
-   docker compose exec db psql -U root -d laci_doscom
-   ```
-
-2. **Jalankan query SQL berikut:**
-
-   ```sql
-   TRUNCATE TABLE log_trackings, surat CASCADE;
-
-   INSERT INTO surat (id, nomor_surat, perihal, pic_nama, status_saat_ini)
-   SELECT
-       gen_random_uuid(),
-       LPAD(i::text, 3, '0') || '/DOSCOM/DU/X/2026',
-       'Surat Permohonan Kegiatan Ke-' || i,
-       'Pengurus DOSCOM ' || i,
-       CASE (i % 4)
-           WHEN 0 THEN 'draft'
-           WHEN 1 THEN 'review'
-           WHEN 2 THEN 'signed'
-           ELSE 'sent'
-       END
-   FROM generate_series(1, 50) AS i;
-   ```
 
 ---
 
@@ -135,7 +101,7 @@ Aplikasi kosong tentu sepi untuk ditest. Kamu bisa memasukkan **50 data surat si
 Tertarik menambahkan fitur atau memperbaiki bug?
 
 1. Fork repositori ini.
-2. Buat branch fitur baru (`git checkout -b fitu-keren-kamu`).
+2. Buat branch fitur baru (`git checkout -b fitur-keren-kamu`).
 3. Pastikan `npm run build` di frontend dan `go vet ./...` di backend lulus tanpa error.
 4. Buat Pull Request dengan penjelasan singkat yang jelas.
 
