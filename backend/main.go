@@ -7,14 +7,16 @@ import (
 	"github.com/joho/godotenv"
 	"laci-backend/config"
 	"laci-backend/routes"
+	"laci-backend/seeders"
 )
 
 func main() {
-	if err := godotenv.Load(); err != nil {
+	if err := godotenv.Load("../.env", ".env"); err != nil {
 		log.Println("Catatan: File .env tidak ditemukan, menggunakan nilai environment OS bawaan.")
 	}
 
 	config.InitDB()
+	seeders.SeedCore(config.DB)
 
 	r := gin.Default()
 	routes.SetupRoutes(r)

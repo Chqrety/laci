@@ -7,16 +7,18 @@ import (
 )
 
 type User struct {
-	ID                    uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
-	NIM                   string    `gorm:"type:varchar(50);index" json:"nim"`
-	Nama                  string    `gorm:"type:varchar(150);not null;default:''" json:"nama"`
-	Email                 string    `gorm:"type:varchar(150);index" json:"email"`
-	Username              string    `gorm:"type:varchar(100);uniqueIndex;not null" json:"username"`
-	Password              string    `gorm:"type:varchar(255);not null" json:"-"`
-	DisplayPassword       string    `gorm:"type:varchar(255);not null;default:''" json:"display_password,omitempty"`
-	Divisi                string    `gorm:"type:varchar(100);not null;default:'humas'" json:"divisi"`
-	IsPasswordDefault     bool      `gorm:"type:boolean;not null;default:true" json:"is_password_default"`
-	HasSeenPasswordPrompt bool      `gorm:"type:boolean;not null;default:false" json:"has_seen_password_prompt"`
+	ID                       uuid.UUID  `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
+	NIM                      string     `gorm:"type:varchar(50);index" json:"nim"`
+	Nama                     string     `gorm:"type:varchar(150);not null;default:''" json:"nama"`
+	Email                    string     `gorm:"type:varchar(150);index" json:"email"`
+	Username                 string     `gorm:"type:varchar(100);uniqueIndex;not null" json:"username"`
+	Password                 string     `gorm:"type:varchar(255);not null" json:"-"`
+	Divisi                   string     `gorm:"type:varchar(100);not null;default:'humas'" json:"divisi"`
+	IsActive                 bool       `gorm:"type:boolean;not null;default:false" json:"is_active"`
+	ActivationToken          *string    `gorm:"type:varchar(255);index" json:"-"`
+	ActivationTokenExpiresAt *time.Time `json:"-"`
+	ResetPasswordToken       *string    `gorm:"type:varchar(255);index" json:"-"`
+	ResetPasswordExpiresAt   *time.Time `json:"-"`
 }
 
 func (User) TableName() string {
@@ -31,6 +33,7 @@ type Surat struct {
 	StatusSaatIni string        `gorm:"type:varchar(100);not null" json:"status_saat_ini"`
 	PICNama       string        `gorm:"type:varchar(100);not null" json:"pic_nama"`
 	ArsipURL      *string       `gorm:"type:text" json:"arsip_url"`
+	GDocsURL      *string       `gorm:"column:g_docs_url;type:text" json:"gdocs_url,omitempty"`
 	Catatan       string        `gorm:"type:text" json:"catatan"`
 	ProkerID      *uuid.UUID    `gorm:"type:uuid" json:"proker_id,omitempty"`
 	Logs          []LogTracking `gorm:"foreignKey:SuratID" json:"logs,omitempty"`
@@ -60,4 +63,25 @@ type Proker struct {
 
 func (Proker) TableName() string {
 	return "proker"
+}
+
+type SuratTemplate struct {
+	ID           uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
+	NamaTemplate string    `gorm:"type:varchar(255);not null" json:"nama_template"`
+	GDocID       string    `gorm:"column:g_doc_id;type:varchar(255);uniqueIndex;not null" json:"gdoc_id"`
+	Placeholders string    `gorm:"type:text" json:"placeholders"` // Disimpan sebagai JSON array string
+	IsActive     bool      `gorm:"type:boolean;not null;default:true" json:"is_active"`
+}
+
+func (SuratTemplate) TableName() string {
+	return "surat_templates"
+}
+
+type AppSetting struct {
+	Key   string `gorm:"type:varchar(100);primaryKey" json:"key"`
+	Value string `gorm:"type:text;not null" json:"value"`
+}
+
+func (AppSetting) TableName() string {
+	return "app_settings"
 }
