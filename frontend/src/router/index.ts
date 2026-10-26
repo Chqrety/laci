@@ -11,6 +11,24 @@ const router = createRouter({
       meta: { requiresAuth: false },
     },
     {
+      path: '/activate',
+      name: 'activate',
+      component: () => import('@/views/ActivateAccount.vue'),
+      meta: { requiresAuth: false },
+    },
+    {
+      path: '/forgot-password',
+      name: 'forgot-password',
+      component: () => import('@/views/ForgotPassword.vue'),
+      meta: { requiresAuth: false },
+    },
+    {
+      path: '/reset-password',
+      name: 'reset-password',
+      component: () => import('@/views/ResetPassword.vue'),
+      meta: { requiresAuth: false },
+    },
+    {
       path: '/',
       name: 'board',
       component: () => import('@/views/KanbanBoard.vue'),
@@ -53,11 +71,13 @@ router.beforeEach((to, _from, next) => {
   const isAuth = authService.isAuthenticated()
   const role = currentRole.value
 
+  const isPublicAuthRoute = ['login', 'activate', 'forgot-password', 'reset-password'].includes(String(to.name))
+
   if (to.meta.requiresAuth && !isAuth) {
     next({ name: 'login' })
-  } else if (to.name === 'login' && isAuth) {
+  } else if (isPublicAuthRoute && isAuth && to.name === 'login') {
     next({ name: 'board' })
-  } else if (to.meta.role && to.meta.role !== role) {
+  } else if (to.meta.role && to.meta.role === 'sekre' && role !== 'sekre' && role !== 'ketum') {
     next({ name: 'board' })
   } else {
     next()

@@ -2,7 +2,11 @@ import axios from 'axios'
 import { ref } from 'vue'
 
 export function parseJwtPayload(token: string | null) {
-  try { return token ? JSON.parse(atob(token.split('.')[1] || '')) : null } catch { return null }
+  try {
+    return token ? JSON.parse(atob(token.split('.')[1] || '')) : null
+  } catch {
+    return null
+  }
 }
 
 export const currentToken = ref<string | null>(typeof window !== 'undefined' ? localStorage.getItem('token') : null)
@@ -43,7 +47,7 @@ api.interceptors.response.use(
       localStorage.removeItem('role')
       currentToken.value = null
       currentRole.value = null
-      if (window.location.pathname !== '/login') {
+      if (window.location.pathname !== '/login' && window.location.pathname !== '/activate' && window.location.pathname !== '/forgot-password' && window.location.pathname !== '/reset-password') {
         window.location.href = '/login'
       }
     }
@@ -67,18 +71,17 @@ export interface Surat {
   status_saat_ini: string
   pic_nama: string
   arsip_url?: string | null
+  gdocs_url?: string | null
 
   catatan?: string
   logs?: LogTracking[]
 }
-export type Letter = Surat
 
 export interface Proker {
   id: string
   nama_proker: string
   deskripsi?: string
 }
-export type Program = Proker
 
 export interface CreateSuratPayload {
   nomor_surat: string
@@ -88,7 +91,6 @@ export interface CreateSuratPayload {
   pic_nama: string
   catatan?: string
 }
-export type CreateLetterPayload = CreateSuratPayload
 
 export interface UpdateStatusPayload {
   status_saat_ini: string
@@ -105,9 +107,7 @@ export interface User {
   username: string
   divisi: string
   role?: string
-  display_password?: string
-  is_password_default: boolean
-  has_seen_password_prompt: boolean
+  is_active?: boolean
 }
 
 export interface LoginResponse {
@@ -118,8 +118,7 @@ export interface LoginResponse {
   nama?: string
   nim?: string
   email?: string
-  is_password_default: boolean
-  has_seen_password_prompt: boolean
+  is_active?: boolean
 }
 
 let prokerCache: Proker[] | null = null
@@ -155,8 +154,6 @@ export const authService = {
       username: res.data.username || username,
       divisi: divisiVal,
       role: divisiVal,
-      is_password_default: res.data.is_password_default,
-      has_seen_password_prompt: res.data.has_seen_password_prompt,
     }
 
     return res.data
@@ -189,22 +186,11 @@ export const authService = {
     return res.data
   },
 
-  async dismissPasswordPrompt(): Promise<void> {
-    await api.post('/profile/dismiss-prompt')
-    if (currentUser.value) {
-      currentUser.value.has_seen_password_prompt = true
-    }
-  },
-
   async changePassword(newPassword: string, oldPassword?: string): Promise<{ message: string }> {
     const res = await api.put('/profile/change-password', {
       new_password: newPassword,
       old_password: oldPassword,
     })
-    if (currentUser.value) {
-      currentUser.value.is_password_default = false
-      currentUser.value.has_seen_password_prompt = true
-    }
     return res.data
   },
 
@@ -217,6 +203,26 @@ export const authService = {
     }
     localStorage.setItem('username', res.data.username)
     currentUsername.value = res.data.username
+    return res.data
+  },
+
+  async verifyToken(token: string, type: 'activation' | 'reset' = 'activation'): Promise<{ valid: boolean; email: string; nama: string; username: string }> {
+    const res = await api.get('/auth/verify-token', { params: { token, type } })
+    return res.data
+  },
+
+  async activateAccount(token: string, password: string): Promise<{ message: string }> {
+    const res = await api.post('/auth/activate', { token, password })
+    return res.data
+  },
+
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    const res = await api.post('/auth/forgot-password', { email })
+    return res.data
+  },
+
+  async resetPassword(token: string, password: string): Promise<{ message: string }> {
+    const res = await api.post('/auth/reset-password', { token, password })
     return res.data
   },
 }
@@ -253,8 +259,12 @@ export const userService = {
     return res.data
   },
 
-  async resetPrompt(id: string): Promise<{ message: string }> {
-    const res = await api.put(`/users/${id}/reset-prompt`)
+  async transferKetum(targetUserId: string, currentPassword: string): Promise<{ message: string; ketum_baru: string }> {
+    usersCache = null
+    const res = await api.post('/users/transfer-ketum', {
+      target_user_id: targetUserId,
+      current_password: currentPassword,
+    })
     return res.data
   },
 
@@ -296,40 +306,6 @@ export const suratService = {
     return response.data
   },
 
-  async uploadArsip(
-    id: string,
-    file: Blob,
-    filename = 'arsip.jpg',
-  ): Promise<{ message: string; arsip_url: string; surat: Surat }> {
-    const formData = new FormData()
-    formData.append('file', file, filename)
-    const response = await api.post(`/letters/${id}/upload`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    })
-    return response.data
-  },
-
-  async uploadDokumen(
-    id: string,
-    file: File | Blob,
-    filename?: string,
-  ): Promise<{ message: string; arsip_url: string; surat: Surat }> {
-    const formData = new FormData()
-    if (filename) {
-      formData.append('file', file, filename)
-    } else {
-      formData.append('file', file)
-    }
-    const response = await api.post(`/letters/${id}/upload`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    })
-    return response.data
-  },
-
   async delete(id: string): Promise<{ message: string }> {
     const response = await api.delete(`/letters/${id}`)
     return response.data
@@ -363,26 +339,10 @@ export const prokerService = {
   },
 }
 
-export const letterService = suratService
-export const programService = prokerService
-
-// Modular API Functions
-export const fetchLetters = () => letterService.getAll()
-export const fetchSurat = fetchLetters
-export const updateLetterStatus = (id: string, payload: UpdateStatusPayload) => letterService.updateStatus(id, payload)
-export const updateSuratStatus = updateLetterStatus
-export const uploadSuratArsip = (id: string, file: Blob, filename?: string) =>
-  suratService.uploadArsip(id, file, filename)
-export const uploadSuratDokumen = (id: string, file: File | Blob, filename?: string) =>
-  suratService.uploadDokumen(id, file, filename)
-
-export const fetchPrograms = () => programService.getAll()
-export const fetchProker = fetchPrograms
-
 export const STATUS_COLUMNS = [
   'Standby',
   'Cetak',
-  'TTD Lapis 1',
+  'TTD Dasar',
   'TTD Ketum',
   'TTD Pembina',
   'Paraf Koormawa',
@@ -391,3 +351,54 @@ export const STATUS_COLUMNS = [
 ] as const
 
 export type SuratStatus = (typeof STATUS_COLUMNS)[number]
+
+export interface SuratTemplate {
+  id: string
+  nama_template: string
+  gdoc_id: string
+  placeholders: string
+  is_active: boolean
+}
+
+export interface GenerateSuratPayload {
+  template_id: string
+  folder_url?: string
+  file_name?: string
+  nomor_surat: string
+  perihal: string
+  tujuan?: string
+  pic_nama?: string
+  proker_id?: string
+  replacements: Record<string, string>
+}
+
+export const templateService = {
+  async getAll(): Promise<SuratTemplate[]> {
+    const response = await api.get<SuratTemplate[]>('/letters/templates')
+    return response.data
+  },
+
+  async sync(
+    folderUrl: string,
+    gasUrl?: string,
+  ): Promise<{ templates: SuratTemplate[]; count: number; message: string }> {
+    const response = await api.post('/letters/templates/sync', { folder_url: folderUrl, gas_url: gasUrl })
+    return response.data
+  },
+
+  async generate(
+    payload: GenerateSuratPayload,
+  ): Promise<{ surat: Surat; gdocs_url: string; pdf_url: string; doc_id: string; message: string }> {
+    const response = await api.post('/letters/generate', payload)
+    return response.data
+  },
+
+  async getSettings(): Promise<Record<string, string>> {
+    const response = await api.get<Record<string, string>>('/settings')
+    return response.data
+  },
+
+  async updateSettings(settings: Record<string, string>): Promise<void> {
+    await api.put('/settings', settings)
+  },
+}
