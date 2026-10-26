@@ -188,6 +188,18 @@ func UploadSurat(c *gin.Context) {
 		return
 	}
 
+	divisiVal, _ := c.Get("divisi")
+	divisi := strings.ToLower(fmt.Sprintf("%v", divisiVal))
+	if divisi == "humas" || divisi == "pengurus" || divisi == "ex-ketum" {
+		statusLower := strings.ToLower(surat.StatusSaatIni)
+		if !strings.Contains(statusLower, "selesai") && !strings.Contains(statusLower, "arsip") {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": "Unggah bukti arsip fisik hanya dapat dilakukan saat surat telah selesai ditandatangani dan berstatus Selesai.",
+			})
+			return
+		}
+	}
+
 	file, err := c.FormFile("file")
 	if err != nil {
 		file, err = c.FormFile("arsip")

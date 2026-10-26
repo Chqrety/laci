@@ -1,17 +1,17 @@
 package controllers
 
 import (
-	"crypto/rand"
 	"encoding/csv"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 	"laci-backend/config"
 	"laci-backend/models"
 	"laci-backend/utils"
@@ -22,7 +22,6 @@ type CreateUserInput struct {
 	Nama     string `json:"nama" binding:"required"`
 	Email    string `json:"email"`
 	Username string `json:"username"`
-	Password string `json:"password"`
 	Divisi   string `json:"divisi"`
 }
 
@@ -35,11 +34,9 @@ type UpdateUserInput struct {
 	Password string `json:"password"`
 }
 
-// generateRandomPassword menghasilkan password acak hex sederhana
-func generateRandomPassword(length int) string {
-	b := make([]byte, (length+1)/2)
-	rand.Read(b)
-	return hex.EncodeToString(b)[:length]
+type TransferKetumInput struct {
+	TargetUserID    string `json:"target_user_id" binding:"required"`
+	CurrentPassword string `json:"current_password" binding:"required"`
 }
 
 func sanitizeUsername(name string, nim string) string {
@@ -54,29 +51,18 @@ func sanitizeUsername(name string, nim string) string {
 	return cleaned
 }
 
-// GetUsers menampilkan daftar seluruh user/pengurus.
-// Khusus Sekre, display_password dikembalikan agar bisa di-reveal di UI.
+// GetUsers menampilkan daftar seluruh user/pengurus
 func GetUsers(c *gin.Context) {
-	divisiVal, _ := c.Get("divisi")
-	divisi, _ := divisiVal.(string)
-
 	var users []models.User
 	if err := config.DB.Order("nama ASC, username ASC").Find(&users).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Jika bukan sekre, jangan kirim display_password
-	if strings.ToLower(divisi) != "sekre" {
-		for i := range users {
-			users[i].DisplayPassword = ""
-		}
-	}
-
 	c.JSON(http.StatusOK, users)
 }
 
-// CreateUser menambahkan user manual oleh Sekre
+// CreateUser menambahkan user baru dan mengirim email aktivasi untuk pembuatan password mandiri
 func CreateUser(c *gin.Context) {
 	var input CreateUserInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -84,11 +70,30 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
+	callerDivisiVal, _ := c.Get("divisi")
+	callerDivisi := strings.ToLower(fmt.Sprintf("%v", callerDivisiVal))
+
 	nim := strings.TrimSpace(input.NIM)
 	nama := strings.TrimSpace(input.Nama)
 	divisi := strings.ToLower(strings.TrimSpace(input.Divisi))
-	if divisi != "sekre" && divisi != "humas" {
+	if divisi == "" {
 		divisi = "humas"
+	}
+
+	// Guard: Divisi ex-ketum murni berasal dari serah terima jabatan
+	if divisi == "ex-ketum" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Divisi ex-ketum hanya dapat diperoleh melalui proses resmi serah terima jabatan.",
+		})
+		return
+	}
+
+	// Guard: Hanya Ketua Umum yang boleh mengangkat Ketua Umum baru
+	if divisi == "ketum" && callerDivisi != "ketum" {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "Hanya Ketua Umum yang berwenang mengangkat Ketua Umum baru melalui serah terima jabatan.",
+		})
+		return
 	}
 
 	username := strings.TrimSpace(input.Username)
@@ -118,28 +123,27 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	rawPassword := strings.TrimSpace(input.Password)
-	if rawPassword == "" {
-		rawPassword = generateRandomPassword(8)
-	}
-
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(rawPassword), bcrypt.DefaultCost)
+	// Buat password acak terkunci yang tidak dapat digunakan sebelum aktivasi
+	lockedPasswordHash, err := bcrypt.GenerateFromPassword([]byte(uuid.New().String()), bcrypt.DefaultCost)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengenkripsi password"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyiapkan akun"})
 		return
 	}
 
+	activationToken := utils.GenerateToken(32)
+	tokenExpiry := time.Now().Add(24 * time.Hour)
+
 	newUser := models.User{
-		ID:                    uuid.New(),
-		NIM:                   strings.TrimSpace(input.NIM),
-		Nama:                  strings.TrimSpace(input.Nama),
-		Email:                 strings.TrimSpace(input.Email),
-		Username:              username,
-		Password:              string(hashedPassword),
-		DisplayPassword:       rawPassword,
-		Divisi:                divisi,
-		IsPasswordDefault:     true,
-		HasSeenPasswordPrompt: false,
+		ID:                       uuid.New(),
+		NIM:                      nim,
+		Nama:                     nama,
+		Email:                    strings.TrimSpace(input.Email),
+		Username:                 username,
+		Password:                 string(lockedPasswordHash),
+		Divisi:                   divisi,
+		IsActive:                 false,
+		ActivationToken:          &activationToken,
+		ActivationTokenExpiresAt: &tokenExpiry,
 	}
 
 	if err := config.DB.Create(&newUser).Error; err != nil {
@@ -147,22 +151,18 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	// Kirim email kredensial secara background jika email diisi
+	// Kirim email aktivasi secara asynchronous
 	if newUser.Email != "" {
-		utils.SendAccountCredentialsEmail(utils.MailAccountPayload{
-			ToEmail:  newUser.Email,
-			Nama:     newUser.Nama,
-			NIM:      newUser.NIM,
-			Username: newUser.Username,
-			Password: rawPassword,
-			Divisi:   newUser.Divisi,
-		})
+		utils.SendActivationEmail(newUser.Email, newUser.Nama, newUser.Username, activationToken)
 	}
 
-	c.JSON(http.StatusCreated, newUser)
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "User berhasil didaftarkan. Email aktivasi telah dikirimkan ke " + newUser.Email,
+		"user":    newUser,
+	})
 }
 
-// UpdateUser mengubah data pengurus atau mereset passwordnya
+// UpdateUser mengubah data pengurus atau divisi
 func UpdateUser(c *gin.Context) {
 	idParam := c.Param("id")
 	userUUID, err := uuid.Parse(idParam)
@@ -183,8 +183,8 @@ func UpdateUser(c *gin.Context) {
 		return
 	}
 
-	currentUserID, _ := c.Get("userID")
-	currentUserIDStr, _ := currentUserID.(string)
+	callerDivisiVal, _ := c.Get("divisi")
+	callerDivisi := strings.ToLower(fmt.Sprintf("%v", callerDivisiVal))
 
 	updates := map[string]interface{}{}
 	if input.NIM != "" {
@@ -222,11 +222,12 @@ func UpdateUser(c *gin.Context) {
 	}
 	if input.Divisi != "" {
 		newDiv := strings.ToLower(strings.TrimSpace(input.Divisi))
-		if newDiv != "sekre" && newDiv != "humas" {
-			newDiv = "humas"
+		if newDiv == "ex-ketum" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Divisi ex-ketum hanya dapat diperoleh melalui proses resmi serah terima jabatan."})
+			return
 		}
-		if userUUID.String() == currentUserIDStr && newDiv != "sekre" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Tidak dapat mengubah divisi akun sendiri menjadi non-sekre"})
+		if newDiv == "ketum" && callerDivisi != "ketum" {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Hanya Ketua Umum yang dapat mengangkat Ketua Umum baru."})
 			return
 		}
 		updates["divisi"] = newDiv
@@ -235,9 +236,6 @@ func UpdateUser(c *gin.Context) {
 		hashed, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 		if err == nil {
 			updates["password"] = string(hashed)
-			updates["display_password"] = input.Password
-			updates["is_password_default"] = true
-			updates["has_seen_password_prompt"] = false
 		}
 	}
 
@@ -250,21 +248,76 @@ func UpdateUser(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
-// ResetPasswordPrompt memicu ulang modal pengingat ganti password untuk user tertentu
-func ResetPasswordPrompt(c *gin.Context) {
-	idParam := c.Param("id")
-	userUUID, err := uuid.Parse(idParam)
+// TransferKetum melakukan suksesi kepemimpinan satu arah (Ketum aktif -> Ex-Ketum, Target -> Ketum)
+func TransferKetum(c *gin.Context) {
+	callerIDVal, _ := c.Get("userID")
+	callerIDStr, _ := callerIDVal.(string)
+	callerUUID, err := uuid.Parse(callerIDStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Sesi tidak valid"})
 		return
 	}
 
-	if err := config.DB.Model(&models.User{}).Where("id = ?", userUUID).Update("has_seen_password_prompt", false).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mereset reminder"})
+	var input TransferKetumInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Target user dan konfirmasi password wajib diisi"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Reminder ganti password berhasil diaktifkan kembali untuk user ini"})
+	var callerUser models.User
+	if err := config.DB.First(&callerUser, "id = ?", callerUUID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Akun Ketua Umum tidak ditemukan"})
+		return
+	}
+
+	if strings.ToLower(callerUser.Divisi) != "ketum" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Hanya Ketua Umum aktif yang dapat melakukan serah terima jabatan"})
+		return
+	}
+
+	// Verifikasi keamanan password Ketua Umum saat ini
+	if err := bcrypt.CompareHashAndPassword([]byte(callerUser.Password), []byte(input.CurrentPassword)); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Konfirmasi password salah"})
+		return
+	}
+
+	targetUUID, err := uuid.Parse(input.TargetUserID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID target user tidak valid"})
+		return
+	}
+
+	if targetUUID == callerUUID {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Anda sudah menjabat sebagai Ketua Umum"})
+		return
+	}
+
+	var targetUser models.User
+	if err := config.DB.First(&targetUser, "id = ?", targetUUID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Anggota target suksesi tidak ditemukan"})
+		return
+	}
+
+	// Eksekusi suksesi atomik
+	err = config.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&callerUser).Update("divisi", "ex-ketum").Error; err != nil {
+			return err
+		}
+		if err := tx.Model(&targetUser).Update("divisi", "ketum").Error; err != nil {
+			return err
+		}
+		return nil
+	})
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memproses serah terima jabatan: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":    fmt.Sprintf("Suksesi berhasil! Jabatan Ketua Umum telah diserahkan kepada %s.", targetUser.Nama),
+		"ketum_baru": targetUser.Nama,
+	})
 }
 
 // DeleteUser menghapus user
@@ -282,7 +335,19 @@ func DeleteUser(c *gin.Context) {
 		return
 	}
 
-	if err := config.DB.Delete(&models.User{}, "id = ?", userUUID).Error; err != nil {
+	var user models.User
+	if err := config.DB.First(&user, "id = ?", userUUID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User tidak ditemukan"})
+		return
+	}
+
+	// Mencegah penghapusan Ketua Umum aktif
+	if strings.ToLower(user.Divisi) == "ketum" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Ketua Umum aktif tidak dapat dihapus. Silakan transfer jabatan terlebih dahulu."})
+		return
+	}
+
+	if err := config.DB.Delete(&user).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -308,7 +373,7 @@ func BatchDeleteUsers(c *gin.Context) {
 	var parsedUUIDs []uuid.UUID
 	for _, idStr := range input.IDs {
 		if idStr == currentUserIDStr {
-			continue // Lindungi akun sendiri agar tidak terhapus saat batch delete
+			continue
 		}
 		if u, err := uuid.Parse(idStr); err == nil {
 			parsedUUIDs = append(parsedUUIDs, u)
@@ -320,13 +385,14 @@ func BatchDeleteUsers(c *gin.Context) {
 		return
 	}
 
-	if err := config.DB.Where("id IN ?", parsedUUIDs).Delete(&models.User{}).Error; err != nil {
+	// Lindungi akun ketum dari batch delete
+	if err := config.DB.Where("id IN ? AND LOWER(divisi) != 'ketum'", parsedUUIDs).Delete(&models.User{}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghapus data pengurus: " + err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": fmt.Sprintf("Berhasil menghapus %d pengurus", len(parsedUUIDs)),
+		"message": fmt.Sprintf("Berhasil menghapus pengurus yang dipilih"),
 		"deleted": len(parsedUUIDs),
 	})
 }
@@ -357,7 +423,6 @@ func parseAndSaveUsersFromCSV(r io.Reader) ([]models.User, []string, error) {
 			continue
 		}
 
-		// Lewati header jika baris pertama berisi kata kunci
 		if isFirstRow {
 			isFirstRow = false
 			firstCell := strings.ToLower(strings.TrimSpace(record[0]))
@@ -366,7 +431,6 @@ func parseAndSaveUsersFromCSV(r io.Reader) ([]models.User, []string, error) {
 			}
 		}
 
-		// Kolom yang diharapkan: nim, nama, email, divisi
 		nim := ""
 		nama := ""
 		email := ""
@@ -382,10 +446,14 @@ func parseAndSaveUsersFromCSV(r io.Reader) ([]models.User, []string, error) {
 			email = strings.TrimSpace(record[2])
 		}
 		if len(record) >= 4 && strings.TrimSpace(record[3]) != "" {
-			divisi = strings.TrimSpace(record[3])
+			divisi = strings.ToLower(strings.TrimSpace(record[3]))
 		}
 
-		// Jika nama kosong tapi ada nim, gunakan nim
+		// Keamanan: CSV dilarang mengimpor akun sebagai ketum
+		if divisi == "ketum" {
+			divisi = "pengurus"
+		}
+
 		if nama == "" && nim != "" {
 			nama = nim
 		}
@@ -402,24 +470,21 @@ func parseAndSaveUsersFromCSV(r io.Reader) ([]models.User, []string, error) {
 			continue
 		}
 
-		rawPassword := generateRandomPassword(8)
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(rawPassword), bcrypt.DefaultCost)
-		if err != nil {
-			skipped = append(skipped, fmt.Sprintf("%s - gagal hash password", nama))
-			continue
-		}
+		activationToken := utils.GenerateToken(32)
+		tokenExpiry := time.Now().Add(24 * time.Hour)
+		dummyLockedPassword, _ := bcrypt.GenerateFromPassword([]byte(uuid.New().String()), bcrypt.DefaultCost)
 
 		user := models.User{
-			ID:                    uuid.New(),
-			NIM:                   nim,
-			Nama:                  nama,
-			Email:                 email,
-			Username:              username,
-			Password:              string(hashedPassword),
-			DisplayPassword:       rawPassword,
-			Divisi:                divisi,
-			IsPasswordDefault:     true,
-			HasSeenPasswordPrompt: false,
+			ID:                       uuid.New(),
+			NIM:                      nim,
+			Nama:                     nama,
+			Email:                    email,
+			Username:                 username,
+			Password:                 string(dummyLockedPassword),
+			Divisi:                   divisi,
+			IsActive:                 false,
+			ActivationToken:          &activationToken,
+			ActivationTokenExpiresAt: &tokenExpiry,
 		}
 
 		if err := config.DB.Create(&user).Error; err != nil {
@@ -428,14 +493,7 @@ func parseAndSaveUsersFromCSV(r io.Reader) ([]models.User, []string, error) {
 		}
 
 		if user.Email != "" {
-			utils.SendAccountCredentialsEmail(utils.MailAccountPayload{
-				ToEmail:  user.Email,
-				Nama:     user.Nama,
-				NIM:      user.NIM,
-				Username: user.Username,
-				Password: rawPassword,
-				Divisi:   user.Divisi,
-			})
+			utils.SendActivationEmail(user.Email, user.Nama, user.Username, activationToken)
 		}
 
 		imported = append(imported, user)
@@ -466,13 +524,13 @@ func ImportUsersCSV(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message":  fmt.Sprintf("Berhasil mengimpor %d user", len(imported)),
+		"message":  fmt.Sprintf("Berhasil mengimpor %d user. Tautan aktivasi telah dikirim via email.", len(imported)),
 		"imported": imported,
 		"skipped":  skipped,
 	})
 }
 
-// extractSpreadsheetID mengekstrak Google Spreadsheet ID dari berbagai format link
+// extractSpreadsheetID mengekstrak Google Spreadsheet ID dari link
 func extractSpreadsheetID(link string) string {
 	link = strings.TrimSpace(link)
 	if strings.Contains(link, "/d/") {
@@ -503,7 +561,6 @@ func ImportUsersSpreadsheet(c *gin.Context) {
 
 	client := &http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			// Cegah redirect ke halaman login google sign-in jika spreadsheet private
 			if strings.Contains(req.URL.Host, "accounts.google.com") {
 				return fmt.Errorf("spreadsheet bersifat privat. Pastikan akses diset ke 'Siapa saja yang memiliki link'")
 			}
@@ -513,13 +570,13 @@ func ImportUsersSpreadsheet(c *gin.Context) {
 
 	resp, err := client.Get(exportURL)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Gagal mengakses spreadsheet. Pastikan izin sharing 'Siapa saja yang memiliki link dapat melihat': " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Gagal mengakses spreadsheet: " + err.Error()})
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Gagal mengunduh spreadsheet dari Google. Pastikan link dapat diakses publik/siapa saja."})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Gagal mengunduh spreadsheet. Pastikan izin sharing terbuka publik."})
 		return
 	}
 
@@ -530,7 +587,7 @@ func ImportUsersSpreadsheet(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message":  fmt.Sprintf("Berhasil mengimpor %d user dari Google Sheets", len(imported)),
+		"message":  fmt.Sprintf("Berhasil mengimpor %d user. Tautan aktivasi telah dikirim via email.", len(imported)),
 		"imported": imported,
 		"skipped":  skipped,
 	})
