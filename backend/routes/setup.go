@@ -2,8 +2,11 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
-	"laci-backend/controllers"
+	"laci-backend/config"
+	"laci-backend/handlers"
 	"laci-backend/middlewares"
+	"laci-backend/repositories"
+	"laci-backend/services"
 )
 
 func SetupRoutes(r *gin.Engine) {
@@ -11,48 +14,68 @@ func SetupRoutes(r *gin.Engine) {
 	r.Static("/uploads", "./uploads")
 	r.Static("/api/uploads", "./uploads")
 
+	// Repositories
+	userRepo := repositories.NewUserRepository(config.DB)
+	suratRepo := repositories.NewSuratRepository(config.DB)
+	prokerRepo := repositories.NewProkerRepository(config.DB)
+	templateRepo := repositories.NewTemplateRepository(config.DB)
+
+	// Services
+	authService := services.NewAuthService(userRepo)
+	userService := services.NewUserService(userRepo)
+	suratService := services.NewSuratService(suratRepo)
+	prokerService := services.NewProkerService(prokerRepo)
+	templateService := services.NewTemplateService(templateRepo, suratRepo, prokerRepo)
+
+	// Handlers
+	authHandler := handlers.NewAuthHandler(authService)
+	userHandler := handlers.NewUserHandler(userService)
+	suratHandler := handlers.NewSuratHandler(suratService)
+	prokerHandler := handlers.NewProkerHandler(prokerService)
+	templateHandler := handlers.NewTemplateHandler(templateService)
+
 	// Public routes
-	r.POST("/login", controllers.Login)
-	r.GET("/programs", controllers.GetProkers)
-	r.GET("/auth/verify-token", controllers.VerifyToken)
-	r.POST("/auth/activate", controllers.ActivateAccount)
-	r.POST("/auth/forgot-password", controllers.ForgotPassword)
-	r.POST("/auth/reset-password", controllers.ResetPassword)
+	r.POST("/login", authHandler.Login)
+	r.GET("/programs", prokerHandler.GetProkers)
+	r.GET("/auth/verify-token", authHandler.VerifyToken)
+	r.POST("/auth/activate", authHandler.ActivateAccount)
+	r.POST("/auth/forgot-password", authHandler.ForgotPassword)
+	r.POST("/auth/reset-password", authHandler.ResetPassword)
 
 	// Protected routes (Require JWT)
 	authGroup := r.Group("/")
 	authGroup.Use(middlewares.AuthMiddleware())
 	{
 		// Profile & password routes
-		authGroup.GET("/profile", controllers.GetProfile)
-		authGroup.PUT("/profile/change-password", controllers.ChangePassword)
-		authGroup.PUT("/profile/change-username", controllers.ChangeUsername)
+		authGroup.GET("/profile", authHandler.GetProfile)
+		authGroup.PUT("/profile/change-password", authHandler.ChangePassword)
+		authGroup.PUT("/profile/change-username", authHandler.ChangeUsername)
 
 		// User management routes (Sekre & Ketum)
-		authGroup.GET("/users", controllers.GetUsers)
-		authGroup.POST("/users", controllers.CreateUser)
-		authGroup.PUT("/users/:id", controllers.UpdateUser)
-		authGroup.DELETE("/users/:id", controllers.DeleteUser)
-		authGroup.DELETE("/users/batch", controllers.BatchDeleteUsers)
-		authGroup.POST("/users/import-csv", controllers.ImportUsersCSV)
-		authGroup.POST("/users/import-spreadsheet", controllers.ImportUsersSpreadsheet)
-		authGroup.POST("/users/transfer-ketum", controllers.TransferKetum)
+		authGroup.GET("/users", userHandler.GetUsers)
+		authGroup.POST("/users", userHandler.CreateUser)
+		authGroup.PUT("/users/:id", userHandler.UpdateUser)
+		authGroup.DELETE("/users/:id", userHandler.DeleteUser)
+		authGroup.DELETE("/users/batch", userHandler.BatchDeleteUsers)
+		authGroup.POST("/users/import-csv", userHandler.ImportUsersCSV)
+		authGroup.POST("/users/import-spreadsheet", userHandler.ImportUsersSpreadsheet)
+		authGroup.POST("/users/transfer-ketum", userHandler.TransferKetum)
 
 		// Letters & Programs
-		authGroup.POST("/programs", controllers.CreateProker)
-		authGroup.PUT("/programs/:id", controllers.UpdateProker)
-		authGroup.DELETE("/programs/:id", controllers.DeleteProker)
-		authGroup.GET("/letters", controllers.GetSurat)
-		authGroup.POST("/letters", controllers.CreateSurat)
-		authGroup.PUT("/letters/:id", controllers.UpdateSurat)
-		authGroup.POST("/letters/:id/upload", controllers.UploadSurat)
-		authGroup.DELETE("/letters/:id", controllers.DeleteSurat)
+		authGroup.POST("/programs", prokerHandler.CreateProker)
+		authGroup.PUT("/programs/:id", prokerHandler.UpdateProker)
+		authGroup.DELETE("/programs/:id", prokerHandler.DeleteProker)
+		authGroup.GET("/letters", suratHandler.GetSurat)
+		authGroup.POST("/letters", suratHandler.CreateSurat)
+		authGroup.PUT("/letters/:id", suratHandler.UpdateSurat)
+		authGroup.POST("/letters/:id/upload", suratHandler.UploadSurat)
+		authGroup.DELETE("/letters/:id", suratHandler.DeleteSurat)
 
 		// Letter Generator & Templates (Google Drive / Apps Script)
-		authGroup.GET("/letters/templates", controllers.GetTemplates)
-		authGroup.POST("/letters/templates/sync", controllers.SyncTemplates)
-		authGroup.POST("/letters/generate", controllers.GenerateSurat)
-		authGroup.GET("/settings", controllers.GetAppSettings)
-		authGroup.PUT("/settings", controllers.UpdateAppSettings)
+		authGroup.GET("/letters/templates", templateHandler.GetTemplates)
+		authGroup.POST("/letters/templates/sync", templateHandler.SyncTemplates)
+		authGroup.POST("/letters/generate", templateHandler.GenerateSurat)
+		authGroup.GET("/settings", templateHandler.GetAppSettings)
+		authGroup.PUT("/settings", templateHandler.UpdateAppSettings)
 	}
 }
