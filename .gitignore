@@ -3,13 +3,19 @@ node_modules/
 dist/
 .env
 .env.*
+**/.env
+**/.env.*
 !.env.example
+!.env.dev.example
+!frontend/.env.example
 
 # Golang & Backend
 *.exe
 /backend/laci-app
-uploads/
-backend/uploads/
+uploads/*
+backend/uploads/*
+!.gitkeep
+!**/uploads/.gitkeep
 *.log
 
 # OS Files
