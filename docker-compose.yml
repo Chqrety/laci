@@ -31,6 +31,10 @@ services:
       - SMTP_PASS=${SMTP_PASS:-}
       - SMTP_FROM=${SMTP_FROM:-LACI DOSCOM <no-reply@doscom.org>}
       - APP_URL=${APP_URL:-https://laci.doscom.org}
+      - INIT_KETUM_NIM=${INIT_KETUM_NIM:-A11.2024.00000}
+      - INIT_KETUM_NAMA=${INIT_KETUM_NAMA:-Ketua Umum DOSCOM}
+      - INIT_KETUM_EMAIL=${INIT_KETUM_EMAIL:-ketum@doscom.org}
+      - INIT_KETUM_USERNAME=${INIT_KETUM_USERNAME:-ketum}
     volumes:
       - laci_uploads:/app/uploads
     depends_on:
