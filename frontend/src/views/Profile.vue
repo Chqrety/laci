@@ -173,16 +173,11 @@ const handleChangePassword = async () => {
           <span class="text-zinc-800">{{ profile?.email || '-' }}</span>
         </div>
         <div>
-          <span class="text-zinc-400 block text-[11px]">Status Password</span>
+          <span class="text-zinc-400 block text-[11px]">Status Akun</span>
           <span
-            class="inline-block px-2 py-0.5 mt-0.5 rounded-lg text-[10px] font-semibold"
-            :class="
-              profile?.is_password_default
-                ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-            "
+            class="inline-block px-2 py-0.5 mt-0.5 rounded-lg text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200"
           >
-            {{ profile?.is_password_default ? 'Masih Default' : 'Password Kustom' }}
+            Aktif Terverifikasi
           </span>
         </div>
       </div>
@@ -234,7 +229,7 @@ const handleChangePassword = async () => {
       </div>
 
       <form @submit.prevent="handleChangePassword" novalidate class="flex flex-col gap-3.5">
-        <div v-if="!profile?.is_password_default" class="space-y-1.5">
+        <div class="space-y-1.5">
           <Label for="old-password">Password Saat Ini</Label>
           <Input
             id="old-password"

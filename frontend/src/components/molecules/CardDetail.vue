@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { api, getBackendAssetUrl, suratService, currentRole, type Surat } from '@/services/api'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -25,11 +25,29 @@ const emit = defineEmits<{
 }>()
 
 const userRole = computed(() => currentRole.value)
-const isSekre = computed(() => userRole.value === 'sekre')
+const isSekre = computed(() => userRole.value === 'sekre' || userRole.value === 'ketum')
+
+const isCompletedStatus = computed(() => {
+  const s = props.surat.status_saat_ini?.toLowerCase() || ''
+  return s === 'selesai' || s === 'arsip'
+})
+
+const canUploadArsip = computed(() => isSekre.value || isCompletedStatus.value)
 
 // Status & Note update state
 const selectedStatus = ref(props.surat.status_saat_ini)
 const newNote = ref(props.surat.catatan || '')
+
+watch(
+  () => props.surat,
+  (newVal) => {
+    if (newVal) {
+      selectedStatus.value = newVal.status_saat_ini
+      newNote.value = newVal.catatan || ''
+      hasImageError.value = false
+    }
+  },
+)
 const isUpdatingStatus = ref(false)
 const updateMessage = ref('')
 
@@ -40,6 +58,7 @@ const videoRef = ref<HTMLVideoElement | null>(null)
 const mediaStream = ref<MediaStream | null>(null)
 const isCapturing = ref(false)
 const cameraError = ref('')
+const hasImageError = ref(false)
 
 const isUploadingDokumen = ref(false)
 const uploadDokumenMessage = ref('')
@@ -49,14 +68,32 @@ const fileArsipUrl = computed(() => {
   return props.surat.arsip_url || null
 })
 
-const isPdf = computed(() => {
+const isImage = computed(() => {
   if (!fileArsipUrl.value) return false
-  const parts = fileArsipUrl.value.split('?')
-  const cleanUrl = (parts[0] || '').toLowerCase()
-  return cleanUrl.endsWith('.pdf')
+  const cleanUrl = fileArsipUrl.value.split('?')[0]?.toLowerCase() || ''
+  return /\.(jpe?g|png|webp|gif|svg|bmp)$/i.test(cleanUrl) || fileArsipUrl.value.startsWith('data:image/')
 })
 
+const isPdf = computed(() => {
+  if (!fileArsipUrl.value) return false
+  const url = fileArsipUrl.value.toLowerCase()
+  return url.includes('.pdf') || url.includes('format=pdf') || url.includes('/export')
+})
+
+const handleImageError = (event: Event) => {
+  hasImageError.value = true
+  console.error('[CardDetail] Gagal memuat pratinjau arsip gambar:', {
+    rawUrl: fileArsipUrl.value,
+    resolvedUrl: getBackendAssetUrl(fileArsipUrl.value),
+    event,
+  })
+}
+
 const openCamera = async () => {
+  if (!canUploadArsip.value) {
+    uploadDokumenError.value = 'Pengunggahan arsip fisik hanya dapat dilakukan saat surat berstatus Selesai.'
+    return
+  }
   cameraError.value = ''
   uploadDokumenMessage.value = ''
   uploadDokumenError.value = ''
@@ -156,6 +193,11 @@ const handleFileUpload = async (event: Event) => {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
   if (!file) return
+
+  if (!canUploadArsip.value) {
+    uploadDokumenError.value = 'Pengunggahan arsip fisik hanya dapat dilakukan saat surat berstatus Selesai.'
+    return
+  }
 
   isUploadingDokumen.value = true
   uploadDokumenMessage.value = ''
@@ -427,15 +469,25 @@ const formatDate = (dateString?: string) => {
             </div>
           </transition>
 
+          <!-- Locked State if Status is not Finished / Selesai -->
+          <div v-if="!canUploadArsip" class="p-3 rounded-2xl bg-amber-50/60 border border-amber-200/70 flex items-start gap-2.5 text-xs text-amber-900">
+            <svg class="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <span class="leading-relaxed">
+              Pengunggahan arsip dokumen fisik hanya dapat dilakukan setelah surat selesai ditandatangani dan berstatus <b>Selesai</b>.
+            </span>
+          </div>
+
           <!-- Fallback Native Camera Button (Saat WebRTC Gagal/HTTP Network) -->
-          <div v-if="useNativeCamera" class="flex items-center gap-2">
+          <div v-else-if="useNativeCamera" class="flex items-center gap-2">
             <Button as-child size="sm" class="cursor-pointer">
               <label>
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                <span>{{ fileArsipUrl ? 'Buka Kamera (Foto Ulang)' : 'Buka Kamera Perangkat' }}</span>
+                <span>{{ fileArsipUrl ? 'Buka Kamera' : 'Buka Kamera Perangkat' }}</span>
                 <input
                   type="file"
                   accept="image/*,application/pdf"
@@ -474,7 +526,7 @@ const formatDate = (dateString?: string) => {
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
-              <span>{{ fileArsipUrl ? 'Buka Kamera (Foto Ulang)' : 'Buka Kamera' }}</span>
+              <span>{{ fileArsipUrl ? 'Buka Kamera' : 'Buka Kamera' }}</span>
             </Button>
 
             <!-- File Upload Fallback -->
@@ -505,10 +557,64 @@ const formatDate = (dateString?: string) => {
             {{ uploadDokumenError }}
           </p>
 
-          <!-- Pratinjau Dokumen jika ada -->
-          <div v-if="fileArsipUrl && (!isCameraOpen || useNativeCamera)" class="space-y-2">
-            <!-- PDF Document Button -->
-            <div v-if="isPdf" class="rounded-2xl border border-black/10 bg-white p-3.5 shadow-2xs flex items-center justify-between gap-3">
+          <!-- Pratinjau Dokumen jika ada & kamera tidak aktif -->
+          <div v-if="!isCameraOpen || useNativeCamera" class="space-y-3">
+            <!-- Google Docs (Editable) Card jika ada gdocs_url -->
+            <div v-if="surat.gdocs_url" class="rounded-2xl border border-sky-200/80 bg-sky-50/50 p-3.5 shadow-2xs flex items-center justify-between gap-3">
+              <div class="flex items-center gap-3 overflow-hidden">
+                <div class="w-10 h-10 rounded-xl bg-sky-100 border border-sky-200 flex items-center justify-center text-sky-600 shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div class="truncate">
+                  <p class="text-xs font-semibold text-zinc-900 truncate">Template Google Docs (Online Edit)</p>
+                  <p class="text-[10px] text-zinc-500 font-mono truncate">{{ surat.gdocs_url }}</p>
+                </div>
+              </div>
+
+              <Button as-child variant="outline" size="sm" class="shrink-0 rounded-full border-sky-200 bg-white text-sky-700 hover:bg-sky-50">
+                <a
+                  :href="surat.gdocs_url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="flex items-center gap-1.5"
+                >
+                  <span>Edit di GDocs</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              </Button>
+            </div>
+
+            <!-- Image Document Preview jika fileArsipUrl adalah berkas gambar (JPG/PNG) -->
+            <div v-if="fileArsipUrl && isImage" class="rounded-2xl border border-black/10 bg-white p-3.5 shadow-2xs space-y-2.5">
+              <div class="aspect-4/3 max-h-56 rounded-xl overflow-hidden bg-zinc-100 border border-black/5 flex items-center justify-center">
+                <img
+                  v-if="!hasImageError"
+                  :src="getBackendAssetUrl(fileArsipUrl)"
+                  @error="handleImageError"
+                  alt="Pratinjau Arsip Dokumen"
+                  class="w-full h-full object-contain"
+                />
+                <div v-else class="p-4 text-center space-y-1">
+                  <p class="text-xs text-zinc-600 font-medium">Gagal memuat pratinjau gambar fisik</p>
+                  <p class="text-[10px] text-zinc-400 font-mono break-all">{{ getBackendAssetUrl(fileArsipUrl) }}</p>
+                </div>
+              </div>
+              <a
+                :href="getBackendAssetUrl(fileArsipUrl)"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-block text-xs text-[#0A84DC] hover:underline font-semibold px-1"
+              >
+                Buka Arsip Resolusi Penuh &rarr;
+              </a>
+            </div>
+
+            <!-- PDF / Digital Document Card jika fileArsipUrl adalah PDF atau dokumen non-gambar -->
+            <div v-else-if="fileArsipUrl" class="rounded-2xl border border-black/10 bg-white p-3.5 shadow-2xs flex items-center justify-between gap-3">
               <div class="flex items-center gap-3 overflow-hidden">
                 <div class="w-10 h-10 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 shrink-0">
                   <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -516,7 +622,7 @@ const formatDate = (dateString?: string) => {
                   </svg>
                 </div>
                 <div class="truncate">
-                  <p class="text-xs font-semibold text-zinc-900 truncate">Dokumen Arsip (PDF)</p>
+                  <p class="text-xs font-semibold text-zinc-900 truncate">{{ isPdf ? 'Dokumen Arsip (PDF)' : 'Dokumen Arsip' }}</p>
                   <p class="text-[10px] text-zinc-500 font-mono truncate">{{ fileArsipUrl }}</p>
                 </div>
               </div>
@@ -536,28 +642,10 @@ const formatDate = (dateString?: string) => {
               </Button>
             </div>
 
-            <!-- Image Document Preview -->
-            <div v-else class="rounded-2xl border border-black/10 bg-white p-3.5 shadow-2xs space-y-2.5">
-              <div class="aspect-4/3 max-h-56 rounded-xl overflow-hidden bg-zinc-100 border border-black/5 flex items-center justify-center">
-                <img
-                  :src="getBackendAssetUrl(fileArsipUrl)"
-                  alt="Pratinjau Arsip Dokumen"
-                  class="w-full h-full object-contain"
-                />
-              </div>
-              <a
-                :href="getBackendAssetUrl(fileArsipUrl)"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="inline-block text-xs text-[#0A84DC] hover:underline font-semibold px-1"
-              >
-                Buka Arsip Resolusi Penuh &rarr;
-              </a>
+            <!-- Empty State jika arsip dokumen fisik belum diunggah -->
+            <div v-else class="rounded-2xl border border-dashed border-zinc-300 bg-white/50 p-5 text-center text-xs text-zinc-500">
+              Belum ada arsip dokumen yang diunggah.
             </div>
-          </div>
-
-          <div v-else-if="!fileArsipUrl && !isCameraOpen" class="rounded-2xl border border-dashed border-zinc-300 bg-white/50 p-5 text-center text-xs text-zinc-500">
-            Belum ada arsip dokumen yang diunggah.
           </div>
         </section>
 

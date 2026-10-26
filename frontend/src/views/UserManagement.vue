@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
-import { userService, currentUserId, type User } from '@/services/api'
+import { userService, currentUserId, currentRole, type User } from '@/services/api'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -30,13 +30,22 @@ const isImportModalOpen = ref(false)
 const isAddModalOpen = ref(false)
 const isEditModalOpen = ref(false)
 const isDetailModalOpen = ref(false)
+const isTransferModalOpen = ref(false)
 const selectedUser = ref<User | null>(null)
 const importFile = ref<File | null>(null)
 const isSubmitting = ref(false)
 
+// Transfer Ketum State
+const transferTargetUserId = ref('')
+const transferKetumPassword = ref('')
+const isTransferring = ref(false)
+
 // Pagination state
 const currentPage = ref(1)
 const itemsPerPage = ref(15)
+
+// Check current user role
+const isKetum = computed(() => currentRole.value === 'ketum')
 
 // Form edit user
 const editForm = ref({
@@ -45,11 +54,7 @@ const editForm = ref({
   nama: '',
   email: '',
   divisi: 'humas',
-  password: '',
 })
-
-// Password visibility state per user id
-const visiblePasswords = ref<Record<string, boolean>>({})
 
 // Form tambah user manual
 const formUser = ref({
@@ -57,7 +62,6 @@ const formUser = ref({
   nama: '',
   email: '',
   username: '',
-  password: '',
   divisi: 'humas',
 })
 
@@ -66,10 +70,6 @@ const showToast = (text: string, type: 'success' | 'error' = 'success') => {
     title: text,
     variant: type === 'error' ? 'destructive' : 'success',
   })
-}
-
-const togglePasswordVisibility = (userId: string) => {
-  visiblePasswords.value[userId] = !visiblePasswords.value[userId]
 }
 
 const fetchUsers = async () => {
@@ -122,15 +122,22 @@ const divisiOptions = computed(() => {
   return Array.from(set)
 })
 
-const handleResetPrompt = async (user: User) => {
-  try {
-    const res = await userService.resetPrompt(user.id)
-    user.has_seen_password_prompt = false
-    showToast(`Berhasil: Reminder aktif kembali untuk ${user.nama}`)
-  } catch (err: any) {
-    showToast(err.response?.data?.error || 'Gagal mereset reminder', 'error')
+const assignableDivisiOptions = computed(() => {
+  const list = [
+    { value: 'humas', label: 'Humas' },
+    { value: 'pengurus', label: 'Pengurus' },
+    { value: 'sekre', label: 'Sekretaris' },
+    { value: 'tupel', label: 'Ketua Pelaksana' },
+  ]
+  if (isKetum.value) {
+    list.unshift({ value: 'ketum', label: 'Ketua Umum' })
   }
-}
+  return list
+})
+
+const eligibleSuccessors = computed(() => {
+  return users.value.filter((u) => u.id !== currentUserId.value && u.divisi !== 'ketum')
+})
 
 const selectedUserIds = ref<string[]>([])
 
@@ -239,10 +246,9 @@ const handleCreateUser = async () => {
       nama: '',
       email: '',
       username: '',
-      password: '',
       divisi: 'humas',
     }
-    showToast(`Pengurus ${created.nama} berhasil ditambahkan`)
+    showToast(`Pengurus ${created.nama} berhasil ditambahkan. Undangan aktivasi telah dikirim.`)
   } catch (err: any) {
     showToast(err.response?.data?.error || 'Gagal menambah pengurus', 'error')
   } finally {
@@ -263,7 +269,6 @@ const openEditModal = (user: User) => {
     nama: user.nama || '',
     email: user.email || '',
     divisi: user.divisi || 'humas',
-    password: '',
   }
   isEditModalOpen.value = true
 }
@@ -281,7 +286,6 @@ const handleUpdateUser = async () => {
       nama: editForm.value.nama,
       email: editForm.value.email,
       divisi: editForm.value.divisi,
-      password: editForm.value.password ? editForm.value.password : undefined,
     })
 
     const idx = users.value.findIndex((u) => u.id === updated.id)
@@ -297,6 +301,34 @@ const handleUpdateUser = async () => {
     showToast(err.response?.data?.error || 'Gagal memperbarui pengurus', 'error')
   } finally {
     isSubmitting.value = false
+  }
+}
+
+const handleTransferKetum = async () => {
+  if (!transferTargetUserId.value) {
+    showToast('Pilih calon Ketua Umum pengganti', 'error')
+    return
+  }
+  if (!transferKetumPassword.value) {
+    showToast('Masukkan kata sandi Ketua Umum untuk verifikasi', 'error')
+    return
+  }
+
+  isTransferring.value = true
+  try {
+    const res = await userService.transferKetum(transferTargetUserId.value, transferKetumPassword.value)
+    showToast(res.message || 'Serah terima jabatan berhasil dilaksanakan')
+    isTransferModalOpen.value = false
+    transferTargetUserId.value = ''
+    transferKetumPassword.value = ''
+    await fetchUsers()
+    setTimeout(() => {
+      window.location.reload()
+    }, 1200)
+  } catch (err: any) {
+    showToast(err.response?.data?.error || 'Gagal memproses serah terima jabatan', 'error')
+  } finally {
+    isTransferring.value = false
   }
 }
 
@@ -367,62 +399,84 @@ const handleImportData = async () => {
 
 <template>
   <div class="flex-1 flex flex-col gap-5">
-    <!-- Header & Actions -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <!-- Header & Actions (Floema Architectural Responsive Header) -->
+    <header class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
       <div>
-        <div class="flex items-center gap-2.5">
-          <h2 class="text-xl font-medium tracking-tight text-slate-900 leading-snug">Kelola Pengurus & Divisi</h2>
-          <Badge variant="outline" class="font-normal text-[11px] px-2.5 py-0.5 rounded-full text-slate-500 bg-slate-100/70 border-slate-200/80">
+        <div class="flex items-center gap-2.5 flex-wrap">
+          <h2 class="text-xl sm:text-2xl font-medium tracking-tight text-slate-900 leading-snug">Kelola Pengurus &amp; Divisi</h2>
+          <Badge variant="outline" class="font-normal text-[11px] px-2.5 py-0.5 rounded-full text-slate-500 bg-slate-100/70 border-slate-200/80 shrink-0">
             {{ filteredUsers.length }} {{ filteredUsers.length === users.length ? 'pengurus' : `dari ${users.length}` }}
           </Badge>
         </div>
-        <p class="text-xs text-slate-500 mt-0.5">Kelola data humas/pengurus, import CSV/Spreadsheet, dan monitoring password</p>
+        <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+          Kelola data delegasi divisi pengurus, undangan aktivasi mandiri, dan suksesi kepengurusan DOSCOM.
+        </p>
       </div>
 
-      <div class="flex items-center gap-2 flex-wrap">
+      <!-- Action Buttons: 2-column on mobile, single fluid row on tablet/desktop -->
+      <div class="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-2.5 w-full sm:w-auto shrink-0">
+        <!-- Tombol Serah Terima Jabatan (Hanya Ketum) -->
+        <Button
+          v-if="isKetum"
+          type="button"
+          variant="outline"
+          size="sm"
+          @click="isTransferModalOpen = true"
+          class="rounded-full px-3.5 py-2 text-xs font-semibold border-orange-200/90 bg-orange-50/80 text-orange-800 hover:bg-orange-100/90 active:scale-[0.98] transition-all cursor-pointer shadow-2xs flex items-center justify-center gap-1.5 w-full sm:w-auto"
+        >
+          <svg class="w-3.5 h-3.5 text-orange-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+          </svg>
+          <span class="truncate">Serah Terima</span>
+        </Button>
+
+        <!-- Tombol Import Data -->
         <Button
           type="button"
           variant="outline"
           size="sm"
           @click="isImportModalOpen = true"
-          class="flex items-center gap-1.5"
+          class="rounded-full px-3.5 py-2 text-xs font-semibold bg-white border border-slate-200/90 text-slate-700 hover:bg-slate-50 active:scale-[0.98] shadow-2xs transition-all cursor-pointer flex items-center justify-center gap-1.5 w-full sm:w-auto"
+          :class="isKetum ? '' : 'col-span-1'"
         >
-          <svg class="w-4 h-4 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+          <svg class="w-3.5 h-3.5 text-sky-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
           </svg>
-          Import Data
+          <span class="truncate">Import Data</span>
         </Button>
 
+        <!-- Tombol Tambah Pengurus (Primary CTA) -->
         <Button
           type="button"
           size="sm"
           @click="isAddModalOpen = true"
-          class="flex items-center gap-1.5"
+          class="rounded-full px-4 py-2 text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 active:scale-[0.98] shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 col-span-2 sm:col-span-1 w-full sm:w-auto"
         >
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
           </svg>
-          Tambah Pengurus
+          <span class="truncate">Tambah Pengurus</span>
         </Button>
       </div>
-    </div>
+    </header>
 
-    <!-- Filter Bar (Konsisten dengan SuratManagement.vue) -->
-    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-      <div class="relative flex-1 min-w-[200px]">
+    <!-- Filter Bar: Search, Divisi Filter -->
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+      <div class="relative flex-1 sm:max-w-xs lg:max-w-sm">
         <svg
           class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
+          stroke-width="2"
         >
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 105.65 5.65a7.5 7.5 0 0010.7 10.7z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 105.65 5.65a7.5 7.5 0 0010.7 10.7z" />
         </svg>
         <Input
           v-model="searchQuery"
           type="search"
           placeholder="Cari nama, NIM, email, username..."
-          class="pl-9 pr-8 h-9 rounded-xl border-slate-200/90 bg-white text-xs shadow-2xs focus-visible:ring-sky-500/20 w-full"
+          class="pl-9 pr-8 h-9 rounded-2xl border-slate-200/90 bg-white text-xs shadow-2xs focus-visible:ring-sky-500/20 w-full"
         />
         <button
           v-if="searchQuery"
@@ -438,20 +492,22 @@ const handleImportData = async () => {
         </button>
       </div>
 
-      <Select v-model="selectedDivisi">
-        <SelectTrigger class="h-9 w-full sm:w-44 lg:w-48 rounded-xl border-slate-200/90 bg-white text-xs shadow-2xs">
-          <SelectValue placeholder="Semua Divisi" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Semua Divisi</SelectItem>
-          <SelectItem v-for="d in divisiOptions" :key="d" :value="d">
-            {{ d.toUpperCase() }}
-          </SelectItem>
-        </SelectContent>
-      </Select>
+      <div class="flex items-center gap-2 w-full sm:w-auto">
+        <Select v-model="selectedDivisi">
+          <SelectTrigger class="h-9 w-full sm:w-44 lg:w-48 rounded-2xl border-slate-200/90 bg-white text-xs shadow-2xs">
+            <SelectValue placeholder="Semua Divisi" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua Divisi</SelectItem>
+            <SelectItem v-for="d in divisiOptions" :key="d" :value="d">
+              {{ d.toUpperCase() }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
     </div>
 
-    <!-- Bulk Selection Bar (Clean iOS HIG: rounded-2xl, border-black/5, shadow-[0_8px_30px_rgb(0,0,0,0.05)]) -->
+    <!-- Bulk Selection Bar -->
     <Transition name="slide-fade">
       <div
         v-if="selectedUserIds.length > 0"
@@ -491,7 +547,7 @@ const handleImportData = async () => {
       </div>
     </Transition>
 
-    <!-- Table Container (Persis seperti SuratManagement & ProkerManagement: bg-white/85, backdrop-blur-xl, border border-black/5, rounded-2xl) -->
+    <!-- Table Container -->
     <div class="bg-white/95 border border-slate-200/90 rounded-3xl shadow-xs overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full text-left text-xs divide-y divide-black/5 min-w-[760px]">
@@ -510,18 +566,17 @@ const handleImportData = async () => {
               <th scope="col" class="py-3 px-4">Pengurus</th>
               <th scope="col" class="py-3 px-4">NIM</th>
               <th scope="col" class="py-3 px-4">Divisi</th>
-              <th scope="col" class="py-3 px-4">Password Akun</th>
-              <th scope="col" class="py-3 px-4">Status Password</th>
+              <th scope="col" class="py-3 px-4">Status Akun</th>
               <th scope="col" class="py-3 px-4 text-right">Aksi</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-black/5 text-zinc-800">
             <tr v-if="isLoading" class="animate-pulse">
-              <td colspan="7" class="py-8 text-center text-zinc-400">Memuat data pengurus...</td>
+              <td colspan="6" class="py-8 text-center text-zinc-400">Memuat data pengurus...</td>
             </tr>
 
             <tr v-else-if="filteredUsers.length === 0">
-              <td colspan="7" class="py-8 text-center text-zinc-400">Tidak ada data pengurus ditemukan.</td>
+              <td colspan="6" class="py-8 text-center text-zinc-400">Tidak ada data pengurus ditemukan.</td>
             </tr>
 
             <tr
@@ -556,54 +611,24 @@ const handleImportData = async () => {
                 {{ u.nim || '-' }}
               </td>
               <td class="py-3.5 px-4">
-                <span class="px-2.5 py-1 rounded-xl text-[10px] font-mono font-semibold uppercase tracking-wider bg-zinc-100 text-zinc-700 border border-zinc-200">
+                <span
+                  class="px-2.5 py-1 rounded-xl text-[10px] font-mono font-semibold uppercase tracking-wider border"
+                  :class="u.divisi === 'ketum' ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-zinc-100 text-zinc-700 border-zinc-200'"
+                >
                   {{ u.divisi }}
                 </span>
               </td>
               <td class="py-3.5 px-4">
-                <div class="flex items-center gap-2">
-                  <span class="font-mono text-xs text-zinc-800 select-all">
-                    {{ visiblePasswords[u.id] ? (u.display_password || '********') : '••••••••' }}
-                  </span>
-                  <button
-                    type="button"
-                    @click="togglePasswordVisibility(u.id)"
-                    class="p-1 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
-                    :title="visiblePasswords[u.id] ? 'Sembunyikan password' : 'Lihat password'"
-                  >
-                    <!-- Eye icon -->
-                    <svg v-if="!visiblePasswords[u.id]" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                    <!-- Eye off icon -->
-                    <svg v-else class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
-                    </svg>
-                  </button>
-                </div>
-              </td>
-              <td class="py-3.5 px-4">
-                <div class="flex items-center gap-1.5">
-                  <Badge
-                    :variant="u.is_password_default ? 'amber' : 'emerald'"
-                    size="xs"
-                  >
-                    {{ u.is_password_default ? 'Default' : 'Kustom' }}
-                  </Badge>
-
-                  <span
-                    v-if="!u.has_seen_password_prompt"
-                    class="text-[10px] text-zinc-400"
-                    title="Modal reminder akan muncul saat login berikutnya"
-                  >
-                    (Reminder Aktif)
-                  </span>
-                </div>
+                <Badge
+                  :variant="u.is_active ? 'emerald' : 'amber'"
+                  size="xs"
+                >
+                  {{ u.is_active ? 'Aktif' : 'Menunggu Aktivasi' }}
+                </Badge>
               </td>
               <td class="py-3.5 px-4 text-right">
                 <div class="flex items-center justify-end gap-1">
-                  <!-- Tombol Detail Pengurus (Info / User Card Icon) -->
+                  <!-- Tombol Detail Pengurus -->
                   <Button
                     type="button"
                     variant="ghost"
@@ -623,7 +648,7 @@ const handleImportData = async () => {
                     </svg>
                   </Button>
 
-                  <!-- Tombol Edit Pengurus (Pencil Icon) -->
+                  <!-- Tombol Edit Pengurus -->
                   <Button
                     type="button"
                     variant="ghost"
@@ -643,29 +668,9 @@ const handleImportData = async () => {
                     </svg>
                   </Button>
 
-                  <!-- Tombol Ingatkan Ganti Password (Bell / Reminder Icon) -->
+                  <!-- Tombol Hapus Pengurus -->
                   <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    @click="handleResetPrompt(u)"
-                    class="rounded-xl text-zinc-400 hover:text-[#0A84DC] hover:bg-[#0A84DC]/10"
-                    title="Ingatkan Ganti Password (Picu modal saat login berikutnya)"
-                    aria-label="Ingatkan Ganti Password"
-                  >
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="1.8"
-                        d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                      />
-                    </svg>
-                  </Button>
-
-                  <!-- Tombol Hapus Pengurus (Trash Icon) -->
-                  <Button
-                    v-if="u.id !== currentUserId"
+                    v-if="u.id !== currentUserId && (isKetum || u.divisi !== 'ketum')"
                     type="button"
                     variant="ghost"
                     size="icon"
@@ -729,7 +734,7 @@ const handleImportData = async () => {
       <DialogContent class="max-w-md">
         <DialogHeader>
           <DialogTitle>Tambah Pengurus Baru</DialogTitle>
-          <DialogDescription>Masukkan identitas pengurus untuk dibuatkan akun LACI.</DialogDescription>
+          <DialogDescription>Pengurus baru akan menerima email aktivasi untuk membuat kata sandi mandiri.</DialogDescription>
         </DialogHeader>
 
         <form @submit.prevent="handleCreateUser" novalidate class="flex flex-col gap-3">
@@ -753,16 +758,17 @@ const handleImportData = async () => {
           </div>
 
           <div class="space-y-1">
-            <Label for="add-user-email">Email</Label>
+            <Label for="add-user-email">Email *</Label>
             <Input
               id="add-user-email"
               v-model="formUser.email"
               type="email"
+              required
               placeholder="budi@doscom.org"
             />
           </div>
 
-          <div class="grid grid-cols-2 gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div class="space-y-1">
               <Label for="add-user-username">Username (Opsional)</Label>
               <Input
@@ -778,20 +784,16 @@ const handleImportData = async () => {
                   <SelectValue placeholder="Pilih Divisi" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="sekre">Sekretaris</SelectItem>
-                  <SelectItem value="humas">Humas</SelectItem>
+                  <SelectItem
+                    v-for="d in assignableDivisiOptions"
+                    :key="d.value"
+                    :value="d.value"
+                  >
+                    {{ d.label }}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          <div class="space-y-1">
-            <Label for="add-user-password">Password Awal (Opsional)</Label>
-            <Input
-              id="add-user-password"
-              v-model="formUser.password"
-              placeholder="Kosongkan untuk acak otomatis"
-            />
           </div>
 
           <DialogFooter class="pt-2">
@@ -808,14 +810,14 @@ const handleImportData = async () => {
               size="sm"
               :disabled="isSubmitting"
             >
-              {{ isSubmitting ? 'Menyimpan...' : 'Simpan Pengurus' }}
+              {{ isSubmitting ? 'Menyimpan...' : 'Kirim Undangan Aktivasi' }}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
 
-    <!-- Modal Import Data (CSV atau Google Sheets) -->
+    <!-- Modal Import Data -->
     <Dialog :open="isImportModalOpen" @update:open="(val: boolean) => { if (!val) isImportModalOpen = false }">
       <DialogContent
         class="max-w-md"
@@ -824,10 +826,9 @@ const handleImportData = async () => {
       >
         <DialogHeader>
           <DialogTitle>Import Data Pengurus</DialogTitle>
-          <DialogDescription>Pilih metode import yang kamu inginkan (CSV atau Google Sheets).</DialogDescription>
+          <DialogDescription>Import massal pengurus melalui berkas CSV atau Google Sheets.</DialogDescription>
         </DialogHeader>
 
-        <!-- Segmented Tab: CSV File vs Google Sheets Link -->
         <div class="p-1 bg-zinc-100 rounded-2xl flex items-center gap-1">
           <button
             type="button"
@@ -847,18 +848,16 @@ const handleImportData = async () => {
           </button>
         </div>
 
-        <!-- Format Info Box -->
         <div class="text-xs text-zinc-500 leading-relaxed bg-zinc-50 p-3 rounded-2xl border border-zinc-200">
           <p class="font-medium text-zinc-800 mb-1">Format urutan kolom yang didukung:</p>
           <code class="block font-mono text-[11px] text-zinc-700 bg-white p-2 rounded-xl border border-zinc-200">
             nim,nama,email,divisi
           </code>
           <p class="mt-1 text-[11px] text-zinc-500">
-            Password awal di-generate otomatis dan dikirimkan ke email anggota.
+            Seluruh akun hasil import akan menerima tautan aktivasi mandiri ke email masing-masing.
           </p>
         </div>
 
-        <!-- Input Tab CSV -->
         <div v-if="importMethod === 'csv'" class="flex flex-col gap-2">
           <Label>Pilih File CSV</Label>
           <input
@@ -869,7 +868,6 @@ const handleImportData = async () => {
           />
         </div>
 
-        <!-- Input Tab Google Sheets -->
         <div v-else class="flex flex-col gap-2">
           <Label for="sheet-url">URL / Link Google Sheets</Label>
           <Input
@@ -883,7 +881,6 @@ const handleImportData = async () => {
           </span>
         </div>
 
-        <!-- Modal Actions -->
         <DialogFooter class="pt-2">
           <Button
             type="button"
@@ -939,19 +936,13 @@ const handleImportData = async () => {
             <span class="text-zinc-500">Email</span>
             <span class="text-zinc-800 text-right select-all">{{ selectedUser.email || '-' }}</span>
           </div>
-          <div class="flex items-center justify-between pb-2 border-b border-zinc-200/60">
-            <span class="text-zinc-500">Password Sistem</span>
-            <span class="font-mono text-xs font-semibold text-zinc-900 select-all">
-              {{ selectedUser.display_password || '••••••••' }}
-            </span>
-          </div>
           <div class="flex items-center justify-between">
-            <span class="text-zinc-500">Status Password</span>
+            <span class="text-zinc-500">Status Akun</span>
             <Badge
-              :variant="selectedUser.is_password_default ? 'amber' : 'emerald'"
+              :variant="selectedUser.is_active ? 'emerald' : 'amber'"
               size="sm"
             >
-              {{ selectedUser.is_password_default ? 'Default Sistem' : 'Kustom Mandiri' }}
+              {{ selectedUser.is_active ? 'Aktif' : 'Menunggu Aktivasi' }}
             </Badge>
           </div>
         </div>
@@ -984,7 +975,7 @@ const handleImportData = async () => {
       <DialogContent class="max-w-md">
         <DialogHeader>
           <DialogTitle>Edit Data Pengurus</DialogTitle>
-          <DialogDescription>Perbarui data profil atau atur ulang password akun.</DialogDescription>
+          <DialogDescription>Perbarui data profil dan penempatan divisi.</DialogDescription>
         </DialogHeader>
 
         <form @submit.prevent="handleUpdateUser" novalidate class="flex flex-col gap-3">
@@ -1017,29 +1008,22 @@ const handleImportData = async () => {
 
           <div class="space-y-1">
             <Label for="edit-user-divisi">Divisi</Label>
-            <Select v-model="editForm.divisi" :disabled="editForm.id === currentUserId">
+            <Select v-model="editForm.divisi" :disabled="editForm.id === currentUserId && editForm.divisi === 'ketum'">
               <SelectTrigger id="edit-user-divisi">
                 <SelectValue placeholder="Pilih Divisi" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="sekre">Sekretaris</SelectItem>
-                <SelectItem value="humas">Humas</SelectItem>
+                <SelectItem
+                  v-for="d in assignableDivisiOptions"
+                  :key="d.value"
+                  :value="d.value"
+                >
+                  {{ d.label }}
+                </SelectItem>
               </SelectContent>
             </Select>
-            <span v-if="editForm.id === currentUserId" class="text-[10px] text-zinc-400 mt-1 block">
-              *Divisi akun Anda sendiri terkunci sebagai Sekre demi keamanan akses.
-            </span>
-          </div>
-
-          <div class="space-y-1">
-            <Label for="edit-user-password">Reset Password Baru (Opsional)</Label>
-            <Input
-              id="edit-user-password"
-              v-model="editForm.password"
-              placeholder="Kosongkan jika tidak ingin mengubah password"
-            />
-            <span class="text-[10px] text-zinc-400 mt-1 block">
-              *Jika diisi, password akun ini akan otomatis diganti dan statusnya direset menjadi default.
+            <span v-if="editForm.id === currentUserId && editForm.divisi === 'ketum'" class="text-[10px] text-zinc-400 mt-1 block">
+              *Pergantian jabatan Ketua Umum wajib melalui menu Serah Terima Jabatan.
             </span>
           </div>
 
@@ -1064,10 +1048,83 @@ const handleImportData = async () => {
       </DialogContent>
     </Dialog>
 
-    <!-- Modal Konfirmasi Hapus (Single / Batch) -->
+    <!-- Modal Serah Terima Jabatan (Ketum Transfer) -->
+    <Dialog :open="isTransferModalOpen" @update:open="(val: boolean) => { if (!val) isTransferModalOpen = false }">
+      <DialogContent class="max-w-md">
+        <DialogHeader>
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+              </svg>
+            </div>
+            <div>
+              <DialogTitle>Serah Terima Jabatan Ketua Umum</DialogTitle>
+              <DialogDescription>Alihkan kepemimpinan DOSCOM kepada Ketua Umum terpilih.</DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
+
+        <form @submit.prevent="handleTransferKetum" novalidate class="flex flex-col gap-3.5 pt-2">
+          <div class="p-3 bg-amber-50 border border-amber-200/80 rounded-2xl text-xs text-amber-900 leading-relaxed">
+            <p class="font-semibold mb-1">Perhatian Penting:</p>
+            Akun Anda akan dialihkan menjadi divisi <b>ex-ketum</b>, dan pengurus yang dipilih akan diangkat menjadi <b>Ketua Umum</b> baru.
+          </div>
+
+          <div class="space-y-1">
+            <Label for="transfer-target">Pilih Calon Ketua Umum Baru *</Label>
+            <Select v-model="transferTargetUserId">
+              <SelectTrigger id="transfer-target">
+                <SelectValue placeholder="Pilih pengurus penerus" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem
+                  v-for="cand in eligibleSuccessors"
+                  :key="cand.id"
+                  :value="cand.id"
+                >
+                  {{ cand.nama || cand.username }} ({{ cand.divisi.toUpperCase() }})
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div class="space-y-1">
+            <Label for="transfer-password">Konfirmasi Kata Sandi Ketua Umum Saat Ini *</Label>
+            <Input
+              id="transfer-password"
+              v-model="transferKetumPassword"
+              type="password"
+              required
+              placeholder="Masukkan kata sandi Anda untuk otentikasi"
+            />
+          </div>
+
+          <DialogFooter class="pt-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              @click="isTransferModalOpen = false"
+            >
+              Batal
+            </Button>
+            <Button
+              type="submit"
+              variant="orange"
+              size="sm"
+              :disabled="isTransferring || !transferTargetUserId || !transferKetumPassword"
+            >
+              {{ isTransferring ? 'Memproses Suksesi...' : 'Konfirmasi Serah Terima' }}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Modal Konfirmasi Hapus -->
     <Dialog :open="confirmDeleteModal.isOpen" @update:open="(val: boolean) => { if (!val) confirmDeleteModal.isOpen = false }">
       <DialogContent class="max-w-sm text-center">
-        <!-- Trash warning icon -->
         <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-500 mx-auto flex items-center justify-center border border-rose-100">
           <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -1115,7 +1172,6 @@ const handleImportData = async () => {
 </template>
 
 <style scoped>
-/* Smooth Slide-Fade for Floating Selection Bar */
 .slide-fade-enter-active {
   transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }

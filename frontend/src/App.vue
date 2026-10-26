@@ -4,11 +4,11 @@ import { useRoute, RouterLink, RouterView } from 'vue-router'
 import { authService, currentRole } from '@/services/api'
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/toast'
-import PasswordReminderModal from '@/components/organisms/PasswordReminderModal.vue'
 
 const route = useRoute()
 const isLoginPage = computed(() => route.name === 'login')
 const userRole = computed(() => currentRole.value)
+const canManage = computed(() => userRole.value === 'sekre' || userRole.value === 'ketum')
 
 const handleLogout = () => {
   authService.logout()
@@ -42,7 +42,7 @@ const handleLogout = () => {
             />
             <div>
               <h1 class="text-sm font-semibold leading-none tracking-tight text-slate-900">LACI</h1>
-              <p class="hidden sm:block text-[10px] text-slate-400 mt-0.5">Pelacakan Surat DOSCOM</p>
+              <p class="hidden lg:block text-[10px] text-slate-400 mt-0.5">Pelacakan Surat DOSCOM</p>
             </div>
           </RouterLink>
 
@@ -54,31 +54,31 @@ const handleLogout = () => {
             <RouterLink
               v-if="userRole"
               to="/"
-              class="px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-600 hover:text-slate-900 transition-all select-none outline-none focus:outline-none"
+              class="px-3 lg:px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-600 hover:text-slate-900 transition-all select-none outline-none focus:outline-none"
               active-class="!bg-white !text-sky-700 !font-semibold shadow-2xs"
             >
               Kanban Board
             </RouterLink>
             <RouterLink
-              v-if="userRole === 'sekre'"
+              v-if="canManage"
               to="/letters"
-              class="px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-600 hover:text-slate-900 transition-all select-none outline-none focus:outline-none"
+              class="px-3 lg:px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-600 hover:text-slate-900 transition-all select-none outline-none focus:outline-none"
               active-class="!bg-white !text-sky-700 !font-semibold shadow-2xs"
             >
               Surat
             </RouterLink>
             <RouterLink
-              v-if="userRole === 'sekre'"
+              v-if="canManage"
               to="/programs"
-              class="px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-600 hover:text-slate-900 transition-all select-none outline-none focus:outline-none"
+              class="px-3 lg:px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-600 hover:text-slate-900 transition-all select-none outline-none focus:outline-none"
               active-class="!bg-white !text-sky-700 !font-semibold shadow-2xs"
             >
               Proker
             </RouterLink>
             <RouterLink
-              v-if="userRole === 'sekre'"
+              v-if="canManage"
               to="/users"
-              class="px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-600 hover:text-slate-900 transition-all select-none outline-none focus:outline-none"
+              class="px-3 lg:px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-600 hover:text-slate-900 transition-all select-none outline-none focus:outline-none"
               active-class="!bg-white !text-sky-700 !font-semibold shadow-2xs"
             >
               Pengurus
@@ -86,7 +86,7 @@ const handleLogout = () => {
             <RouterLink
               v-if="userRole"
               to="/profile"
-              class="px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-600 hover:text-slate-900 transition-all select-none outline-none focus:outline-none"
+              class="px-3 lg:px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-600 hover:text-slate-900 transition-all select-none outline-none focus:outline-none"
               active-class="!bg-white !text-sky-700 !font-semibold shadow-2xs"
             >
               Profil
@@ -117,9 +117,9 @@ const handleLogout = () => {
         </div>
 
         <!-- Mobile Horizontal Pill Navigation (Only shown on < md) -->
-        <div class="md:hidden pb-2.5 pt-0.5 overflow-x-auto no-scrollbar">
+        <div class="md:hidden pb-2.5 pt-0.5 overflow-x-auto no-scrollbar flex justify-start sm:justify-center px-1">
           <nav
-            class="flex items-center p-1 bg-slate-100/80 rounded-full space-x-1 w-max mx-auto"
+            class="flex items-center p-1 bg-slate-100/80 rounded-full space-x-1 min-w-max shrink-0"
             aria-label="Navigasi Utama Mobile"
           >
             <RouterLink
@@ -131,7 +131,7 @@ const handleLogout = () => {
               Kanban
             </RouterLink>
             <RouterLink
-              v-if="userRole === 'sekre'"
+              v-if="canManage"
               to="/letters"
               class="px-3 py-1.5 rounded-full text-xs font-medium text-slate-600 hover:text-slate-900 transition-all select-none outline-none focus:outline-none shrink-0"
               active-class="!bg-white !text-sky-700 !font-semibold shadow-2xs"
@@ -139,7 +139,7 @@ const handleLogout = () => {
               Surat
             </RouterLink>
             <RouterLink
-              v-if="userRole === 'sekre'"
+              v-if="canManage"
               to="/programs"
               class="px-3 py-1.5 rounded-full text-xs font-medium text-slate-600 hover:text-slate-900 transition-all select-none outline-none focus:outline-none shrink-0"
               active-class="!bg-white !text-sky-700 !font-semibold shadow-2xs"
@@ -147,7 +147,7 @@ const handleLogout = () => {
               Proker
             </RouterLink>
             <RouterLink
-              v-if="userRole === 'sekre'"
+              v-if="canManage"
               to="/users"
               class="px-3 py-1.5 rounded-full text-xs font-medium text-slate-600 hover:text-slate-900 transition-all select-none outline-none focus:outline-none shrink-0"
               active-class="!bg-white !text-sky-700 !font-semibold shadow-2xs"
@@ -168,9 +168,6 @@ const handleLogout = () => {
       <!-- Fine Top Accent Line -->
       <div class="h-[1.5px] w-full bg-gradient-to-r from-sky-500 via-sky-400 to-orange-400 opacity-70" />
     </header>
-
-    <!-- Password reminder modal (1x pop-up on first login or after sekre reminder) -->
-    <PasswordReminderModal v-if="!isLoginPage" />
 
     <!-- Global Toast Container -->
     <Toaster />

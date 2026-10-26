@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import {
-  fetchSurat as apiFetchSurat,
-  fetchProker as apiFetchProker,
-  updateSuratStatus,
+  suratService,
+  prokerService,
   currentRole,
   STATUS_COLUMNS,
   type Surat,
@@ -28,7 +27,7 @@ const selectedSurat = ref<Surat | null>(null)
 const isCreateModalOpen = ref(false)
 
 
-const isSekre = computed(() => currentRole.value === 'sekre')
+const isSekre = computed(() => currentRole.value === 'sekre' || currentRole.value === 'ketum')
 const isHumas = computed(() => currentRole.value === 'humas')
 const canCreateSurat = computed(() => isSekre.value || isHumas.value)
 
@@ -45,7 +44,7 @@ const loadSurat = async () => {
   isLoading.value = true
   errorMessage.value = ''
   try {
-    const data = await apiFetchSurat()
+    const data = await suratService.getAll()
     suratList.value = data
 
     if (selectedSurat.value) {
@@ -63,7 +62,7 @@ const loadSurat = async () => {
 
 const loadProker = async () => {
   try {
-    prokerList.value = await apiFetchProker()
+    prokerList.value = await prokerService.getAll()
   } catch (err: any) {
     console.error('Gagal memuat daftar proker:', err)
   }
@@ -93,7 +92,7 @@ const executeStatusUpdate = async (suratId: string, targetStatus: string) => {
   filteredSuratList.value = [...filteredSuratList.value]
 
   try {
-    await updateSuratStatus(suratId, {
+    await suratService.updateStatus(suratId, {
       status_saat_ini: targetStatus,
     })
     await loadSurat()
