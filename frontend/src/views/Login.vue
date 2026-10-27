@@ -155,7 +155,7 @@ const handleLogin = async () => {
                 type="text"
                 autocomplete="username"
                 required
-                placeholder="sekre atau humas"
+                placeholder="Masukkan username atau NIM anda"
                 class="text-sm sm:text-base py-3"
               />
             </div>

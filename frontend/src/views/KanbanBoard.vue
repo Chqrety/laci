@@ -306,7 +306,7 @@ onMounted(() => {
         </header>
 
         <!-- Column Card List -->
-        <div class="flex-1 p-3 space-y-3 overflow-y-auto min-h-[130px]">
+        <div class="flex-1 p-3 space-y-3 overflow-y-auto no-scrollbar min-h-[130px]">
           <!-- Drop Placeholder Indicator -->
           <div
             v-if="dragOverColumn === status && draggingCardId"

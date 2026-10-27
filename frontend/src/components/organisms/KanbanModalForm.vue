@@ -253,7 +253,7 @@ const handleCreateSurat = async () => {
 <template>
   <Dialog :open="isOpen" @update:open="(val: boolean) => { if (!val) emit('close') }">
     <DialogContent
-      class="max-w-xl max-h-[90vh] overflow-y-auto space-y-4"
+      class="max-w-xl max-h-[90vh] overflow-y-auto no-scrollbar space-y-4"
       @pointer-down-outside="(e: Event) => e.preventDefault()"
       @interact-outside="(e: Event) => e.preventDefault()"
     >
