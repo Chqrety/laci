@@ -549,7 +549,7 @@ const handleImportData = async () => {
 
     <!-- Table Container -->
     <div class="bg-white/95 border border-slate-200/90 rounded-3xl shadow-xs overflow-hidden">
-      <div class="overflow-x-auto">
+      <div class="overflow-x-auto no-scrollbar">
         <table class="w-full text-left text-xs divide-y divide-black/5 min-w-[760px]">
           <thead class="bg-black/[0.02] text-zinc-500 font-semibold">
             <tr>

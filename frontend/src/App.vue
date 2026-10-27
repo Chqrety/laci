@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/toast'
 
 const route = useRoute()
-const isLoginPage = computed(() => route.name === 'login')
+const authRoutes = ['login', 'activate', 'forgot-password', 'reset-password']
+const isAuthPage = computed(() => authRoutes.includes(route.name as string))
 const userRole = computed(() => currentRole.value)
 const canManage = computed(() => userRole.value === 'sekre' || userRole.value === 'ketum')
 
@@ -18,15 +19,15 @@ const handleLogout = () => {
 <template>
   <div class="min-h-screen flex flex-col bg-[#F8FAFC] text-slate-900 antialiased selection:bg-sky-200 relative">
     <!-- Floema Subtle Ambient Grid & Corner Blurs (Unifies workspace with Login) -->
-    <div v-if="!isLoginPage" class="pointer-events-none fixed inset-0 overflow-hidden z-0">
+    <div v-if="!isAuthPage" class="pointer-events-none fixed inset-0 overflow-hidden z-0">
       <div class="absolute inset-0 bg-[linear-gradient(to_right,#0284C7_1px,transparent_1px),linear-gradient(to_bottom,#0284C7_1px,transparent_1px)] bg-[size:64px_64px] opacity-[0.025]" />
       <div class="absolute -top-32 -right-32 w-[520px] h-[520px] rounded-full bg-gradient-to-br from-sky-400/8 to-transparent blur-3xl" />
       <div class="absolute -bottom-32 -left-32 w-[520px] h-[520px] rounded-full bg-gradient-to-tr from-orange-400/6 to-transparent blur-3xl" />
     </div>
 
-    <!-- Header with Floema Architectural Styling (Hidden on Login page) -->
+    <!-- Header with Floema Architectural Styling (Hidden on Auth pages) -->
     <header
-      v-if="!isLoginPage"
+      v-if="!isAuthPage"
       class="bg-white/95 sm:bg-white/90 sm:backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-30 shadow-xs transition-all"
     >
       <div class="max-w-7xl mx-auto px-4 sm:px-6">
@@ -175,7 +176,7 @@ const handleLogout = () => {
     <!-- Main Viewport -->
     <main
       class="flex-1 w-full mx-auto relative z-10"
-      :class="isLoginPage ? 'p-0' : 'max-w-7xl p-4 sm:p-6 flex flex-col'"
+      :class="isAuthPage ? 'p-0' : 'max-w-7xl p-4 sm:p-6 flex flex-col'"
     >
       <RouterView v-slot="{ Component, route }">
         <Transition name="page-fade" mode="out-in">

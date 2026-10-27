@@ -114,7 +114,7 @@ const parsePlaceholders = (placeholdersJson: string): string[] => {
 
 <template>
   <Dialog :open="isOpen" @update:open="emit('close')">
-    <DialogContent class="sm:max-w-2xl rounded-3xl p-6 sm:p-7 border-slate-200/90 bg-white/98 shadow-xl max-h-[90vh] overflow-y-auto">
+    <DialogContent class="sm:max-w-2xl rounded-3xl p-6 sm:p-7 border-slate-200/90 bg-white/98 shadow-xl max-h-[90vh] overflow-y-auto no-scrollbar">
       <DialogHeader class="space-y-1.5 pb-2 border-b border-black/5">
         <div class="flex items-center gap-2">
           <div class="w-8 h-8 rounded-full bg-sky-50 border border-sky-200/80 flex items-center justify-center text-sky-600 shrink-0">
@@ -219,7 +219,7 @@ const parsePlaceholders = (placeholdersJson: string): string[] => {
         <!-- Daftar Template Terdeteksi -->
         <div v-if="syncedTemplates.length > 0" class="pt-2 space-y-2">
           <h4 class="text-xs font-semibold text-slate-700">Daftar Template Tersedia:</h4>
-          <div class="max-h-52 overflow-y-auto rounded-2xl border border-slate-200/90 divide-y divide-black/5 bg-slate-50/50">
+          <div class="max-h-52 overflow-y-auto no-scrollbar rounded-2xl border border-slate-200/90 divide-y divide-black/5 bg-slate-50/50">
             <div
               v-for="(tpl, idx) in syncedTemplates"
               :key="tpl.id"

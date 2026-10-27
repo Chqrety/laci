@@ -345,7 +345,7 @@ const formatDate = (dateString?: string) => {
       </header>
 
       <!-- Scrollable Body Content -->
-      <div class="flex-1 overflow-y-auto p-6 space-y-6">
+      <div class="flex-1 overflow-y-auto no-scrollbar p-6 space-y-6">
         <!-- 1. Properties Section (iOS Inset Grouped - Editable for Sekre & Humas) -->
         <section class="space-y-2.5">
           <h3 class="text-xs font-semibold uppercase tracking-wider text-zinc-500 px-1">Status & Catatan</h3>
