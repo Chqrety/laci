@@ -19,7 +19,7 @@
 
 ## 2. Tech Stack Architecture
 
-* **Backend:** Golang 1.22+ (`Gin Gonic`, `GORM`, `PostgreSQL 15`, `golang-jwt/jwt/v5`, `golang.org/x/crypto/bcrypt`).
+* **Backend:** Golang 1.22+ (Pragmatic Lean Layered: Handlers $\rightarrow$ Services $\rightarrow$ Repositories, `Gin Gonic`, `GORM`, `PostgreSQL 15`, `golang-jwt/jwt/v5`, `golang.org/x/crypto/bcrypt`).
 * **Frontend:** Vue 3 Composition API (`<script setup lang="ts">`), `Tailwind CSS v4`, `Radix-Vue` (shadcn-vue style), `Axios`, `Vue Router`.
 * **Automation Bridge:** Serverless Google Apps Script (`gas/`) sebagai jembatan nir-biaya (*zero-cost webhook*) ke Google Drive & Google Docs API.
 * **DevOps:** Docker & Docker Compose (Dual target: `docker-compose.dev.yml` untuk Air hot-reload & Vite HMR, `docker-compose.yml` untuk Production).
@@ -35,22 +35,19 @@ laci/
 ├── docker-compose.dev.yml   # Docker compose development (Air + Vite HMR)
 ├── docker-compose.yml       # Docker compose production (Alpine binary + Nginx)
 ├── README.md                # Dokumentasi publik proyek
-├── CONTEXT.md               # File panduan konteks agen AI (dokumen ini)
 ├── docs/                    # Dokumentasi produk & teknis
+│   ├── CONTEXT.md           # File panduan konteks agen AI & arsitektur teknis (dokumen ini)
 │   ├── PRD.md               # Master PRD v2 (Auth, Kanban, Generator, Role Matrix)
 │   └── PANDUAN_SEKRE_TEMPLATE_SURAT.md # Panduan format Google Docs untuk Sekretaris
 ├── gas/                     # Google Apps Script code (Web App Webhook)
 │   └── Code.gs              # Logic duplicate, replace {{placeholders}}, export PDF
 ├── backend/
 │   ├── config/              # database.go (GORM connection & idempoten migrations)
-│   ├── controllers/
-│   │   ├── auth_controller.go           # Login, Activate, Forgot/Reset Password, Profile
-│   │   ├── surat_controller.go          # CRUD surat, log tracking, upload arsip
-│   │   ├── surat_template_controller.go # Sync GDrive folder via GAS, generate surat
-│   │   ├── user_controller.go           # CRUD user, batch delete, CSV & Sheet import, suksesi ketum
-│   │   └── proker_controller.go         # Master Program Kerja
+│   ├── repositories/        # Data Access Layer (GORM): user, surat, proker, template
+│   ├── services/            # Business Logic Layer (Clean Go): auth, user, surat, proker, template
+│   ├── handlers/            # Transport/Delivery Layer (Gin HTTP): auth, user, surat, proker, template
 │   ├── models/              # models.go (User, Surat, LogTracking, Proker, SuratTemplate, AppSetting)
-│   ├── routes/              # setup.go (Route registration & static asset hosting)
+│   ├── routes/              # setup.go (Route registration, dependency wiring, static asset hosting)
 │   ├── seeders/             # seeder.go (SeedCore: Genesis Ketum & Default Proker)
 │   ├── utils/               # email.go (SMTP notification cards), token.go (crypto hex token)
 │   ├── main.go              # Entrypoint backend, port binding, auto-seeder boot
@@ -118,12 +115,11 @@ Semua konfigurasi terpusat di satu berkas `.env` pada root repositori:
 # Menjalankan ekosistem development (Hot-reload Go Air & Vite HMR)
 docker compose -f docker-compose.dev.yml up --build
 
-# Menjalankan simulasi production
-cp .env.example .env
+# Menjalankan production (Zero-Setup / Tanpa Konfigurasi Wajib)
 docker compose up -d --build
 ```
 
 * **Web UI (Dev):** `http://localhost:5173`
 * **Backend API (Dev):** `http://localhost:8080`
-* **PostgreSQL:** `localhost:5432` (Database: `laci_doscom` / `laci_dev_db`)
-* **Production Web:** `http://localhost` (Port 80)
+* **PostgreSQL (Dev):** `localhost:5432`
+* **Production Web:** Port 80 (Buka via IP Server atau Domain apa saja)
