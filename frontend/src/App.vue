@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useRoute, RouterLink, RouterView } from 'vue-router'
 import { authService, currentRole } from '@/services/api'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Toaster } from '@/components/ui/toast'
 
 const route = useRoute()
@@ -96,12 +97,14 @@ const handleLogout = () => {
 
           <!-- Right: User Role Badge & Logout -->
           <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-            <span
+            <Badge
               v-if="userRole"
-              class="px-2.5 py-0.5 sm:px-3 sm:py-1 text-[10px] font-mono uppercase font-bold rounded-full border border-sky-200/80 bg-sky-50 text-sky-700"
+              variant="info"
+              size="pill"
+              class="font-mono uppercase font-bold text-[10px]"
             >
               {{ userRole }}
-            </span>
+            </Badge>
 
             <Button
               variant="ghost"

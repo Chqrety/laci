@@ -114,7 +114,7 @@ const parsePlaceholders = (placeholdersJson: string): string[] => {
 
 <template>
   <Dialog :open="isOpen" @update:open="emit('close')">
-    <DialogContent class="sm:max-w-2xl rounded-3xl p-6 sm:p-7 border-slate-200/90 bg-white/98 shadow-xl max-h-[90vh] overflow-y-auto no-scrollbar">
+    <DialogContent size="2xl" class="max-h-[90vh] overflow-y-auto no-scrollbar">
       <DialogHeader class="space-y-1.5 pb-2 border-b border-black/5">
         <div class="flex items-center gap-2">
           <div class="w-8 h-8 rounded-full bg-sky-50 border border-sky-200/80 flex items-center justify-center text-sky-600 shrink-0">
@@ -147,7 +147,7 @@ const parsePlaceholders = (placeholdersJson: string): string[] => {
             v-model="gasUrl"
             type="url"
             placeholder="https://script.google.com/macros/s/.../exec"
-            class="h-10 text-xs rounded-2xl bg-zinc-50 border-zinc-200 focus:ring-2 focus:ring-[#0A84DC]/30 focus:border-[#0A84DC]"
+            size="lg"
           />
           <p class="text-[11px] text-slate-500 leading-relaxed">
             Didapatkan dari deployment Web App Google Apps Script. Kode script tersedia di berkas
@@ -165,7 +165,7 @@ const parsePlaceholders = (placeholdersJson: string): string[] => {
             v-model="folderUrl"
             type="url"
             placeholder="https://drive.google.com/drive/folders/1AbCdEf..."
-            class="h-10 text-xs rounded-2xl bg-zinc-50 border-zinc-200 focus:ring-2 focus:ring-[#0A84DC]/30 focus:border-[#0A84DC]"
+            size="lg"
           />
           <p class="text-[11px] text-slate-500 leading-relaxed">
             Folder di Google Drive yang berisi 16 file Google Docs template surat. Pastikan folder dapat diakses atau di-share ke akun pemilik script.
@@ -185,7 +185,7 @@ const parsePlaceholders = (placeholdersJson: string): string[] => {
             v-model="defaultOutputFolderUrl"
             type="url"
             placeholder="https://drive.google.com/drive/folders/..."
-            class="h-10 text-xs rounded-2xl bg-zinc-50 border-zinc-200 focus:ring-2 focus:ring-[#0A84DC]/30 focus:border-[#0A84DC]"
+            size="lg"
           />
           <p class="text-[11px] text-slate-500 leading-relaxed">
             Folder di Google Drive tempat surat yang digenerate akan disimpan secara default jika sekre tidak memilih folder lain.
@@ -236,7 +236,8 @@ const parsePlaceholders = (placeholdersJson: string): string[] => {
                   v-for="ph in parsePlaceholders(tpl.placeholders).slice(0, 3)"
                   :key="ph"
                   variant="outline"
-                  class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white text-slate-600 border-slate-200"
+                  size="pill"
+                  class="font-mono text-[10px]"
                 >
                   {&#123;{{ ph }}&#125;}
                 </Badge>

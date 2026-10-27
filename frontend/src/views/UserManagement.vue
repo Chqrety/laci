@@ -1,9 +1,17 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
 import { userService, currentUserId, currentRole, type User } from '@/services/api'
+import { ConfirmDialog } from '@/components/common'
+import {
+  UserAddModal,
+  UserEditModal,
+  UserDetailModal,
+  UserImportModal,
+  UserTransferModal,
+} from '@/components/user'
+import { usePagination } from '@/composables/usePagination'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import {
   Select,
@@ -12,84 +20,42 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog'
 import { toast } from '@/components/ui/toast'
 
 const users = ref<User[]>([])
 const isLoading = ref(false)
 const searchQuery = ref('')
 const selectedDivisi = ref('')
-const isImportModalOpen = ref(false)
+const selectedUserIds = ref<string[]>([])
+const isSubmitting = ref(false)
+
+// Modals visibility state
 const isAddModalOpen = ref(false)
 const isEditModalOpen = ref(false)
 const isDetailModalOpen = ref(false)
+const isImportModalOpen = ref(false)
 const isTransferModalOpen = ref(false)
 const selectedUser = ref<User | null>(null)
-const importFile = ref<File | null>(null)
-const isSubmitting = ref(false)
 
-// Transfer Ketum State
-const transferTargetUserId = ref('')
-const transferKetumPassword = ref('')
-const isTransferring = ref(false)
-
-// Pagination state
-const currentPage = ref(1)
-const itemsPerPage = ref(15)
-
-// Check current user role
+// Current role check
 const isKetum = computed(() => currentRole.value === 'ketum')
-
-// Form edit user
-const editForm = ref({
-  id: '',
-  nim: '',
-  nama: '',
-  email: '',
-  divisi: 'humas',
-})
-
-// Form tambah user manual
-const formUser = ref({
-  nim: '',
-  nama: '',
-  email: '',
-  username: '',
-  divisi: 'humas',
-})
-
-const showToast = (text: string, type: 'success' | 'error' = 'success') => {
-  toast({
-    title: text,
-    variant: type === 'error' ? 'destructive' : 'success',
-  })
-}
 
 const fetchUsers = async () => {
   isLoading.value = true
   try {
     users.value = await userService.getAll()
   } catch (err: any) {
-    showToast(err.response?.data?.error || 'Gagal memuat data pengurus', 'error')
+    toast({
+      title: 'Gagal memuat data pengurus',
+      description: err.response?.data?.error || err.message,
+      variant: 'destructive',
+    })
   } finally {
     isLoading.value = false
   }
 }
 
-onMounted(() => {
-  fetchUsers()
-})
-
-watch([searchQuery, selectedDivisi], () => {
-  currentPage.value = 1
-})
+onMounted(fetchUsers)
 
 const filteredUsers = computed(() => {
   return users.value.filter((u) => {
@@ -106,15 +72,19 @@ const filteredUsers = computed(() => {
   })
 })
 
-const totalPages = computed(() => Math.ceil(filteredUsers.value.length / itemsPerPage.value) || 1)
+// Unified Pagination Composable
+const {
+  currentPage,
+  itemsPerPage,
+  totalPages,
+  paginatedItems: paginatedUsers,
+  nextPage,
+  prevPage,
+  resetPage,
+} = usePagination(filteredUsers, 15)
 
-watch(totalPages, (newTotal) => {
-  if (currentPage.value > newTotal) currentPage.value = newTotal
-})
-
-const paginatedUsers = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage.value
-  return filteredUsers.value.slice(start, start + itemsPerPage.value)
+watch([searchQuery, selectedDivisi], () => {
+  resetPage()
 })
 
 const divisiOptions = computed(() => {
@@ -138,8 +108,6 @@ const assignableDivisiOptions = computed(() => {
 const eligibleSuccessors = computed(() => {
   return users.value.filter((u) => u.id !== currentUserId.value && u.divisi !== 'ketum')
 })
-
-const selectedUserIds = ref<string[]>([])
 
 const selectableUsers = computed(() => {
   return filteredUsers.value.filter((u) => u.id !== currentUserId.value)
@@ -172,6 +140,7 @@ const toggleSelectUser = (id: string) => {
   }
 }
 
+// Delete confirmation state & actions
 const confirmDeleteModal = ref({
   isOpen: false,
   isBatch: false,
@@ -205,57 +174,28 @@ const executeConfirmedDelete = async () => {
       const count = selectedUserIds.value.length
       await userService.deleteBatch(selectedUserIds.value)
       users.value = users.value.filter((u) => !selectedUserIds.value.includes(u.id))
-      showToast(`Berhasil menghapus ${count} pengurus`)
+      toast({ title: `Berhasil menghapus ${count} pengurus`, variant: 'success' })
       selectedUserIds.value = []
     } else if (confirmDeleteModal.value.user) {
       const u = confirmDeleteModal.value.user
       await userService.delete(u.id)
       users.value = users.value.filter((item) => item.id !== u.id)
       selectedUserIds.value = selectedUserIds.value.filter((id) => id !== u.id)
-      showToast(`Pengurus ${u.nama || u.username} berhasil dihapus`)
+      toast({ title: `Pengurus ${u.nama || u.username} berhasil dihapus`, variant: 'success' })
     }
     confirmDeleteModal.value.isOpen = false
   } catch (err: any) {
-    showToast(err.response?.data?.error || 'Gagal menghapus pengurus', 'error')
+    toast({
+      title: 'Gagal menghapus pengurus',
+      description: err.response?.data?.error || err.message,
+      variant: 'destructive',
+    })
   } finally {
     isSubmitting.value = false
   }
 }
 
-const handleBatchDelete = () => {
-  openBatchDeleteConfirm()
-}
-
-const handleDeleteUser = (user: User) => {
-  openSingleDeleteConfirm(user)
-}
-
-const handleCreateUser = async () => {
-  if (!formUser.value.nama?.trim()) {
-    showToast('Nama pengurus wajib diisi', 'error')
-    return
-  }
-
-  isSubmitting.value = true
-  try {
-    const created = await userService.create(formUser.value)
-    users.value.unshift(created)
-    isAddModalOpen.value = false
-    formUser.value = {
-      nim: '',
-      nama: '',
-      email: '',
-      username: '',
-      divisi: 'humas',
-    }
-    showToast(`Pengurus ${created.nama} berhasil ditambahkan. Undangan aktivasi telah dikirim.`)
-  } catch (err: any) {
-    showToast(err.response?.data?.error || 'Gagal menambah pengurus', 'error')
-  } finally {
-    isSubmitting.value = false
-  }
-}
-
+// Modal open triggers
 const openDetailModal = (user: User) => {
   selectedUser.value = user
   isDetailModalOpen.value = true
@@ -263,136 +203,20 @@ const openDetailModal = (user: User) => {
 
 const openEditModal = (user: User) => {
   selectedUser.value = user
-  editForm.value = {
-    id: user.id,
-    nim: user.nim || '',
-    nama: user.nama || '',
-    email: user.email || '',
-    divisi: user.divisi || 'humas',
-  }
   isEditModalOpen.value = true
 }
 
-const handleUpdateUser = async () => {
-  if (!editForm.value.nama?.trim()) {
-    showToast('Nama pengurus wajib diisi', 'error')
-    return
-  }
-
-  isSubmitting.value = true
-  try {
-    const updated = await userService.update(editForm.value.id, {
-      nim: editForm.value.nim,
-      nama: editForm.value.nama,
-      email: editForm.value.email,
-      divisi: editForm.value.divisi,
-    })
-
-    const idx = users.value.findIndex((u) => u.id === updated.id)
-    if (idx !== -1) {
-      users.value[idx] = updated
-    }
-    if (selectedUser.value?.id === updated.id) {
-      selectedUser.value = updated
-    }
-    isEditModalOpen.value = false
-    showToast(`Data pengurus ${updated.nama} berhasil diperbarui`)
-  } catch (err: any) {
-    showToast(err.response?.data?.error || 'Gagal memperbarui pengurus', 'error')
-  } finally {
-    isSubmitting.value = false
-  }
+const handleUserCreated = (created: User) => {
+  users.value.unshift(created)
 }
 
-const handleTransferKetum = async () => {
-  if (!transferTargetUserId.value) {
-    showToast('Pilih calon Ketua Umum pengganti', 'error')
-    return
+const handleUserUpdated = (updated: User) => {
+  const idx = users.value.findIndex((u) => u.id === updated.id)
+  if (idx !== -1) {
+    users.value[idx] = updated
   }
-  if (!transferKetumPassword.value) {
-    showToast('Masukkan kata sandi Ketua Umum untuk verifikasi', 'error')
-    return
-  }
-
-  isTransferring.value = true
-  try {
-    const res = await userService.transferKetum(transferTargetUserId.value, transferKetumPassword.value)
-    showToast(res.message || 'Serah terima jabatan berhasil dilaksanakan')
-    isTransferModalOpen.value = false
-    transferTargetUserId.value = ''
-    transferKetumPassword.value = ''
-    await fetchUsers()
-    setTimeout(() => {
-      window.location.reload()
-    }, 1200)
-  } catch (err: any) {
-    showToast(err.response?.data?.error || 'Gagal memproses serah terima jabatan', 'error')
-  } finally {
-    isTransferring.value = false
-  }
-}
-
-const importMethod = ref<'csv' | 'sheet'>('csv')
-const sheetUrl = ref('')
-
-const onFileChange = (e: Event) => {
-  const target = e.target as HTMLInputElement
-  if (target.files && target.files[0]) {
-    importFile.value = target.files[0]
-  } else {
-    importFile.value = null
-  }
-}
-
-const handleImportData = async () => {
-  if (importMethod.value === 'csv') {
-    if (!importFile.value) {
-      showToast('Pilih file CSV terlebih dahulu', 'error')
-      return
-    }
-
-    isSubmitting.value = true
-    try {
-      const res = await userService.importCSV(importFile.value)
-      showToast(res.message)
-      if (res.skipped && res.skipped.length > 0) {
-        toast({
-          title: 'Catatan Duplikasi Import',
-          description: `${res.skipped.length} baris dilewati karena duplikat: ${res.skipped.join(', ')}`,
-        })
-      }
-      isImportModalOpen.value = false
-      importFile.value = null
-      await fetchUsers()
-    } catch (err: any) {
-      showToast(err.response?.data?.error || 'Gagal mengimpor file CSV', 'error')
-    } finally {
-      isSubmitting.value = false
-    }
-  } else {
-    if (!sheetUrl.value.trim()) {
-      showToast('Masukkan link Google Sheets terlebih dahulu', 'error')
-      return
-    }
-
-    isSubmitting.value = true
-    try {
-      const res = await userService.importSpreadsheet(sheetUrl.value.trim())
-      showToast(res.message)
-      if (res.skipped && res.skipped.length > 0) {
-        toast({
-          title: 'Catatan Duplikasi Import',
-          description: `${res.skipped.length} baris dilewati karena duplikat: ${res.skipped.join(', ')}`,
-        })
-      }
-      isImportModalOpen.value = false
-      sheetUrl.value = ''
-      await fetchUsers()
-    } catch (err: any) {
-      showToast(err.response?.data?.error || 'Gagal menarik data dari Google Sheets', 'error')
-    } finally {
-      isSubmitting.value = false
-    }
+  if (selectedUser.value?.id === updated.id) {
+    selectedUser.value = updated
   }
 }
 </script>
@@ -404,7 +228,7 @@ const handleImportData = async () => {
       <div>
         <div class="flex items-center gap-2.5 flex-wrap">
           <h2 class="text-xl sm:text-2xl font-medium tracking-tight text-slate-900 leading-snug">Kelola Pengurus &amp; Divisi</h2>
-          <Badge variant="outline" class="font-normal text-[11px] px-2.5 py-0.5 rounded-full text-slate-500 bg-slate-100/70 border-slate-200/80 shrink-0">
+          <Badge variant="muted" size="pill" class="shrink-0">
             {{ filteredUsers.length }} {{ filteredUsers.length === users.length ? 'pengurus' : `dari ${users.length}` }}
           </Badge>
         </div>
@@ -419,10 +243,10 @@ const handleImportData = async () => {
         <Button
           v-if="isKetum"
           type="button"
-          variant="outline"
+          variant="orange-outline"
           size="sm"
+          class="w-full sm:w-auto"
           @click="isTransferModalOpen = true"
-          class="rounded-full px-3.5 py-2 text-xs font-semibold border-orange-200/90 bg-orange-50/80 text-orange-800 hover:bg-orange-100/90 active:scale-[0.98] transition-all cursor-pointer shadow-2xs flex items-center justify-center gap-1.5 w-full sm:w-auto"
         >
           <svg class="w-3.5 h-3.5 text-orange-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
@@ -487,14 +311,14 @@ const handleImportData = async () => {
           class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-sm"
         >
           <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
 
       <div class="flex items-center gap-2 w-full sm:w-auto">
         <Select v-model="selectedDivisi">
-          <SelectTrigger class="h-9 w-full sm:w-44 lg:w-48 rounded-2xl border-slate-200/90 bg-white text-xs shadow-2xs">
+          <SelectTrigger variant="white" class="w-full sm:w-44 lg:w-48">
             <SelectValue placeholder="Semua Divisi" />
           </SelectTrigger>
           <SelectContent>
@@ -535,7 +359,7 @@ const handleImportData = async () => {
             type="button"
             variant="destructive"
             size="sm"
-            @click="handleBatchDelete"
+            @click="openBatchDeleteConfirm"
             :disabled="isSubmitting"
           >
             <svg class="w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -598,12 +422,13 @@ const handleImportData = async () => {
               <td class="py-3.5 px-4">
                 <div class="font-semibold text-zinc-900 flex items-center gap-1.5">
                   <span>{{ u.nama || u.username }}</span>
-                  <span
+                  <Badge
                     v-if="u.id === currentUserId"
-                    class="px-1.5 py-0.5 text-[9px] font-semibold rounded-md bg-[#0A84DC]/10 text-[#0A84DC]"
+                    variant="info"
+                    size="xs"
                   >
                     Anda
-                  </span>
+                  </Badge>
                 </div>
                 <div class="text-[11px] text-zinc-400">@{{ u.username }} &bull; {{ u.email || 'Tanpa email' }}</div>
               </td>
@@ -611,12 +436,13 @@ const handleImportData = async () => {
                 {{ u.nim || '-' }}
               </td>
               <td class="py-3.5 px-4">
-                <span
-                  class="px-2.5 py-1 rounded-xl text-[10px] font-mono font-semibold uppercase tracking-wider border"
-                  :class="u.divisi === 'ketum' ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-zinc-100 text-zinc-700 border-zinc-200'"
+                <Badge
+                  :variant="u.divisi === 'ketum' ? 'orange' : 'secondary'"
+                  size="xs"
+                  class="font-mono uppercase tracking-wider"
                 >
                   {{ u.divisi }}
-                </span>
+                </Badge>
               </td>
               <td class="py-3.5 px-4">
                 <Badge
@@ -674,7 +500,7 @@ const handleImportData = async () => {
                     type="button"
                     variant="ghost"
                     size="icon"
-                    @click="handleDeleteUser(u)"
+                    @click="openSingleDeleteConfirm(u)"
                     class="rounded-xl text-zinc-400 hover:text-rose-600 hover:bg-rose-50"
                     title="Hapus Pengurus"
                     aria-label="Hapus Pengurus"
@@ -708,7 +534,7 @@ const handleImportData = async () => {
             type="button"
             variant="outline"
             size="sm"
-            @click="currentPage--"
+            @click="prevPage"
             :disabled="currentPage === 1"
           >
             Sebelumnya
@@ -720,7 +546,7 @@ const handleImportData = async () => {
             type="button"
             variant="outline"
             size="sm"
-            @click="currentPage++"
+            @click="nextPage"
             :disabled="currentPage === totalPages"
           >
             Selanjutnya
@@ -729,445 +555,58 @@ const handleImportData = async () => {
       </div>
     </div>
 
-    <!-- Modal Tambah Pengurus -->
-    <Dialog :open="isAddModalOpen" @update:open="(val: boolean) => { if (!val) isAddModalOpen = false }">
-      <DialogContent class="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Tambah Pengurus Baru</DialogTitle>
-          <DialogDescription>Pengurus baru akan menerima email aktivasi untuk membuat kata sandi mandiri.</DialogDescription>
-        </DialogHeader>
+    <!-- Modals -->
+    <UserAddModal
+      v-model:open="isAddModalOpen"
+      :divisi-options="assignableDivisiOptions"
+      @created="handleUserCreated"
+    />
 
-        <form @submit.prevent="handleCreateUser" novalidate class="flex flex-col gap-3">
-          <div class="space-y-1">
-            <Label for="add-user-nama">Nama Lengkap *</Label>
-            <Input
-              id="add-user-nama"
-              v-model="formUser.nama"
-              required
-              placeholder="Contoh: Budi Santoso"
-            />
-          </div>
+    <UserEditModal
+      v-model:open="isEditModalOpen"
+      :user="selectedUser"
+      :current-user-id="currentUserId"
+      :divisi-options="assignableDivisiOptions"
+      @updated="handleUserUpdated"
+    />
 
-          <div class="space-y-1">
-            <Label for="add-user-nim">NIM (Nomor Induk Mahasiswa)</Label>
-            <Input
-              id="add-user-nim"
-              v-model="formUser.nim"
-              placeholder="Contoh: A11.2023.12345"
-            />
-          </div>
+    <UserDetailModal
+      v-model:open="isDetailModalOpen"
+      :user="selectedUser"
+      @edit="openEditModal"
+    />
 
-          <div class="space-y-1">
-            <Label for="add-user-email">Email *</Label>
-            <Input
-              id="add-user-email"
-              v-model="formUser.email"
-              type="email"
-              required
-              placeholder="budi@email.com"
-            />
-          </div>
+    <UserImportModal
+      v-model:open="isImportModalOpen"
+      @imported="fetchUsers"
+    />
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div class="space-y-1">
-              <Label for="add-user-username">Username (Opsional)</Label>
-              <Input
-                id="add-user-username"
-                v-model="formUser.username"
-                placeholder="Auto dari NIM/Nama"
-              />
-            </div>
-            <div class="space-y-1">
-              <Label for="add-user-divisi">Divisi</Label>
-              <Select v-model="formUser.divisi">
-                <SelectTrigger id="add-user-divisi">
-                  <SelectValue placeholder="Pilih Divisi" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem
-                    v-for="d in assignableDivisiOptions"
-                    :key="d.value"
-                    :value="d.value"
-                  >
-                    {{ d.label }}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+    <UserTransferModal
+      v-model:open="isTransferModalOpen"
+      :eligible-successors="eligibleSuccessors"
+      @transferred="fetchUsers"
+    />
 
-          <DialogFooter class="pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              @click="isAddModalOpen = false"
-            >
-              Batal
-            </Button>
-            <Button
-              type="submit"
-              size="sm"
-              :disabled="isSubmitting"
-            >
-              {{ isSubmitting ? 'Menyimpan...' : 'Kirim Undangan Aktivasi' }}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-
-    <!-- Modal Import Data -->
-    <Dialog :open="isImportModalOpen" @update:open="(val: boolean) => { if (!val) isImportModalOpen = false }">
-      <DialogContent
-        class="max-w-md"
-        @pointer-down-outside="(e: Event) => e.preventDefault()"
-        @interact-outside="(e: Event) => e.preventDefault()"
-      >
-        <DialogHeader>
-          <DialogTitle>Import Data Pengurus</DialogTitle>
-          <DialogDescription>Import massal pengurus melalui berkas CSV atau Google Sheets.</DialogDescription>
-        </DialogHeader>
-
-        <div class="p-1 bg-zinc-100 rounded-2xl flex items-center gap-1">
-          <button
-            type="button"
-            @click="importMethod = 'csv'"
-            class="flex-1 py-1.5 rounded-xl text-xs font-semibold transition-all"
-            :class="importMethod === 'csv' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-900'"
-          >
-            Upload File CSV
-          </button>
-          <button
-            type="button"
-            @click="importMethod = 'sheet'"
-            class="flex-1 py-1.5 rounded-xl text-xs font-semibold transition-all"
-            :class="importMethod === 'sheet' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-900'"
-          >
-            Link Google Sheets
-          </button>
-        </div>
-
-        <div class="text-xs text-zinc-500 leading-relaxed bg-zinc-50 p-3 rounded-2xl border border-zinc-200">
-          <p class="font-medium text-zinc-800 mb-1">Format urutan kolom yang didukung:</p>
-          <code class="block font-mono text-[11px] text-zinc-700 bg-white p-2 rounded-xl border border-zinc-200">
-            nim,nama,email,divisi
-          </code>
-          <p class="mt-1 text-[11px] text-zinc-500">
-            Seluruh akun hasil import akan menerima tautan aktivasi mandiri ke email masing-masing.
-          </p>
-        </div>
-
-        <div v-if="importMethod === 'csv'" class="flex flex-col gap-2">
-          <Label>Pilih File CSV</Label>
-          <input
-            type="file"
-            accept=".csv"
-            @change="onFileChange"
-            class="text-xs file:mr-3 file:py-2 file:px-4 file:rounded-2xl file:border-0 file:text-xs file:font-semibold file:bg-[#0A84DC]/10 file:text-[#0A84DC] hover:file:bg-[#0A84DC]/20 cursor-pointer"
-          />
-        </div>
-
-        <div v-else class="flex flex-col gap-2">
-          <Label for="sheet-url">URL / Link Google Sheets</Label>
-          <Input
-            id="sheet-url"
-            v-model="sheetUrl"
-            type="url"
-            placeholder="https://docs.google.com/spreadsheets/d/.../edit"
-          />
-          <span class="text-[11px] text-zinc-400">
-            *Pastikan akses link sheet diset ke: <b>"Siapa saja yang memiliki link dapat melihat"</b>.
-          </span>
-        </div>
-
-        <DialogFooter class="pt-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            @click="isImportModalOpen = false"
-          >
-            Batal
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            @click="handleImportData"
-            :disabled="isSubmitting || (importMethod === 'csv' ? !importFile : !sheetUrl.trim())"
-          >
-            {{ isSubmitting ? 'Memproses...' : (importMethod === 'csv' ? 'Mulai Import CSV' : 'Tarik Data Spreadsheet') }}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-
-    <!-- Modal Detail Pengurus -->
-    <Dialog :open="isDetailModalOpen && !!selectedUser" @update:open="(val: boolean) => { if (!val) isDetailModalOpen = false }">
-      <DialogContent class="max-w-md" v-if="selectedUser">
-        <DialogHeader>
-          <div class="flex items-center gap-3">
-            <div class="w-11 h-11 rounded-2xl bg-[#0A84DC]/10 text-[#0A84DC] flex items-center justify-center font-bold text-sm">
-              {{ (selectedUser.nama || selectedUser.username).charAt(0).toUpperCase() }}
-            </div>
-            <div>
-              <DialogTitle>Detail Pengurus</DialogTitle>
-              <DialogDescription>@{{ selectedUser.username }}</DialogDescription>
-            </div>
-          </div>
-        </DialogHeader>
-
-        <div class="grid grid-cols-1 gap-2.5 bg-zinc-50 p-4 rounded-2xl border border-zinc-200 text-xs">
-          <div class="flex items-center justify-between pb-2 border-b border-zinc-200/60">
-            <span class="text-zinc-500">Nama Lengkap</span>
-            <span class="font-semibold text-zinc-900 text-right">{{ selectedUser.nama || '-' }}</span>
-          </div>
-          <div class="flex items-center justify-between pb-2 border-b border-zinc-200/60">
-            <span class="text-zinc-500">NIM</span>
-            <span class="font-mono text-zinc-800 text-right">{{ selectedUser.nim || '-' }}</span>
-          </div>
-          <div class="flex items-center justify-between pb-2 border-b border-zinc-200/60">
-            <span class="text-zinc-500">Divisi</span>
-            <Badge variant="mono" size="sm">
-              {{ selectedUser.divisi }}
-            </Badge>
-          </div>
-          <div class="flex items-center justify-between pb-2 border-b border-zinc-200/60">
-            <span class="text-zinc-500">Email</span>
-            <span class="text-zinc-800 text-right select-all">{{ selectedUser.email || '-' }}</span>
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-zinc-500">Status Akun</span>
-            <Badge
-              :variant="selectedUser.is_active ? 'emerald' : 'amber'"
-              size="sm"
-            >
-              {{ selectedUser.is_active ? 'Aktif' : 'Menunggu Aktivasi' }}
-            </Badge>
-          </div>
-        </div>
-
-        <DialogFooter class="pt-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            @click="isDetailModalOpen = false"
-          >
-            Tutup
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            @click="isDetailModalOpen = false; openEditModal(selectedUser)"
-          >
-            <svg class="w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-            Edit Pengurus
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-
-    <!-- Modal Edit Pengurus -->
-    <Dialog :open="isEditModalOpen" @update:open="(val: boolean) => { if (!val) isEditModalOpen = false }">
-      <DialogContent class="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Edit Data Pengurus</DialogTitle>
-          <DialogDescription>Perbarui data profil dan penempatan divisi.</DialogDescription>
-        </DialogHeader>
-
-        <form @submit.prevent="handleUpdateUser" novalidate class="flex flex-col gap-3">
-          <div class="space-y-1">
-            <Label for="edit-user-nama">Nama Lengkap *</Label>
-            <Input
-              id="edit-user-nama"
-              v-model="editForm.nama"
-              required
-            />
-          </div>
-
-          <div class="space-y-1">
-            <Label for="edit-user-nim">NIM (Nomor Induk Mahasiswa)</Label>
-            <Input
-              id="edit-user-nim"
-              v-model="editForm.nim"
-              placeholder="Contoh: A11.2023.12345"
-            />
-          </div>
-
-          <div class="space-y-1">
-            <Label for="edit-user-email">Email</Label>
-            <Input
-              id="edit-user-email"
-              v-model="editForm.email"
-              type="email"
-            />
-          </div>
-
-          <div class="space-y-1">
-            <Label for="edit-user-divisi">Divisi</Label>
-            <Select v-model="editForm.divisi" :disabled="editForm.id === currentUserId && editForm.divisi === 'ketum'">
-              <SelectTrigger id="edit-user-divisi">
-                <SelectValue placeholder="Pilih Divisi" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem
-                  v-for="d in assignableDivisiOptions"
-                  :key="d.value"
-                  :value="d.value"
-                >
-                  {{ d.label }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            <span v-if="editForm.id === currentUserId && editForm.divisi === 'ketum'" class="text-[10px] text-zinc-400 mt-1 block">
-              *Pergantian jabatan Ketua Umum wajib melalui menu Serah Terima Jabatan.
-            </span>
-          </div>
-
-          <DialogFooter class="pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              @click="isEditModalOpen = false"
-            >
-              Batal
-            </Button>
-            <Button
-              type="submit"
-              size="sm"
-              :disabled="isSubmitting"
-            >
-              {{ isSubmitting ? 'Menyimpan...' : 'Simpan Perubahan' }}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-
-    <!-- Modal Serah Terima Jabatan (Ketum Transfer) -->
-    <Dialog :open="isTransferModalOpen" @update:open="(val: boolean) => { if (!val) isTransferModalOpen = false }">
-      <DialogContent class="max-w-md">
-        <DialogHeader>
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0">
-              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-              </svg>
-            </div>
-            <div>
-              <DialogTitle>Serah Terima Jabatan Ketua Umum</DialogTitle>
-              <DialogDescription>Alihkan kepemimpinan DOSCOM kepada Ketua Umum terpilih.</DialogDescription>
-            </div>
-          </div>
-        </DialogHeader>
-
-        <form @submit.prevent="handleTransferKetum" novalidate class="flex flex-col gap-3.5 pt-2">
-          <div class="p-3 bg-amber-50 border border-amber-200/80 rounded-2xl text-xs text-amber-900 leading-relaxed">
-            <p class="font-semibold mb-1">Perhatian Penting:</p>
-            Akun Anda akan dialihkan menjadi divisi <b>ex-ketum</b>, dan pengurus yang dipilih akan diangkat menjadi <b>Ketua Umum</b> baru.
-          </div>
-
-          <div class="space-y-1">
-            <Label for="transfer-target">Pilih Calon Ketua Umum Baru *</Label>
-            <Select v-model="transferTargetUserId">
-              <SelectTrigger id="transfer-target">
-                <SelectValue placeholder="Pilih pengurus penerus" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem
-                  v-for="cand in eligibleSuccessors"
-                  :key="cand.id"
-                  :value="cand.id"
-                >
-                  {{ cand.nama || cand.username }} ({{ cand.divisi.toUpperCase() }})
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div class="space-y-1">
-            <Label for="transfer-password">Konfirmasi Kata Sandi Ketua Umum Saat Ini *</Label>
-            <Input
-              id="transfer-password"
-              v-model="transferKetumPassword"
-              type="password"
-              required
-              placeholder="Masukkan kata sandi Anda untuk otentikasi"
-            />
-          </div>
-
-          <DialogFooter class="pt-3">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              @click="isTransferModalOpen = false"
-            >
-              Batal
-            </Button>
-            <Button
-              type="submit"
-              variant="orange"
-              size="sm"
-              :disabled="isTransferring || !transferTargetUserId || !transferKetumPassword"
-            >
-              {{ isTransferring ? 'Memproses Suksesi...' : 'Konfirmasi Serah Terima' }}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-
-    <!-- Modal Konfirmasi Hapus -->
-    <Dialog :open="confirmDeleteModal.isOpen" @update:open="(val: boolean) => { if (!val) confirmDeleteModal.isOpen = false }">
-      <DialogContent class="max-w-sm text-center">
-        <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-500 mx-auto flex items-center justify-center border border-rose-100">
-          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
-        </div>
-
-        <DialogHeader class="text-center sm:text-center">
-          <DialogTitle class="text-center sm:text-center">
-            {{ confirmDeleteModal.isBatch ? 'Hapus Pengurus Terpilih?' : 'Hapus Akun Pengurus?' }}
-          </DialogTitle>
-          <DialogDescription class="text-center sm:text-center mt-1.5 leading-relaxed">
-            <template v-if="confirmDeleteModal.isBatch">
-              Kamu akan menghapus <b class="text-zinc-900">{{ confirmDeleteModal.count }} pengurus</b> sekaligus. Tindakan ini tidak dapat dibatalkan.
-            </template>
-            <template v-else>
-              Kamu yakin ingin menghapus akun <b class="text-zinc-900">{{ confirmDeleteModal.user?.nama || confirmDeleteModal.user?.username }}</b>?
-            </template>
-          </DialogDescription>
-        </DialogHeader>
-
-        <DialogFooter class="flex sm:justify-center gap-2 pt-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            class="flex-1"
-            @click="confirmDeleteModal.isOpen = false"
-          >
-            Batal
-          </Button>
-          <Button
-            type="button"
-            variant="destructive"
-            size="sm"
-            class="flex-1"
-            :disabled="isSubmitting"
-            @click="executeConfirmedDelete"
-          >
-            {{ isSubmitting ? 'Menghapus...' : 'Ya, Hapus' }}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <!-- Modal Konfirmasi Hapus (Reusable ConfirmDialog) -->
+    <ConfirmDialog
+      :open="confirmDeleteModal.isOpen"
+      :title="confirmDeleteModal.isBatch ? 'Hapus Pengurus Terpilih?' : 'Hapus Akun Pengurus?'"
+      confirm-text="Ya, Hapus"
+      loading-text="Menghapus..."
+      :is-loading="isSubmitting"
+      @update:open="(val: boolean) => { if (!val) confirmDeleteModal.isOpen = false }"
+      @cancel="confirmDeleteModal.isOpen = false"
+      @confirm="executeConfirmedDelete"
+    >
+      <template #description>
+        <template v-if="confirmDeleteModal.isBatch">
+          Kamu akan menghapus <b class="text-zinc-900">{{ confirmDeleteModal.count }} pengurus</b> sekaligus. Tindakan ini tidak dapat dibatalkan.
+        </template>
+        <template v-else>
+          Kamu yakin ingin menghapus akun <b class="text-zinc-900">{{ confirmDeleteModal.user?.nama || confirmDeleteModal.user?.username }}</b>?
+        </template>
+      </template>
+    </ConfirmDialog>
   </div>
 </template>
 

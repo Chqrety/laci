@@ -30,6 +30,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { toast } from '@/components/ui/toast'
+import { ROMAN_MONTHS, getCurrentRomanMonth, isValidRomanMonth } from '@/utils/roman'
 
 const props = defineProps<{
   isOpen: boolean
@@ -44,11 +45,11 @@ const emit = defineEmits<{
 }>()
 
 const isCreating = ref(false)
-const romanMonths = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII']
+
 
 const noUrut = ref('01')
 const selectedProker = ref('')
-const selectedBulan = ref(romanMonths[new Date().getMonth()] || 'X')
+const selectedBulan = ref<string>(getCurrentRomanMonth())
 const selectedTahun = ref(new Date().getFullYear().toString())
 const scannedExtraProker = ref<string | null>(null)
 
@@ -100,7 +101,7 @@ const resetForm = () => {
   scannedExtraProker.value = null
   const firstProker = props.prokerList[0]
   selectedProker.value = firstProker ? firstProker.nama_proker : ''
-  selectedBulan.value = romanMonths[new Date().getMonth()] ?? 'X'
+  selectedBulan.value = getCurrentRomanMonth()
   selectedTahun.value = new Date().getFullYear().toString()
   scanFeedback.value = ''
 
@@ -164,7 +165,7 @@ const handleFileChange = async (event: Event) => {
       }
     }
 
-    if (result.bulanRomawi && romanMonths.includes(result.bulanRomawi.toUpperCase())) {
+    if (result.bulanRomawi && isValidRomanMonth(result.bulanRomawi)) {
       selectedBulan.value = result.bulanRomawi.toUpperCase()
     }
 
@@ -396,7 +397,7 @@ const handleCreateSurat = async () => {
                     <SelectValue :placeholder="selectedBulan" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem v-for="bulan in romanMonths" :key="bulan" :value="bulan">
+                    <SelectItem v-for="bulan in ROMAN_MONTHS" :key="bulan" :value="bulan">
                       {{ bulan }}
                     </SelectItem>
                   </SelectContent>

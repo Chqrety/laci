@@ -4,6 +4,7 @@ import { authService, type User } from '@/services/api'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
 import { toast } from '@/components/ui/toast'
 
 const profile = ref<User | null>(null)
@@ -174,11 +175,9 @@ const handleChangePassword = async () => {
         </div>
         <div>
           <span class="text-zinc-400 block text-[11px]">Status Akun</span>
-          <span
-            class="inline-block px-2 py-0.5 mt-0.5 rounded-lg text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200"
-          >
+          <Badge variant="success" size="xs" class="mt-0.5">
             Aktif Terverifikasi
-          </span>
+          </Badge>
         </div>
       </div>
     </div>
