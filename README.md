@@ -156,7 +156,7 @@ Untuk rincian teknis mendalam, silakan merujuk pada dokumentasi berikut:
 - [**CONTRIBUTING.md**](CONTRIBUTING.md) — Panduan alur kontribusi, standar branching `dev`, dan konvensi commit.
 - [**CODE_OF_CONDUCT.md**](CODE_OF_CONDUCT.md) — Kode etik komunitas DOSCOM (Contributor Covenant v2.1).
 - [**SECURITY.md**](SECURITY.md) — Tata cara pelaporan kerentanan keamanan secara tertutup.
-- [**CONTEXT.md**](CONTEXT.md) — Arsitektur teknis lengkap untuk referensi LLM dan pengembang baru.
+- [**CONTEXT.md**](docs/CONTEXT.md) — Arsitektur teknis lengkap untuk referensi LLM dan pengembang baru.
 - [**Master PRD v2**](docs/PRD.md) — Dokumen spesifikasi kebutuhan produk, alur bisnis, dan skema database.
 - [**Panduan Template Surat**](docs/PANDUAN_SEKRE_TEMPLATE_SURAT.md) — Panduan Sekretaris membuat template Google Docs.
 - [**Backend README**](backend/README.md) — Struktur layered architecture, rute API, dan modul backend.
