@@ -3,15 +3,21 @@ import type { HTMLAttributes } from 'vue'
 import {
   DialogClose,
   DialogContent,
+  DialogOverlay,
   type DialogContentEmits,
   type DialogContentProps,
   DialogPortal,
   useForwardPropsEmits,
 } from 'radix-vue'
-import DialogOverlay from './DialogOverlay.vue'
+import { type DialogContentVariants, dialogContentVariants } from '.'
 import { cn } from '@/lib/utils'
 
-const props = defineProps<DialogContentProps & { class?: HTMLAttributes['class'] }>()
+interface Props extends /* @vue-ignore */ DialogContentProps {
+  size?: DialogContentVariants['size']
+  class?: HTMLAttributes['class']
+}
+
+const props = defineProps<Props>()
 const emits = defineEmits<DialogContentEmits>()
 
 const forwarded = useForwardPropsEmits(props, emits)
@@ -19,15 +25,12 @@ const forwarded = useForwardPropsEmits(props, emits)
 
 <template>
   <DialogPortal>
-    <DialogOverlay />
+    <DialogOverlay
+      class="fixed inset-0 z-[100] bg-black/50 backdrop-blur-xs duration-200 ease-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+    />
     <DialogContent
       v-bind="forwarded"
-      :class="
-        cn(
-          'fixed left-[50%] top-[50%] z-[100] grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 rounded-3xl border border-black/10 bg-white p-6 sm:p-7 shadow-xl duration-200 ease-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
-          props.class,
-        )
-      "
+      :class="cn(dialogContentVariants({ size }), props.class)"
     >
       <slot />
 
