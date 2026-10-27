@@ -6,11 +6,11 @@ import {
   type SelectContentProps,
   SelectPortal,
   SelectViewport,
+  SelectScrollUpButton,
+  SelectScrollDownButton,
   useForwardPropsEmits,
 } from 'radix-vue'
 import { cn } from '@/lib/utils'
-import SelectScrollUpButton from './SelectScrollUpButton.vue'
-import SelectScrollDownButton from './SelectScrollDownButton.vue'
 
 const props = withDefaults(
   defineProps<SelectContentProps & { class?: HTMLAttributes['class'] }>(),
@@ -36,7 +36,12 @@ const forwarded = useForwardPropsEmits(props, emits)
         )
       "
     >
-      <SelectScrollUpButton />
+      <SelectScrollUpButton class="flex cursor-default items-center justify-center py-1">
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+        </svg>
+      </SelectScrollUpButton>
+
       <SelectViewport
         :class="
           cn(
@@ -48,7 +53,12 @@ const forwarded = useForwardPropsEmits(props, emits)
       >
         <slot />
       </SelectViewport>
-      <SelectScrollDownButton />
+
+      <SelectScrollDownButton class="flex cursor-default items-center justify-center py-1">
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+      </SelectScrollDownButton>
     </SelectContent>
   </SelectPortal>
 </template>
