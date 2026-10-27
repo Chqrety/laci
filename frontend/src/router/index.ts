@@ -36,14 +36,12 @@ const router = createRouter({
     },
     {
       path: '/letters',
-      alias: '/surat-management',
       name: 'letters',
       component: () => import('@/views/SuratManagement.vue'),
       meta: { requiresAuth: true, role: 'sekre' },
     },
     {
       path: '/programs',
-      alias: '/proker',
       name: 'programs',
       component: () => import('@/views/ProkerManagement.vue'),
       meta: { requiresAuth: true, role: 'sekre' },

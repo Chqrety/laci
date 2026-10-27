@@ -1,6 +1,5 @@
 import { ref } from 'vue'
 
-
 export interface DocumentScanResult {
   rawText: string
   nomorSurat: string
@@ -13,7 +12,7 @@ export interface DocumentScanResult {
   tahun: string
 }
 
-export function parseDoscomNomor(text: string) {
+function parseDoscomNomor(text: string) {
   if (!text) return { noUrut: '', prokerCode: '', bulan: '', tahun: '', full: '' }
 
   // Normalisasi karakter slash dan variasinya
@@ -79,7 +78,7 @@ export function parseDoscomNomor(text: string) {
   return { noUrut: '', prokerCode: '', bulan: '', tahun: '', full: '' }
 }
 
-export function extractPerihal(text: string): string {
+function extractPerihal(text: string): string {
   if (!text) return ''
   const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
   for (let i = 0; i < lines.length; i++) {
@@ -102,13 +101,13 @@ export function extractPerihal(text: string): string {
   return ''
 }
 
-export function extractNamaKegiatan(text: string): string {
+function extractNamaKegiatan(text: string): string {
   if (!text) return ''
   const match = text.match(/kegiatan\s+(.+?)\s+yang\s+(?:akan\s+)?diselenggarakan/is)
   return match?.[1] ? match[1].replace(/\s+/g, ' ').trim() : ''
 }
 
-export function extractTujuanSurat(text: string): string {
+function extractTujuanSurat(text: string): string {
   if (!text) return ''
   const match = text.match(/Yth\.?\s*(.+?)(?:\r?\n|$)/i)
   return match?.[1] ? match[1].trim() : ''
@@ -174,12 +173,10 @@ async function preprocessImageForOcr(file: File | Blob, maxDimension = 1500): Pr
 export function useDocumentScanner() {
   const isScanning = ref(false)
   const scanProgress = ref(0)
-  const scanResult = ref<DocumentScanResult | null>(null)
 
   const scanImage = async (file: File | Blob): Promise<DocumentScanResult> => {
     isScanning.value = true
     scanProgress.value = 0
-    scanResult.value = null
 
     let worker: any = null
     try {
@@ -213,7 +210,6 @@ export function useDocumentScanner() {
       }
 
       scanProgress.value = 100
-      scanResult.value = extracted
       return extracted
     } finally {
       if (worker) {
@@ -226,7 +222,6 @@ export function useDocumentScanner() {
   return {
     isScanning,
     scanProgress,
-    scanResult,
     scanImage,
   }
 }
