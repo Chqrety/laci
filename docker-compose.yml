@@ -3,9 +3,9 @@ services:
     image: postgres:15-alpine
     restart: always
     environment:
-      POSTGRES_USER: ${DB_USER:-root}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
-      POSTGRES_DB: laci_doscom
+      POSTGRES_USER: ${DB_USER:-laci}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-laci_secret_pass}
+      POSTGRES_DB: ${DB_NAME:-laci_prod_db}
     volumes:
       - laci_db_data:/var/lib/postgresql/data
     healthcheck:
@@ -19,22 +19,23 @@ services:
       context: ./backend
     restart: always
     environment:
+      - GIN_MODE=release
       - DB_HOST=db
-      - DB_USER=${DB_USER:-root}
-      - DB_PASSWORD=${DB_PASSWORD:-password}
-      - DB_NAME=laci_doscom
+      - DB_USER=${DB_USER:-laci}
+      - DB_PASSWORD=${DB_PASSWORD:-laci_secret_pass}
+      - DB_NAME=${DB_NAME:-laci_prod_db}
       - DB_PORT=5432
       - PORT=8080
-      - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
+      - SMTP_HOST=${SMTP_HOST:-}
       - SMTP_PORT=${SMTP_PORT:-587}
       - SMTP_USER=${SMTP_USER:-}
       - SMTP_PASS=${SMTP_PASS:-}
-      - SMTP_FROM=${SMTP_FROM:-LACI DOSCOM <no-reply@doscom.org>}
+      - SMTP_FROM=${SMTP_FROM:-LACI DOSCOM <doscom.go@gmail.com>}
       - APP_URL=${APP_URL:-https://laci.doscom.org}
-      - INIT_KETUM_NIM=${INIT_KETUM_NIM:-A11.2024.00000}
-      - INIT_KETUM_NAMA=${INIT_KETUM_NAMA:-Ketua Umum DOSCOM}
-      - INIT_KETUM_EMAIL=${INIT_KETUM_EMAIL:-ketum@doscom.org}
-      - INIT_KETUM_USERNAME=${INIT_KETUM_USERNAME:-ketum}
+      - INIT_KETUM_NIM=${INIT_KETUM_NIM:-}
+      - INIT_KETUM_NAMA=${INIT_KETUM_NAMA:-}
+      - INIT_KETUM_EMAIL=${INIT_KETUM_EMAIL:-}
+      - INIT_KETUM_USERNAME=${INIT_KETUM_USERNAME:-}
     volumes:
       - laci_uploads:/app/uploads
     depends_on:
