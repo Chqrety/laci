@@ -116,12 +116,11 @@ Semua konfigurasi terpusat di satu berkas `.env` pada root repositori:
 # Menjalankan ekosistem development (Hot-reload Go Air & Vite HMR)
 docker compose -f docker-compose.dev.yml up --build
 
-# Menjalankan simulasi production
-cp .env.example .env
+# Menjalankan production (Zero-Setup / Tanpa Konfigurasi Wajib)
 docker compose up -d --build
 ```
 
 * **Web UI (Dev):** `http://localhost:5173`
 * **Backend API (Dev):** `http://localhost:8080`
-* **PostgreSQL:** `localhost:5432` (Database: `laci_doscom` / `laci_dev_db`)
-* **Production Web:** `http://localhost` (Port 80)
+* **PostgreSQL (Dev):** `localhost:5432`
+* **Production Web:** Port 80 (Buka via IP Server atau Domain apa saja)
