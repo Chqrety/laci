@@ -326,8 +326,6 @@ export function useKanbanDragDrop(
     dragOverColumn,
     ambientDrop,
     isDragging,
-    resetAmbientDrop,
-    scrollToColumn,
     onDragStart,
     onDrag,
     onDragEnd,

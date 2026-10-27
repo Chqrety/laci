@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { ref } from 'vue'
 
-export function parseJwtPayload(token: string | null) {
+function parseJwtPayload(token: string | null) {
   try {
     return token ? JSON.parse(atob(token.split('.')[1] || '')) : null
   } catch {
@@ -124,7 +124,7 @@ export interface LoginResponse {
 let prokerCache: Proker[] | null = null
 let usersCache: User[] | null = null
 
-export const clearApiCache = () => {
+const clearApiCache = () => {
   prokerCache = null
   usersCache = null
 }
