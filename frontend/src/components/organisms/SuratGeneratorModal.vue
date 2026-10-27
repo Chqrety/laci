@@ -29,6 +29,13 @@ import {
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { toast } from '@/components/ui/toast'
+import { ROMAN_MONTHS, getCurrentRomanMonth } from '@/utils/roman'
+import { idLongDateFormatter, idDateOnlyFormatter, formatCompactFileDate } from '@/utils/date'
+import {
+  GeneratorSuccessView,
+  GeneratorDynamicFields,
+  STANDARD_COVERED,
+} from '@/components/surat-generator'
 
 const props = defineProps<{
   isOpen: boolean
@@ -40,57 +47,11 @@ const emit = defineEmits<{
   (e: 'openSetup'): void
 }>()
 
-const romanMonths = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII']
 
-const idDateFormatter = new Intl.DateTimeFormat('id-ID', {
-  weekday: 'long',
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-})
 
-const idDateOnlyFormatter = new Intl.DateTimeFormat('id-ID', {
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-})
 
-const STANDARD_COVERED = new Set([
-  'nomor_surat',
-  'perihal',
-  'tujuan',
-  'nama_kegiatan',
-  'hari_tanggal',
-  'tanggal',
-  'tanggal_surat',
-  'tanggal_pembuatan',
-  'hari_tanggal_surat',
-  'tanggal_acara',
-  'tanggal_pelaksanaan',
-  'waktu',
-  'tempat',
-  'narahubung',
-  'nama_narahubung',
-  'nohp_narahubung',
-  'narahubung_nama',
-  'narahubung_nohp',
-  'narahubung_hp',
-  'nama_cp',
-  'nohp_cp',
-  'no_hp',
-  'nama_ketum',
-  'nim_ketum',
-  'nama_dasar',
-  'nim_dasar',
-  'nama_tingkat_1',
-  'nim_tingkat_1',
-  'nama_lapis_1',
-  'nim_lapis_1',
-  'nama_lapis1',
-  'nim_lapis1',
-  'nama_ketupel',
-  'nim_ketupel',
-])
+
+
 
 const templates = ref<SuratTemplate[]>([])
 const prokerList = ref<Proker[]>([])
@@ -104,7 +65,7 @@ const selectedTemplateId = ref<string>('')
 // 1. Nomor Surat Segmented State (Format Versi Awal)
 const noUrut = ref('01')
 const selectedProkerCode = ref('NONE') // 'NONE' = Tanpa Proker (Kosong)
-const selectedBulan = ref(romanMonths[new Date().getMonth()] || 'X')
+const selectedBulan = ref<string>(getCurrentRomanMonth())
 const selectedTahun = ref(new Date().getFullYear().toString())
 
 // 2. Data Pokok Surat
@@ -206,7 +167,7 @@ const formatIndonesianDate = (dateStr: string): string => {
   if (!dateStr) return ''
   try {
     const d = new Date(dateStr)
-    return isNaN(d.getTime()) ? dateStr : idDateFormatter.format(d)
+    return isNaN(d.getTime()) ? dateStr : idLongDateFormatter.format(d)
   } catch {
     return dateStr
   }
@@ -246,20 +207,11 @@ const computedNomorSurat = computed(() => {
   return `${paddedNo}/DOSCOM/${prokerPart}/${selectedBulan.value}/${selectedTahun.value.trim()}`
 })
 
-// Format Tanggal untuk Penamaan File (contoh: 26Okt2026)
-const formatFileDate = (date: Date): string => {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
-  const day = String(date.getDate()).padStart(2, '0')
-  const month = months[date.getMonth()]
-  const year = date.getFullYear()
-  return `${day}${month}${year}`
-}
-
 // Penamaan File Otomatis: [Template]_[Proker]_[Tanggal] atau [Template]_[Tanggal]
 const computedFileName = computed(() => {
   const rawTplName = selectedTemplate.value?.nama_template || 'Surat'
   const cleanTplName = rawTplName.trim().replace(/[\/\\?%*:|"<>]/g, '_')
-  const dateStr = formatFileDate(new Date())
+  const dateStr = formatCompactFileDate(new Date())
   const isNoProker = !selectedProkerCode.value || selectedProkerCode.value === 'NONE'
 
   if (isNoProker) {
@@ -391,7 +343,7 @@ const handleSubmit = async () => {
       nomor_surat: computedNomorSurat.value,
       tanggal_surat: todayTanggalSurat,
       tanggal_pembuatan: todayTanggalSurat,
-      hari_tanggal_surat: idDateFormatter.format(new Date()),
+      hari_tanggal_surat: idLongDateFormatter.format(new Date()),
       perihal: perihal.value.trim(),
       nama_kegiatan: namaKegiatan.value.trim(),
       hari_tanggal: formattedHariTanggal.value,
@@ -491,7 +443,7 @@ const handleFinish = () => {
 
 <template>
   <Dialog :open="isOpen" @update:open="emit('close')">
-    <DialogContent v-if="isOpen" class="sm:max-w-3xl rounded-3xl p-0 border border-slate-200 bg-white shadow-xl max-h-[90vh] flex flex-col overflow-hidden">
+    <DialogContent v-if="isOpen" size="3xl" class="p-0 max-h-[90vh] flex flex-col overflow-hidden">
       <DialogHeader class="px-6 py-4 border-b border-slate-100 shrink-0">
         <div class="flex items-center gap-2">
           <div class="w-8 h-8 rounded-full bg-orange-50 border border-orange-200/80 flex items-center justify-center text-orange-600 shrink-0">
@@ -510,58 +462,13 @@ const handleFinish = () => {
         </div>
       </DialogHeader>
 
-      <!-- SUCCESS STATE: Link GDocs & PDF Instan -->
-      <div v-if="generationResult" class="p-6 sm:p-8 space-y-5 text-center overflow-y-auto overscroll-contain">
-        <div class="w-14 h-14 mx-auto rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shadow-xs">
-          <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-        </div>
-
-        <div class="space-y-1">
-          <h3 class="text-base font-bold text-slate-900">Surat Berhasil Digenerate!</h3>
-          <p class="text-xs text-slate-600 font-mono font-semibold">{{ generationResult.surat.nomor_surat }}</p>
-          <p class="text-xs text-slate-500 font-medium">{{ generationResult.surat.perihal }}</p>
-        </div>
-
-        <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-          <Button
-            as-child
-            class="w-full sm:w-auto px-5 py-2.5 rounded-full text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 shadow-xs active:scale-[0.98] transition-all cursor-pointer"
-          >
-            <a :href="generationResult.gdocs_url" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center gap-1.5">
-              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-              <span>Buka Google Docs</span>
-            </a>
-          </Button>
-
-          <Button
-            as-child
-            variant="outline"
-            class="w-full sm:w-auto px-5 py-2.5 rounded-full text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 shadow-xs active:scale-[0.98] transition-all cursor-pointer"
-          >
-            <a :href="generationResult.pdf_url" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center gap-1.5">
-              <svg class="w-3.5 h-3.5 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-              </svg>
-              <span>Download PDF</span>
-            </a>
-          </Button>
-        </div>
-
-        <div class="pt-4 border-t border-black/5 flex justify-center">
-          <Button
-            type="button"
-            variant="secondary"
-            @click="handleFinish"
-            class="rounded-full px-6 text-xs font-semibold"
-          >
-            Selesai & Masuk ke Laci
-          </Button>
-        </div>
-      </div>
+      <!-- SUCCESS STATE: Link GDocs & PDF Instan (Sub-Component) -->
+      <GeneratorSuccessView
+        v-if="generationResult"
+        :result="generationResult"
+        @finish="handleFinish"
+        @new-generation="handleFinish"
+      />
 
       <!-- FORM STATE -->
       <form v-else @submit.prevent="handleSubmit" class="flex flex-col flex-1 min-h-0 overflow-hidden">
@@ -589,7 +496,7 @@ const handleFinish = () => {
             <Label class="text-xs font-semibold text-slate-800">
               1. Pilih Template & Nomor Surat
             </Label>
-            <Badge variant="outline" class="text-[10px] bg-white text-slate-600 border-slate-200">
+            <Badge variant="outline" size="xs">
               Segmented Input
             </Badge>
           </div>
@@ -597,7 +504,7 @@ const handleFinish = () => {
           <!-- Pilihan Template -->
           <div class="space-y-1">
             <Select v-model="selectedTemplateId">
-              <SelectTrigger class="h-10 text-xs rounded-2xl bg-white border-zinc-200">
+              <SelectTrigger size="lg" variant="white">
                 <SelectValue placeholder="Pilih jenis surat..." />
               </SelectTrigger>
               <SelectContent>
@@ -632,16 +539,16 @@ const handleFinish = () => {
               <span class="text-zinc-400 font-semibold text-xs select-none">/</span>
 
               <!-- Static DOSCOM Badge -->
-              <span class="px-2.5 py-1 text-[11px] font-bold text-sky-700 bg-sky-50 rounded-xl border border-sky-200 select-none font-mono">
+              <Badge variant="info" class="font-mono font-bold select-none">
                 DOSCOM
-              </span>
+              </Badge>
 
               <span class="text-zinc-400 font-semibold text-xs select-none">/</span>
 
               <!-- Pilihan Proker (Murni dari tabel proker atau Kosong) -->
               <div class="min-w-[130px] flex-1">
                 <Select v-model="selectedProkerCode">
-                  <SelectTrigger class="h-8 text-xs rounded-xl bg-zinc-50 border-zinc-200">
+                  <SelectTrigger size="sm">
                     <SelectValue placeholder="Pilih Proker (atau Kosong)..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -662,11 +569,11 @@ const handleFinish = () => {
               <!-- Pilihan Bulan Romawi -->
               <div class="w-16">
                 <Select v-model="selectedBulan">
-                  <SelectTrigger class="h-8 text-xs font-mono font-semibold rounded-xl bg-zinc-50 border-zinc-200">
+                  <SelectTrigger size="sm" class="font-mono font-semibold">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem v-for="b in romanMonths" :key="b" :value="b">
+                    <SelectItem v-for="b in ROMAN_MONTHS" :key="b" :value="b">
                       {{ b }}
                     </SelectItem>
                   </SelectContent>
@@ -688,18 +595,20 @@ const handleFinish = () => {
             <div class="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-4 pt-0.5 text-xs text-slate-500">
               <div class="flex items-center gap-2">
                 <span class="text-[11px] text-slate-400">Preview Nomor:</span>
-                <span class="font-mono font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-lg border border-sky-100">
+                <Badge variant="info" size="xs" class="font-mono font-bold">
                   {{ computedNomorSurat }}
-                </span>
+                </Badge>
               </div>
               <div class="flex items-center gap-2 min-w-0">
                 <span class="text-[11px] text-slate-400 shrink-0">Nama File:</span>
-                <span
-                  class="font-mono text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100 truncate"
+                <Badge
+                  variant="success"
+                  size="xs"
+                  class="font-mono truncate"
                   :title="computedFileName"
                 >
                   {{ computedFileName }}
-                </span>
+                </Badge>
               </div>
             </div>
           </div>
@@ -742,22 +651,22 @@ const handleFinish = () => {
             <div class="flex items-center justify-between">
               <Label class="text-xs font-medium text-slate-700">Hari & Tanggal Pelaksanaan</Label>
               <div class="flex items-center gap-1 bg-white p-0.5 rounded-full border border-slate-200">
-                <button
+                <Button
                   type="button"
+                  size="xs"
+                  :variant="tipeTanggal === 'single' ? 'default' : 'ghost'"
                   @click="tipeTanggal = 'single'"
-                  class="px-2.5 py-0.5 rounded-full text-[10px] font-semibold transition-all cursor-pointer"
-                  :class="tipeTanggal === 'single' ? 'bg-sky-600 text-white shadow-2xs' : 'text-slate-500 hover:text-slate-800'"
                 >
                   1 Hari
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  size="xs"
+                  :variant="tipeTanggal === 'range' ? 'default' : 'ghost'"
                   @click="tipeTanggal = 'range'"
-                  class="px-2.5 py-0.5 rounded-full text-[10px] font-semibold transition-all cursor-pointer"
-                  :class="tipeTanggal === 'range' ? 'bg-sky-600 text-white shadow-2xs' : 'text-slate-500 hover:text-slate-800'"
                 >
                   Rentang Hari (s.d.)
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -894,7 +803,7 @@ const handleFinish = () => {
                 <span v-if="ketumUser" class="text-[10px] text-emerald-600 font-semibold font-mono">(Terdeteksi)</span>
               </Label>
               <Select v-model="selectedKetumId">
-                <SelectTrigger class="h-9 text-xs rounded-xl bg-white border-zinc-200">
+                <SelectTrigger variant="white">
                   <SelectValue placeholder="Pilih Ketua Umum..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -916,7 +825,7 @@ const handleFinish = () => {
                 Penandatangan Dasar
               </Label>
               <Select v-model="selectedKetupelId">
-                <SelectTrigger class="h-9 text-xs rounded-xl bg-white border-zinc-200">
+                <SelectTrigger variant="white">
                   <SelectValue placeholder="Pilih Penandatangan Dasar..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -934,26 +843,11 @@ const handleFinish = () => {
           </div>
         </div>
 
-        <!-- BLOK 4: VARIABEL EKSTRA (JIKA ADA PLACEHOLDER LAIN DI DOCS) -->
-        <div v-if="extraPlaceholders.length > 0" class="space-y-2 p-4 bg-slate-50 rounded-2xl border border-slate-200">
-          <Label class="text-xs font-semibold text-slate-800 block">
-            Variabel Tambahan Template
-          </Label>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div v-for="phKey in extraPlaceholders" :key="phKey" class="space-y-1">
-              <Label :for="'ph-' + phKey" class="text-[11px] font-medium text-slate-700">
-                {{ phKey.replace(/_/g, ' ').toUpperCase() }}
-              </Label>
-              <Input
-                :id="'ph-' + phKey"
-                v-model="dynamicReplacements[phKey]"
-                type="text"
-                :placeholder="'Isi ' + phKey"
-                class="h-8 text-xs rounded-xl bg-white border-zinc-200"
-              />
-            </div>
-          </div>
-        </div>
+        <!-- BLOK 4: VARIABEL EKSTRA (Sub-Component) -->
+        <GeneratorDynamicFields
+          :extra-placeholders="extraPlaceholders"
+          :replacements="dynamicReplacements"
+        />
       </div>
 
       <!-- STICKY FOOTER -->

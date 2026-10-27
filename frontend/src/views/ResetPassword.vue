@@ -5,6 +5,7 @@ import { authService } from '@/services/api'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
 
 const route = useRoute()
 const router = useRouter()
@@ -183,10 +184,10 @@ const handleReset = async () => {
         <!-- Form State: Enter New Password -->
         <div v-else class="space-y-8">
           <div class="space-y-2">
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-50 border border-orange-200/60 text-orange-800 text-[11px] font-bold uppercase tracking-wider">
+            <Badge variant="orange" size="pill" class="font-bold uppercase tracking-wider">
               <span class="w-1.5 h-1.5 rounded-full bg-orange-500" />
               <span>Sandi Baru</span>
-            </div>
+            </Badge>
             <h1 class="text-2xl sm:text-3xl font-medium tracking-tight text-slate-900 leading-snug">
               Buat Kata Sandi Baru
             </h1>

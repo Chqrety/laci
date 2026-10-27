@@ -15,6 +15,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { toast } from '@/components/ui/toast'
+import { ConfirmDialog } from '@/components/common'
 
 const prokerList = ref<Proker[]>([])
 const isLoading = ref(false)
@@ -150,7 +151,7 @@ onMounted(() => {
       <div>
         <div class="flex items-center gap-2.5">
           <h2 class="text-xl font-medium tracking-tight text-slate-900 leading-snug">Program Kerja</h2>
-          <Badge variant="outline" class="font-normal text-[11px] px-2.5 py-0.5 rounded-full text-slate-500 bg-slate-100/70 border-slate-200/80">
+          <Badge variant="muted" size="pill">
             {{ prokerList.length }} proker
           </Badge>
         </div>
@@ -289,77 +290,68 @@ onMounted(() => {
           <DialogDescription>Masukkan nama program kerja dan keterangan fungsinya.</DialogDescription>
         </DialogHeader>
 
-          <form @submit.prevent="handleSubmit" novalidate class="space-y-4">
-            <div class="space-y-3">
-              <div class="space-y-1.5">
-                <Label for="nama_proker">Nama Proker</Label>
-                <Input
-                  id="nama_proker"
-                  v-model="formProker.nama_proker"
-                  type="text"
-                  placeholder="Dies Natalis, Oprec, Workshop"
-                />
-              </div>
-
-              <div class="space-y-1.5">
-                <Label for="deskripsi_proker">Deskripsi (Opsional)</Label>
-                <Textarea
-                  id="deskripsi_proker"
-                  v-model="formProker.deskripsi"
-                  rows="3"
-                  placeholder="Keterangan singkat program kerja..."
-                />
-              </div>
+        <form @submit.prevent="handleSubmit" novalidate class="space-y-4">
+          <div class="space-y-3">
+            <div class="space-y-1.5">
+              <Label for="nama_proker">Nama Proker</Label>
+              <Input
+                id="nama_proker"
+                v-model="formProker.nama_proker"
+                type="text"
+                placeholder="Dies Natalis, Oprec, Workshop"
+              />
             </div>
 
-            <p v-if="formError" class="text-xs text-rose-600 bg-rose-50 p-3 rounded-2xl border border-rose-200 font-medium">
-              {{ formError }}
-            </p>
+            <div class="space-y-1.5">
+              <Label for="deskripsi_proker">Deskripsi (Opsional)</Label>
+              <Textarea
+                id="deskripsi_proker"
+                v-model="formProker.deskripsi"
+                rows="3"
+                placeholder="Keterangan singkat program kerja..."
+              />
+            </div>
+          </div>
 
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                @click="isModalOpen = false"
-              >
-                Batal
-              </Button>
-              <Button
-                type="submit"
-                size="sm"
-                :disabled="isSubmitting"
-              >
-                {{ isSubmitting ? 'Menyimpan...' : (isEditing ? 'Perbarui Proker' : 'Simpan Proker') }}
-              </Button>
-            </DialogFooter>
-          </form>
+          <p v-if="formError" class="text-xs text-rose-600 bg-rose-50 p-3 rounded-2xl border border-rose-200 font-medium">
+            {{ formError }}
+          </p>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              @click="isModalOpen = false"
+            >
+              Batal
+            </Button>
+            <Button
+              type="submit"
+              size="sm"
+              :disabled="isSubmitting"
+            >
+              {{ isSubmitting ? 'Menyimpan...' : (isEditing ? 'Perbarui Proker' : 'Simpan Proker') }}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
 
-    <!-- Modal Konfirmasi Hapus Proker -->
-    <Dialog :open="isDeleteModalOpen" @update:open="(val: boolean) => { if (!val) isDeleteModalOpen = false }">
-      <DialogContent class="max-w-sm text-center">
-        <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-500 mx-auto flex items-center justify-center border border-rose-100">
-          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
-        </div>
-        <DialogHeader class="text-center sm:text-center">
-          <DialogTitle class="text-center sm:text-center">Hapus Program Kerja?</DialogTitle>
-          <DialogDescription class="text-center sm:text-center mt-1 leading-relaxed">
-            Yakin ingin menghapus <b class="text-zinc-900">{{ prokerToDelete?.nama_proker }}</b>? Tindakan ini tidak dapat dibatalkan.
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter class="flex sm:justify-center gap-2 pt-2">
-          <Button type="button" variant="outline" size="sm" class="flex-1" @click="isDeleteModalOpen = false">
-            Batal
-          </Button>
-          <Button type="button" variant="destructive" size="sm" class="flex-1" :disabled="isDeleting" @click="executeDeleteProker">
-            {{ isDeleting ? 'Menghapus...' : 'Ya, Hapus' }}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <!-- Modal Konfirmasi Hapus Proker (Reusable ConfirmDialog) -->
+    <ConfirmDialog
+      :open="isDeleteModalOpen"
+      title="Hapus Program Kerja?"
+      confirm-text="Ya, Hapus"
+      loading-text="Menghapus..."
+      :is-loading="isDeleting"
+      @update:open="(val: boolean) => { if (!val) isDeleteModalOpen = false }"
+      @cancel="isDeleteModalOpen = false"
+      @confirm="executeDeleteProker"
+    >
+      <template #description>
+        Yakin ingin menghapus <b class="text-zinc-900">{{ prokerToDelete?.nama_proker }}</b>? Tindakan ini tidak dapat dibatalkan.
+      </template>
+    </ConfirmDialog>
   </div>
 </template>

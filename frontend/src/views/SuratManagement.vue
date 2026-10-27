@@ -9,6 +9,8 @@ import {
 import CardDetail from '@/components/molecules/CardDetail.vue'
 import SuratGeneratorModal from '@/components/organisms/SuratGeneratorModal.vue'
 import TemplateSetupModal from '@/components/organisms/TemplateSetupModal.vue'
+import { ConfirmDialog } from '@/components/common'
+import { usePagination } from '@/composables/usePagination'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -19,14 +21,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog'
 import { toast } from '@/components/ui/toast'
 
 const suratList = ref<Surat[]>([])
@@ -48,11 +42,9 @@ const isDeleting = ref(false)
 const selectedSurat = ref<Surat | null>(null)
 const isDetailOpen = ref(false)
 
-// Filter & Pagination state
+// Search & Filter state
 const searchQuery = ref('')
 const statusFilter = ref('')
-const currentPage = ref(1)
-const itemsPerPage = ref(20)
 
 const fetchSurat = async () => {
   isLoading.value = true
@@ -69,10 +61,6 @@ const fetchSurat = async () => {
   }
 }
 
-watch([searchQuery, statusFilter], () => {
-  currentPage.value = 1
-})
-
 const filteredSurat = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
   const sf = statusFilter.value.trim().toLowerCase()
@@ -88,15 +76,19 @@ const filteredSurat = computed(() => {
   })
 })
 
-const totalPages = computed(() => Math.ceil(filteredSurat.value.length / itemsPerPage.value) || 1)
+// Unified Pagination Composable
+const {
+  currentPage,
+  itemsPerPage,
+  totalPages,
+  paginatedItems: paginatedSurat,
+  nextPage,
+  prevPage,
+  resetPage,
+} = usePagination(filteredSurat, 20)
 
-watch(totalPages, (newTotal) => {
-  if (currentPage.value > newTotal) currentPage.value = newTotal
-})
-
-const paginatedSurat = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage.value
-  return filteredSurat.value.slice(start, start + itemsPerPage.value)
+watch([searchQuery, statusFilter], () => {
+  resetPage()
 })
 
 const openDetail = (surat: Surat) => {
@@ -111,7 +103,7 @@ const closeDetail = () => {
 
 const getStatusBadgeVariant = (status: string) => {
   const s = status.toLowerCase()
-  if (s.includes('selesai') || s.includes('arsip')) return 'default'
+  if (s.includes('selesai') || s.includes('arsip')) return 'success'
   if (s.includes('cetak') || s.includes('proses')) return 'secondary'
   if (s.includes('ttd') || s.includes('paraf')) return 'outline'
   return 'secondary'
@@ -161,7 +153,7 @@ onMounted(fetchSurat)
       <div>
         <div class="flex items-center gap-2.5">
           <h2 class="text-xl font-medium tracking-tight text-slate-900 leading-snug">Surat</h2>
-          <Badge variant="outline" class="font-normal text-[11px] px-2.5 py-0.5 rounded-full text-slate-500 bg-slate-100/70 border-slate-200/80">
+          <Badge variant="muted" size="pill">
             {{ filteredSurat.length }} {{ filteredSurat.length === suratList.length ? 'surat' : `dari ${suratList.length}` }}
           </Badge>
         </div>
@@ -232,7 +224,7 @@ onMounted(fetchSurat)
       <!-- Kelompok Filter Status & Reload -->
       <div class="flex items-center gap-2 w-full sm:w-auto">
         <Select v-model="statusFilter">
-          <SelectTrigger class="h-9 w-full sm:w-44 lg:w-48 rounded-2xl border-slate-200/90 bg-white text-xs shadow-2xs">
+          <SelectTrigger variant="white" class="w-full sm:w-44 lg:w-48">
             <SelectValue placeholder="Semua Status" />
           </SelectTrigger>
           <SelectContent>
@@ -450,7 +442,7 @@ onMounted(fetchSurat)
             type="button"
             variant="outline"
             size="sm"
-            @click="currentPage--"
+            @click="prevPage"
             :disabled="currentPage <= 1"
           >
             Previous
@@ -464,7 +456,7 @@ onMounted(fetchSurat)
             type="button"
             variant="outline"
             size="sm"
-            @click="currentPage++"
+            @click="nextPage"
             :disabled="currentPage >= totalPages"
           >
             Next
@@ -473,30 +465,21 @@ onMounted(fetchSurat)
       </footer>
     </div>
 
-    <!-- Modal Konfirmasi Hapus Surat -->
-    <Dialog :open="isDeleteModalOpen" @update:open="(val: boolean) => { if (!val) isDeleteModalOpen = false }">
-      <DialogContent class="max-w-sm text-center">
-        <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-500 mx-auto flex items-center justify-center border border-rose-100">
-          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
-        </div>
-        <DialogHeader class="text-center sm:text-center">
-          <DialogTitle class="text-center sm:text-center">Hapus Surat Resmi?</DialogTitle>
-          <DialogDescription class="text-center sm:text-center mt-1 leading-relaxed">
-            Yakin ingin menghapus surat <b class="text-zinc-900 font-mono">{{ suratToDelete?.nomor_surat }}</b> beserta seluruh log riwayatnya?
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter class="flex sm:justify-center gap-2 pt-2">
-          <Button type="button" variant="outline" size="sm" class="flex-1" @click="isDeleteModalOpen = false">
-            Batal
-          </Button>
-          <Button type="button" variant="destructive" size="sm" class="flex-1" :disabled="isDeleting" @click="executeDeleteSurat">
-            {{ isDeleting ? 'Menghapus...' : 'Ya, Hapus' }}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <!-- Modal Konfirmasi Hapus Surat (Reusable ConfirmDialog) -->
+    <ConfirmDialog
+      :open="isDeleteModalOpen"
+      title="Hapus Surat Resmi?"
+      confirm-text="Ya, Hapus"
+      loading-text="Menghapus..."
+      :is-loading="isDeleting"
+      @update:open="(val: boolean) => { if (!val) isDeleteModalOpen = false }"
+      @cancel="isDeleteModalOpen = false"
+      @confirm="executeDeleteSurat"
+    >
+      <template #description>
+        Yakin ingin menghapus surat <b class="text-zinc-900 font-mono">{{ suratToDelete?.nomor_surat }}</b> beserta seluruh log riwayatnya?
+      </template>
+    </ConfirmDialog>
 
     <!-- Modal Generator Surat Otomatis -->
     <SuratGeneratorModal

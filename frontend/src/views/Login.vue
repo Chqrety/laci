@@ -5,6 +5,7 @@ import { authService, type LoginResponse } from '@/services/api'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
 
 const router = useRouter()
 
@@ -130,10 +131,10 @@ const handleLogin = async () => {
         <!-- Standard Login View -->
         <div class="space-y-8">
           <div class="space-y-2">
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 border border-sky-200/60 text-sky-800 text-[11px] font-bold uppercase tracking-wider">
+            <Badge variant="info" size="pill" class="font-bold uppercase tracking-wider">
               <span class="w-1.5 h-1.5 rounded-full bg-sky-600" />
               <span>Otentikasi Akun</span>
-            </div>
+            </Badge>
             <h1 class="text-2xl sm:text-3xl font-medium tracking-tight text-slate-900 leading-snug">
               Akses Berkas &amp; Persuratan
             </h1>
