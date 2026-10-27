@@ -34,12 +34,12 @@ services:
       - SMTP_PORT=${SMTP_PORT:-587}
       - SMTP_USER=${SMTP_USER:-}
       - SMTP_PASS=${SMTP_PASS:-}
-      - SMTP_FROM=${SMTP_FROM:-LACI DOSCOM DEV <no-reply@doscom.org>}
+      - SMTP_FROM=${SMTP_FROM:-LACI DOSCOM DEV <doscom.go@gmail.com>}
       - APP_URL=${APP_URL:-http://localhost:5173}
-      - INIT_KETUM_NIM=${INIT_KETUM_NIM:-A11.2024.00000}
-      - INIT_KETUM_NAMA=${INIT_KETUM_NAMA:-Ketua Umum DOSCOM}
-      - INIT_KETUM_EMAIL=${INIT_KETUM_EMAIL:-ketum@doscom.org}
-      - INIT_KETUM_USERNAME=${INIT_KETUM_USERNAME:-ketum}
+      - INIT_KETUM_NIM=${INIT_KETUM_NIM:-}
+      - INIT_KETUM_NAMA=${INIT_KETUM_NAMA:-}
+      - INIT_KETUM_EMAIL=${INIT_KETUM_EMAIL:-}
+      - INIT_KETUM_USERNAME=${INIT_KETUM_USERNAME:-}
     volumes:
       - ./backend:/app
       - /app/tmp

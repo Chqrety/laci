@@ -31,6 +31,10 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
+      '/uploads': {
+        target: process.env.BACKEND_URL || 'http://backend:8080',
+        changeOrigin: true,
+      },
     },
   },
 })
