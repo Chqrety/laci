@@ -131,7 +131,7 @@ const handleSubmit = async () => {
                 type="email"
                 autocomplete="email"
                 required
-                placeholder="nama@doscom.org atau email terdaftar"
+                placeholder="email@anda.com atau username terdaftar"
                 class="text-sm sm:text-base py-3"
               />
             </div>

@@ -3,6 +3,7 @@ package seeders
 import (
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"time"
 
@@ -30,10 +31,15 @@ func SeedGenesisKetum(db *gorm.DB) {
 		return
 	}
 
-	nim := config.GetEnv("INIT_KETUM_NIM", "A11.2024.00000")
-	nama := config.GetEnv("INIT_KETUM_NAMA", "Ketua Umum DOSCOM")
-	email := strings.TrimSpace(config.GetEnv("INIT_KETUM_EMAIL", "ketum@doscom.org"))
-	username := strings.TrimSpace(config.GetEnv("INIT_KETUM_USERNAME", "ketum"))
+	nim := strings.TrimSpace(os.Getenv("INIT_KETUM_NIM"))
+	nama := strings.TrimSpace(os.Getenv("INIT_KETUM_NAMA"))
+	email := strings.TrimSpace(os.Getenv("INIT_KETUM_EMAIL"))
+	username := strings.TrimSpace(os.Getenv("INIT_KETUM_USERNAME"))
+
+	if username == "" {
+		log.Println("[GENESIS KETUM] Variabel INIT_KETUM_USERNAME belum disetel di environment. Inisialisasi dilewati.")
+		return
+	}
 
 	var existing models.User
 	if err := db.Where("username = ? OR (email != '' AND email = ?)", username, email).First(&existing).Error; err == nil {
@@ -66,13 +72,24 @@ func SeedGenesisKetum(db *gorm.DB) {
 		return
 	}
 
-	appURL := strings.TrimRight(config.GetEnv("APP_URL", "http://localhost:5173"), "/")
-	activationURL := fmt.Sprintf("%s/activate?token=%s", appURL, activationToken)
+	appURL := strings.TrimRight(config.GetEnv("APP_URL", ""), "/")
+	var activationURL string
+	if appURL != "" {
+		activationURL = fmt.Sprintf("%s/activate?token=%s", appURL, activationToken)
+	} else {
+		activationURL = fmt.Sprintf("/activate?token=%s", activationToken)
+	}
 
 	log.Printf("================================================================================")
-	log.Printf("[GENESIS KETUM] Akun Ketua Umum perdana berhasil dibuat!")
-	log.Printf("Email: %s | Username: %s", email, username)
-	log.Printf("Tautan Aktivasi Mandiri: %s", activationURL)
+	log.Printf("[GENESIS KETUM] Akun Ketua Umum perdana berhasil disiapkan!")
+	log.Printf("Username       : %s", username)
+	log.Printf("Email          : %s", email)
+	log.Printf("Token Aktivasi : %s", activationToken)
+	if appURL != "" {
+		log.Printf("Tautan Aktivasi: %s", activationURL)
+	} else {
+		log.Printf("Tautan Aktivasi: %s (buka via domain/IP server)", activationURL)
+	}
 	log.Printf("================================================================================")
 
 	if email != "" {
