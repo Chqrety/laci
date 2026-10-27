@@ -764,7 +764,7 @@ const handleImportData = async () => {
               v-model="formUser.email"
               type="email"
               required
-              placeholder="budi@doscom.org"
+              placeholder="budi@email.com"
             />
           </div>
 

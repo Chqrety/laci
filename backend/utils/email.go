@@ -170,10 +170,15 @@ func renderEmailCard(heading, greeting, buttonText, buttonURL, footerNotice stri
 
 // SendActivationEmail mengirim tautan aktivasi akun baru untuk membuat password mandiri
 func SendActivationEmail(toEmail, nama, username, token string) {
-	appURL := strings.TrimRight(config.GetEnv("APP_URL", "http://localhost:5173"), "/")
-	activationURL := fmt.Sprintf("%s/activate?token=%s", appURL, token)
+	appURL := strings.TrimRight(config.GetEnv("APP_URL", ""), "/")
+	var activationURL string
+	if appURL != "" {
+		activationURL = fmt.Sprintf("%s/activate?token=%s", appURL, token)
+	} else {
+		activationURL = fmt.Sprintf("/activate?token=%s", token)
+	}
 
-	log.Printf("[AUTH ACTIVATION] Email: %s | User: %s | Link: %s", toEmail, username, activationURL)
+	log.Printf("[AUTH ACTIVATION] Email: %s | User: %s | Token: %s | URL: %s", toEmail, username, token, activationURL)
 
 	greeting := fmt.Sprintf("Halo <b>%s</b> (@%s), akun kamu di sistem pelacakan surat DOSCOM telah disiapkan. Klik tombol di bawah ini untuk mengaktifkan akun dan membuat password baru kamu.", nama, username)
 	body := renderEmailCard("Aktivasi Akun LACI DOSCOM", greeting, "Aktifkan Akun & Buat Password &rarr;", activationURL, "Tautan ini berlaku selama 24 jam. Jika kamu tidak merasa didaftarkan, abaikan email ini.")
@@ -182,10 +187,15 @@ func SendActivationEmail(toEmail, nama, username, token string) {
 
 // SendPasswordResetEmail mengirim tautan pemulihan kata sandi
 func SendPasswordResetEmail(toEmail, nama, username, token string) {
-	appURL := strings.TrimRight(config.GetEnv("APP_URL", "http://localhost:5173"), "/")
-	resetURL := fmt.Sprintf("%s/reset-password?token=%s", appURL, token)
+	appURL := strings.TrimRight(config.GetEnv("APP_URL", ""), "/")
+	var resetURL string
+	if appURL != "" {
+		resetURL = fmt.Sprintf("%s/reset-password?token=%s", appURL, token)
+	} else {
+		resetURL = fmt.Sprintf("/reset-password?token=%s", token)
+	}
 
-	log.Printf("[AUTH RESET] Email: %s | User: %s | Link: %s", toEmail, username, resetURL)
+	log.Printf("[AUTH RESET] Email: %s | User: %s | Token: %s | URL: %s", toEmail, username, token, resetURL)
 
 	greeting := fmt.Sprintf("Halo <b>%s</b> (@%s), kami menerima permintaan untuk mereset kata sandi akun LACI DOSCOM kamu. Klik tombol di bawah untuk membuat kata sandi baru.", nama, username)
 	body := renderEmailCard("Permintaan Reset Kata Sandi", greeting, "Reset Kata Sandi &rarr;", resetURL, "Tautan ini hanya berlaku selama 1 jam. Jika kamu tidak meminta reset password, abaikan email ini dan akunmu tetap aman.")
