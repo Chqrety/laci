@@ -54,6 +54,12 @@ func InitDB() {
 
 // RunMigrations menjalankan migrasi database idempoten v1 ke v2
 func RunMigrations(db *gorm.DB) {
+	// Guard: jika tabel users belum ada (misal instalasi baru / fresh database),
+	// lewati migrasi patch karena AutoMigrate yang akan membuatnya dari awal.
+	if !db.Migrator().HasTable("users") {
+		return
+	}
+
 	// 1. Tambahkan kolom is_active jika belum ada dan set true untuk seluruh user lama
 	_ = db.Exec(`
 		DO $$ 
