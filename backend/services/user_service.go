@@ -49,7 +49,7 @@ func (s *UserService) GetAllUsers() ([]models.User, error) {
 	return s.userRepo.FindAll()
 }
 
-func (s *UserService) CreateUser(callerDivisi, nim, nama, email, username, divisi string) (*models.User, error) {
+func (s *UserService) CreateUser(callerDivisi, nim, nama, email, username, divisi string, isKoor bool) (*models.User, error) {
 	divisi = strings.ToLower(strings.TrimSpace(divisi))
 	if divisi == "" {
 		divisi = "humas"
@@ -98,6 +98,7 @@ func (s *UserService) CreateUser(callerDivisi, nim, nama, email, username, divis
 		Username:                 username,
 		Password:                 string(lockedPassword),
 		Divisi:                   divisi,
+		IsKoor:                   isKoor,
 		IsActive:                 false,
 		ActivationToken:          &activationToken,
 		ActivationTokenExpiresAt: &tokenExpiry,
@@ -114,7 +115,7 @@ func (s *UserService) CreateUser(callerDivisi, nim, nama, email, username, divis
 	return &newUser, nil
 }
 
-func (s *UserService) UpdateUser(userUUID uuid.UUID, callerDivisi, nim, nama, email, username, divisi, password string) (*models.User, error) {
+func (s *UserService) UpdateUser(userUUID uuid.UUID, callerDivisi, nim, nama, email, username, divisi, password string, isKoor *bool) (*models.User, error) {
 	user, err := s.userRepo.FindByID(userUUID)
 	if err != nil {
 		return nil, ErrUserNotFound
@@ -162,6 +163,10 @@ func (s *UserService) UpdateUser(userUUID uuid.UUID, callerDivisi, nim, nama, em
 			return nil, ErrUnauthorizedKetumRole
 		}
 		updates["divisi"] = divisi
+	}
+
+	if isKoor != nil {
+		updates["is_koor"] = *isKoor
 	}
 
 	if password != "" {

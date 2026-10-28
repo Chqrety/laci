@@ -206,18 +206,12 @@ const openEditModal = (user: User) => {
   isEditModalOpen.value = true
 }
 
-const handleUserCreated = (created: User) => {
-  users.value.unshift(created)
+const handleUserCreated = async () => {
+  await fetchUsers()
 }
 
-const handleUserUpdated = (updated: User) => {
-  const idx = users.value.findIndex((u) => u.id === updated.id)
-  if (idx !== -1) {
-    users.value[idx] = updated
-  }
-  if (selectedUser.value?.id === updated.id) {
-    selectedUser.value = updated
-  }
+const handleUserUpdated = async () => {
+  await fetchUsers()
 }
 </script>
 
@@ -420,7 +414,7 @@ const handleUserUpdated = (updated: User) => {
                 <span v-else class="text-[10px] font-mono text-zinc-300" title="Akun Anda">&mdash;</span>
               </td>
               <td class="py-3.5 px-4">
-                <div class="font-semibold text-zinc-900 flex items-center gap-1.5">
+                <div class="font-semibold text-zinc-900 flex items-center gap-1.5 flex-wrap">
                   <span>{{ u.nama || u.username }}</span>
                   <Badge
                     v-if="u.id === currentUserId"
@@ -428,6 +422,13 @@ const handleUserUpdated = (updated: User) => {
                     size="xs"
                   >
                     Anda
+                  </Badge>
+                  <Badge
+                    v-if="u.is_koor"
+                    variant="orange"
+                    size="xs"
+                  >
+                    Koor
                   </Badge>
                 </div>
                 <div class="text-[11px] text-zinc-400">@{{ u.username }} &bull; {{ u.email || 'Tanpa email' }}</div>

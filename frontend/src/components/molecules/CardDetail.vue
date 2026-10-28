@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
-import { api, getBackendAssetUrl, suratService, currentRole, type Surat } from '@/services/api'
+import {
+  api,
+  getBackendAssetUrl,
+  suratService,
+  userService,
+  currentRole,
+  isKoor,
+  type Surat,
+  type User,
+} from '@/services/api'
 import { CardCameraCapture, CardLogsTimeline } from '@/components/card-detail'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -27,6 +36,7 @@ const emit = defineEmits<{
 
 const userRole = computed(() => currentRole.value)
 const isSekre = computed(() => userRole.value === 'sekre' || userRole.value === 'ketum')
+const canAssignPic = computed(() => isSekre.value || isKoor.value)
 
 const isCompletedStatus = computed(() => {
   const s = props.surat.status_saat_ini?.toLowerCase() || ''
@@ -35,17 +45,28 @@ const isCompletedStatus = computed(() => {
 
 const canUploadArsip = computed(() => isSekre.value || isCompletedStatus.value)
 
-// Status & Note update state
+// Status, PIC, & Note update state
 const selectedStatus = ref(props.surat.status_saat_ini)
+const selectedPic = ref(props.surat.pic_nama || '')
 const newNote = ref(props.surat.catatan || '')
 const isUpdatingStatus = ref(false)
 const updateMessage = ref('')
+const userList = ref<User[]>([])
+
+const loadPicUsers = async () => {
+  if (canAssignPic.value) {
+    try {
+      userList.value = await userService.getAll()
+    } catch {}
+  }
+}
 
 watch(
   () => props.surat,
   (newVal) => {
     if (newVal) {
       selectedStatus.value = newVal.status_saat_ini
+      selectedPic.value = newVal.pic_nama || ''
       newNote.value = newVal.catatan || ''
       hasImageError.value = false
     }
@@ -100,35 +121,28 @@ const handleFileUpload = async (event: Event) => {
   const file = target.files?.[0]
   if (!file) return
 
-  if (!canUploadArsip.value) {
-    uploadDokumenError.value = 'Pengunggahan arsip fisik hanya dapat dilakukan saat surat berstatus Selesai.'
-    return
-  }
-
-  isUploadingDokumen.value = true
   uploadDokumenMessage.value = ''
   uploadDokumenError.value = ''
+  isUploadingDokumen.value = true
+
+  const formData = new FormData()
+  formData.append('file', file)
 
   try {
-    const formData = new FormData()
-    formData.append('file', file)
-    await api.post(`/letters/${props.surat.id}/upload`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    })
-    uploadDokumenMessage.value = 'Arsip dokumen berhasil diunggah'
+    await api.post(`/letters/${props.surat.id}/upload-arsip`, formData)
+    uploadDokumenMessage.value = 'Arsip berhasil diunggah'
     toast({
       title: 'Berhasil',
-      description: 'Arsip dokumen berhasil diunggah',
+      description: 'Berkas arsip surat berhasil diperbarui.',
       variant: 'success',
     })
     emit('updated')
   } catch (err: any) {
-    uploadDokumenError.value = err.response?.data?.error || err.message || 'Gagal mengunggah dokumen'
+    const errorMsg = err.response?.data?.error || err.message || 'Gagal mengunggah berkas arsip'
+    uploadDokumenError.value = errorMsg
     toast({
-      title: 'Gagal',
-      description: uploadDokumenError.value,
+      title: 'Gagal Mengunggah',
+      description: errorMsg,
       variant: 'destructive',
     })
   } finally {
@@ -152,6 +166,7 @@ const handleKeyDown = (e: KeyboardEvent) => {
 onMounted(() => {
   document.body.style.overflow = 'hidden'
   window.addEventListener('keydown', handleKeyDown)
+  loadPicUsers()
 })
 
 onBeforeUnmount(() => {
@@ -164,11 +179,12 @@ const handleUpdateStatusAndNote = async () => {
   updateMessage.value = ''
   try {
     await suratService.updateStatus(props.surat.id, {
-      status_saat_ini: isSekre.value ? selectedStatus.value : props.surat.status_saat_ini,
+      status_saat_ini: selectedStatus.value,
       catatan: newNote.value,
       catatan_log: newNote.value,
+      pic_nama: canAssignPic.value ? selectedPic.value : undefined,
     })
-    updateMessage.value = isSekre.value ? 'Status & catatan berhasil diperbarui' : 'Catatan berhasil diperbarui'
+    updateMessage.value = 'Data surat berhasil diperbarui'
     toast({
       title: 'Berhasil',
       description: updateMessage.value,
@@ -205,7 +221,6 @@ const handleUpdateStatusAndNote = async () => {
           </Badge>
           <h2 class="text-base font-semibold text-zinc-900 leading-snug">{{ props.surat.perihal }}</h2>
           <p v-if="props.surat.tujuan" class="text-xs text-zinc-600 font-medium">Tujuan: <span class="text-zinc-900 font-semibold">{{ props.surat.tujuan }}</span></p>
-          <p class="text-xs text-zinc-500">PIC: <span class="text-zinc-800 font-semibold">{{ props.surat.pic_nama }}</span></p>
         </div>
 
         <Button
@@ -226,15 +241,14 @@ const handleUpdateStatusAndNote = async () => {
       <div class="flex-1 overflow-y-auto no-scrollbar p-6 space-y-6">
         <!-- 1. Properties Section (Editable for Sekre & Humas) -->
         <section class="space-y-2.5">
-          <h3 class="text-xs font-semibold uppercase tracking-wider text-zinc-500 px-1">Status & Catatan</h3>
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-zinc-500 px-1">Status &amp; Penugasan</h3>
 
           <form @submit.prevent="handleUpdateStatusAndNote" novalidate class="space-y-3">
             <div class="rounded-2xl border border-black/10 bg-white overflow-hidden divide-y divide-black/5 shadow-2xs">
-              <!-- Status Input (Dropdown for Sekre, Read-Only for Humas) -->
+              <!-- Status Input (Dapat diubah oleh semua pengurus pelaksana & sekre) -->
               <div class="px-4 py-2.5 focus-within:bg-zinc-50/50 transition-colors">
                 <Label for="update-status" class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Status Saat Ini</Label>
                 <Select
-                  v-if="isSekre"
                   v-model="selectedStatus"
                 >
                   <SelectTrigger id="update-status" class="mt-1">
@@ -246,9 +260,32 @@ const handleUpdateStatusAndNote = async () => {
                     </SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <!-- PIC Assignment (Select untuk Koordinator / Sekre, Read-only untuk staf Humas) -->
+              <div class="px-4 py-2.5 focus-within:bg-zinc-50/50 transition-colors">
+                <Label for="update-pic" class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Penanggung Jawab (PIC)</Label>
+                <div v-if="canAssignPic" class="mt-1">
+                  <Select v-model="selectedPic">
+                    <SelectTrigger id="update-pic">
+                      <SelectValue :placeholder="selectedPic || '-- Pilih Pengurus PIC --'" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem v-for="user in userList" :key="user.id" :value="user.nama || user.username">
+                        {{ user.nama }} ({{ user.divisi || user.role || 'Pengurus' }}{{ user.is_koor ? ' - Koor' : '' }})
+                      </SelectItem>
+                      <SelectItem
+                        v-if="selectedPic && !userList.some((u) => (u.nama || u.username) === selectedPic)"
+                        :value="selectedPic"
+                      >
+                        {{ selectedPic }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div v-else class="text-xs font-semibold text-zinc-900 pt-0.5 flex items-center justify-between">
-                  <span>{{ props.surat.status_saat_ini }}</span>
-                  <span class="text-[10px] text-zinc-400 font-normal italic">Hanya Sekre yang dapat mengubah status</span>
+                  <span>{{ props.surat.pic_nama }}</span>
+                  <span class="text-[10px] text-zinc-400 font-normal italic">Mandat Penugasan Koordinator</span>
                 </div>
               </div>
 
@@ -272,7 +309,7 @@ const handleUpdateStatusAndNote = async () => {
                 :disabled="isUpdatingStatus"
                 class="ml-auto"
               >
-                {{ isUpdatingStatus ? 'Menyimpan...' : (isSekre ? 'Perbarui Status' : 'Simpan Catatan') }}
+                {{ isUpdatingStatus ? 'Menyimpan...' : 'Simpan Perubahan' }}
               </Button>
             </div>
           </form>

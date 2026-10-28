@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -24,6 +25,7 @@ type UpdateSuratInput struct {
 	Tujuan        *string `json:"tujuan"`
 	Catatan       *string `json:"catatan"`
 	CatatanLog    *string `json:"catatan_log"`
+	PICNama       *string `json:"pic_nama"`
 }
 
 type SuratHandler struct {
@@ -84,12 +86,28 @@ func (h *SuratHandler) UpdateSurat(c *gin.Context) {
 		return
 	}
 
+	callerDivisiVal, _ := c.Get("divisi")
+	callerDivisi := strings.ToLower(fmt.Sprintf("%v", callerDivisiVal))
+	isKoorVal, _ := c.Get("is_koor")
+	isKoor, _ := isKoorVal.(bool)
+
+	// Hanya Sekre, Ketum, atau Koordinator yang diizinkan mengubah PIC
+	var picToUpdate *string
+	if input.PICNama != nil {
+		if callerDivisi != "sekre" && callerDivisi != "ketum" && !isKoor {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Hanya Koordinator atau Sekre yang dapat mengubah PIC surat"})
+			return
+		}
+		picToUpdate = input.PICNama
+	}
+
 	surat, log, err := h.suratService.UpdateSurat(
 		suratUUID,
 		input.StatusSaatIni,
 		input.Tujuan,
 		input.Catatan,
 		input.CatatanLog,
+		picToUpdate,
 	)
 	if err != nil {
 		if errors.Is(err, services.ErrSuratNotFound) {

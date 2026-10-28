@@ -161,6 +161,7 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 		"email":     user.Email,
 		"username":  user.Username,
 		"divisi":    user.Divisi,
+		"is_koor":   user.IsKoor,
 		"is_active": user.IsActive,
 	})
 }

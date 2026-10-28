@@ -14,6 +14,7 @@ type User struct {
 	Username                 string     `gorm:"type:varchar(100);uniqueIndex;not null" json:"username"`
 	Password                 string     `gorm:"type:varchar(255);not null" json:"-"`
 	Divisi                   string     `gorm:"type:varchar(100);not null;default:'humas'" json:"divisi"`
+	IsKoor                   bool       `gorm:"type:boolean;not null;default:false" json:"is_koor"`
 	IsActive                 bool       `gorm:"type:boolean;not null;default:false" json:"is_active"`
 	ActivationToken          *string    `gorm:"type:varchar(255);index" json:"-"`
 	ActivationTokenExpiresAt *time.Time `json:"-"`
@@ -84,4 +85,17 @@ type AppSetting struct {
 
 func (AppSetting) TableName() string {
 	return "app_settings"
+}
+
+type Instansi struct {
+	ID           uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
+	NamaInstansi string    `gorm:"type:varchar(255);uniqueIndex;not null" json:"nama_instansi"`
+	Kategori     string    `gorm:"type:varchar(100);not null;default:'Internal Kampus'" json:"kategori"`
+	Keterangan   string    `gorm:"type:text" json:"keterangan"`
+	CreatedAt    time.Time `gorm:"type:timestamp;not null" json:"created_at"`
+	UpdatedAt    time.Time `gorm:"type:timestamp;not null" json:"updated_at"`
+}
+
+func (Instansi) TableName() string {
+	return "instansi"
 }

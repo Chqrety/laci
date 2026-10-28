@@ -40,6 +40,7 @@ const editForm = ref({
   nama: '',
   email: '',
   divisi: 'humas',
+  is_koor: false,
 })
 
 watch(
@@ -52,6 +53,7 @@ watch(
         nama: newUser.nama || '',
         email: newUser.email || '',
         divisi: newUser.divisi || 'humas',
+        is_koor: Boolean(newUser.is_koor),
       }
     }
   },
@@ -71,6 +73,7 @@ const handleUpdateUser = async () => {
       nama: editForm.value.nama,
       email: editForm.value.email,
       divisi: editForm.value.divisi,
+      is_koor: editForm.value.is_koor,
     })
 
     toast({
@@ -152,6 +155,19 @@ const handleUpdateUser = async () => {
           >
             *Pergantian jabatan Ketua Umum wajib melalui menu Serah Terima Jabatan.
           </span>
+        </div>
+
+        <!-- Toggle Mandat Koordinator -->
+        <div class="flex items-center gap-2.5 p-2.5 rounded-xl bg-zinc-50 border border-zinc-200 mt-1">
+          <input
+            id="edit-user-is-koor"
+            v-model="editForm.is_koor"
+            type="checkbox"
+            class="w-4 h-4 rounded text-[#0A84DC] focus:ring-[#0A84DC]/30 border-zinc-300 cursor-pointer accent-[#0A84DC]"
+          />
+          <Label for="edit-user-is-koor" class="text-xs font-medium text-zinc-800 cursor-pointer select-none">
+            Mandat Koordinator (Bisa menugaskan &amp; mengganti PIC surat)
+          </Label>
         </div>
 
         <DialogFooter class="pt-2">

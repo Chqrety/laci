@@ -16,6 +16,7 @@ type CreateUserInput struct {
 	Email    string `json:"email"`
 	Username string `json:"username"`
 	Divisi   string `json:"divisi"`
+	IsKoor   bool   `json:"is_koor"`
 }
 
 type UpdateUserInput struct {
@@ -25,6 +26,7 @@ type UpdateUserInput struct {
 	Username string `json:"username"`
 	Divisi   string `json:"divisi"`
 	Password string `json:"password"`
+	IsKoor   *bool  `json:"is_koor"`
 }
 
 type TransferKetumInput struct {
@@ -74,6 +76,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 		input.Email,
 		input.Username,
 		input.Divisi,
+		input.IsKoor,
 	)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -112,6 +115,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		input.Username,
 		input.Divisi,
 		input.Password,
+		input.IsKoor,
 	)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

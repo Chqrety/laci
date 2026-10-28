@@ -6,6 +6,8 @@ import {
   userService,
   currentUser,
   currentUsername,
+  currentRole,
+  isKoor,
   type Proker,
   type User,
 } from '@/services/api'
@@ -45,7 +47,8 @@ const emit = defineEmits<{
 }>()
 
 const isCreating = ref(false)
-
+const isSekre = computed(() => currentRole.value === 'sekre' || currentRole.value === 'ketum')
+const canAssignPic = computed(() => isSekre.value || isKoor.value)
 
 const noUrut = ref('01')
 const selectedProker = ref('')
@@ -65,12 +68,11 @@ const availableProkers = computed(() => {
   return list
 })
 
-// Daftar pengurus terdaftar untuk pilihan PIC (khusus Sekre)
+// Daftar pengurus terdaftar untuk pilihan PIC
 const userList = ref<User[]>([])
 const isLoadingUsers = ref(false)
 
 const loadUsers = async () => {
-  if (props.isHumas) return
   isLoadingUsers.value = true
   try {
     userList.value = await userService.getAll()
@@ -179,6 +181,7 @@ const handleFileChange = async (event: Event) => {
       scanFeedback.value = 'Teks terbaca namun struktur nomor surat DOSCOM tidak terdeteksi.'
     }
   } catch (err: any) {
+    console.error('[OCR Scan Error]:', err)
     scanFeedback.value = 'Gagal memindai: ' + (err?.message || 'Error OCR')
   } finally {
     if (fileInputRef.value) fileInputRef.value.value = ''
@@ -225,7 +228,9 @@ const handleCreateSurat = async () => {
   const paddedNo = noUrut.value.trim().padStart(2, '0')
   createForm.value.nomor_surat = `${paddedNo}/DOSCOM/${prokerCode}/${selectedBulan.value}/${selectedTahun.value.trim()}`
 
-  if (props.isHumas) {
+  if (!canAssignPic.value) {
+    createForm.value.pic_nama = getLoggedInPicName()
+  } else if (!createForm.value.pic_nama) {
     createForm.value.pic_nama = getLoggedInPicName()
   }
 
@@ -275,7 +280,7 @@ const handleCreateSurat = async () => {
               </div>
               <div>
                 <p class="text-xs font-semibold text-zinc-800">Auto-Fill via Scan Dokumen</p>
-                <p class="text-[10px] text-zinc-500">Pindai foto fisik surat untuk mengisi No. Surat & Perihal</p>
+                <p class="text-[10px] text-zinc-500">Pindai foto fisik surat untuk mengisi No. Surat &amp; Perihal</p>
               </div>
             </div>
 
@@ -318,7 +323,7 @@ const handleCreateSurat = async () => {
                   <input
                     ref="fileInputRef"
                     type="file"
-                    accept="image/*,application/pdf"
+                    accept="image/*"
                     class="hidden"
                     :disabled="isScanning"
                     @change="handleFileChange"
@@ -346,7 +351,11 @@ const handleCreateSurat = async () => {
             </div>
           </div>
 
-          <p v-else-if="scanFeedback" class="text-[11px] text-emerald-600 font-medium px-0.5">
+          <p
+            v-else-if="scanFeedback"
+            :class="scanFeedback.startsWith('Gagal') || scanFeedback.includes('hanya mendukung') || scanFeedback.includes('tidak terdeteksi') ? 'text-amber-600' : 'text-emerald-600'"
+            class="text-[11px] font-medium px-0.5"
+          >
             {{ scanFeedback }}
           </p>
         </div>
@@ -372,9 +381,10 @@ const handleCreateSurat = async () => {
 
                 <Input
                   type="text"
-                  value="DOSCOM"
-                  disabled
-                  class="w-20 sm:w-24 px-2 py-1.5 h-8 text-xs font-mono font-semibold text-center select-none"
+                  :model-value="'DOSCOM'"
+                  readonly
+                  tabindex="-1"
+                  class="w-20 sm:w-24 px-2 py-1.5 h-8 text-xs font-mono font-semibold text-center select-none bg-zinc-100 text-zinc-700 cursor-default"
                 />
 
                 <span class="text-zinc-400 font-semibold text-xs select-none">/</span>
@@ -444,13 +454,8 @@ const handleCreateSurat = async () => {
             <!-- 4. Nama PIC -->
             <div class="px-4 py-2.5 focus-within:bg-zinc-50/50 transition-colors">
               <Label class="block text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">Nama PIC</Label>
-              <!-- Akun Humas: Terkunci otomatis ke nama pengurus yang sedang login -->
-              <div v-if="isHumas" class="text-xs font-semibold text-zinc-700 pt-0.5">
-                {{ createForm.pic_nama || getLoggedInPicName() || '-' }}
-                <span class="text-[10px] text-zinc-400 font-normal ml-1">(Otomatis Akun Humas)</span>
-              </div>
-              <!-- Akun Sekre: Dropdown daftar pengurus terdaftar -->
-              <div v-else>
+              <!-- Akun Koordinator / Sekre / Ketum: Dropdown penugasan PIC -->
+              <div v-if="canAssignPic">
                 <Select
                   v-model="createForm.pic_nama"
                   required
@@ -460,7 +465,7 @@ const handleCreateSurat = async () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem v-for="user in userList" :key="user.id" :value="user.nama || user.username">
-                      {{ user.nama }} ({{ user.divisi || user.role || 'Pengurus' }})
+                      {{ user.nama }} ({{ user.divisi || user.role || 'Pengurus' }}{{ user.is_koor ? ' - Koor' : '' }})
                     </SelectItem>
                     <SelectItem
                       v-if="createForm.pic_nama && !userList.some((u) => (u.nama || u.username) === createForm.pic_nama)"
@@ -470,6 +475,11 @@ const handleCreateSurat = async () => {
                     </SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <!-- Staf Humas Biasa: Terkunci otomatis ke nama pengurus yang sedang login -->
+              <div v-else class="text-xs font-semibold text-zinc-700 pt-0.5">
+                {{ createForm.pic_nama || getLoggedInPicName() || '-' }}
+                <span class="text-[10px] text-zinc-400 font-normal ml-1">(Mandat Tugas Humas)</span>
               </div>
             </div>
 

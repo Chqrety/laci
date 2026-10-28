@@ -38,6 +38,7 @@ const formUser = ref({
   email: '',
   username: '',
   divisi: 'humas',
+  is_koor: false,
 })
 
 const handleCreateUser = async () => {
@@ -55,6 +56,7 @@ const handleCreateUser = async () => {
       email: '',
       username: '',
       divisi: 'humas',
+      is_koor: false,
     }
     toast({
       title: `Pengurus ${created.nama} berhasil ditambahkan`,
@@ -140,6 +142,19 @@ const handleCreateUser = async () => {
               </SelectContent>
             </Select>
           </div>
+        </div>
+
+        <!-- Toggle Mandat Koordinator -->
+        <div class="flex items-center gap-2.5 p-2.5 rounded-xl bg-zinc-50 border border-zinc-200 mt-1">
+          <input
+            id="add-user-is-koor"
+            v-model="formUser.is_koor"
+            type="checkbox"
+            class="w-4 h-4 rounded text-[#0A84DC] focus:ring-[#0A84DC]/30 border-zinc-300 cursor-pointer accent-[#0A84DC]"
+          />
+          <Label for="add-user-is-koor" class="text-xs font-medium text-zinc-800 cursor-pointer select-none">
+            Mandat Koordinator (Bisa menugaskan &amp; mengganti PIC surat)
+          </Label>
         </div>
 
         <DialogFooter class="pt-2">

@@ -26,6 +26,7 @@ var (
 type LoginResult struct {
 	Token    string `json:"token"`
 	Divisi   string `json:"divisi"`
+	IsKoor   bool   `json:"is_koor"`
 	Username string `json:"username"`
 	Nama     string `json:"nama"`
 	NIM      string `json:"nim"`
@@ -65,6 +66,7 @@ func (s *AuthService) Login(identifier, password string) (*LoginResult, error) {
 		"sub":      user.ID.String(),
 		"username": user.Username,
 		"divisi":   user.Divisi,
+		"is_koor":  user.IsKoor,
 		"exp":      time.Now().Add(24 * time.Hour).Unix(),
 	}
 
@@ -77,6 +79,7 @@ func (s *AuthService) Login(identifier, password string) (*LoginResult, error) {
 	return &LoginResult{
 		Token:    tokenString,
 		Divisi:   user.Divisi,
+		IsKoor:   user.IsKoor,
 		Username: user.Username,
 		Nama:     user.Nama,
 		NIM:      user.NIM,

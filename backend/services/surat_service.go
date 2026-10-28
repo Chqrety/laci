@@ -64,7 +64,7 @@ func (s *SuratService) CreateSurat(callerDivisi, nomorSurat, perihal, tujuan, st
 	return &surat, nil
 }
 
-func (s *SuratService) UpdateSurat(suratUUID uuid.UUID, statusSaatIni string, tujuan, catatan, catatanLog *string) (*models.Surat, *models.LogTracking, error) {
+func (s *SuratService) UpdateSurat(suratUUID uuid.UUID, statusSaatIni string, tujuan, catatan, catatanLog, picNama *string) (*models.Surat, *models.LogTracking, error) {
 	surat, err := s.suratRepo.FindByID(suratUUID)
 	if err != nil {
 		return nil, nil, ErrSuratNotFound
@@ -100,6 +100,11 @@ func (s *SuratService) UpdateSurat(suratUUID uuid.UUID, statusSaatIni string, tu
 	}
 	if catatan != nil {
 		updates["catatan"] = *catatan
+	}
+	if picNama != nil && strings.TrimSpace(*picNama) != "" {
+		trimmedPic := strings.TrimSpace(*picNama)
+		updates["pic_nama"] = trimmedPic
+		surat.PICNama = trimmedPic
 	}
 
 	if err := s.suratRepo.UpdateWithLog(surat, updates, &logTracking); err != nil {

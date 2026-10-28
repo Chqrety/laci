@@ -53,6 +53,12 @@ const emit = defineEmits<{
           </Badge>
         </div>
         <div class="flex items-center justify-between pb-2 border-b border-zinc-200/60">
+          <span class="text-zinc-500">Jabatan</span>
+          <Badge :variant="user.is_koor ? 'orange' : 'secondary'" size="sm">
+            {{ user.is_koor ? 'Koordinator' : 'Pengurus' }}
+          </Badge>
+        </div>
+        <div class="flex items-center justify-between pb-2 border-b border-zinc-200/60">
           <span class="text-zinc-500">Email</span>
           <span class="text-zinc-800 text-right select-all">{{ user.email || '-' }}</span>
         </div>
