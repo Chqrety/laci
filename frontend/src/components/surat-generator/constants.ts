@@ -2,6 +2,8 @@ export const STANDARD_COVERED = new Set([
   'nomor_surat',
   'perihal',
   'tujuan',
+  'tujuan_surat',
+  'nama_tamu',
   'nama_kegiatan',
   'hari_tanggal',
   'tanggal',

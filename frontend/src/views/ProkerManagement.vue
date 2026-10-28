@@ -1,11 +1,18 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { prokerService, type Proker } from '@/services/api'
+import { prokerService, instansiService, type Proker, type Instansi } from '@/services/api'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Dialog,
   DialogContent,
@@ -17,71 +24,128 @@ import {
 import { toast } from '@/components/ui/toast'
 import { ConfirmDialog } from '@/components/common'
 
-const prokerList = ref<Proker[]>([])
-const isLoading = ref(false)
-const errorMessage = ref('')
+// Active Tab ('proker' | 'instansi')
+const activeTab = ref<'proker' | 'instansi'>('proker')
 
-// Modal state (Create & Update)
-const isModalOpen = ref(false)
-const isEditing = ref(false)
-const editingId = ref('')
-const isSubmitting = ref(false)
-const formError = ref('')
+// Proker State
+const prokerList = ref<Proker[]>([])
+const isLoadingProker = ref(false)
+const prokerErrorMessage = ref('')
+
+const isProkerModalOpen = ref(false)
+const isEditingProker = ref(false)
+const editingProkerId = ref('')
+const isSubmittingProker = ref(false)
+const formProkerError = ref('')
 const formProker = ref({
   nama_proker: '',
   deskripsi: '',
 })
 
-// Modal state (Delete Confirmation)
-const isDeleteModalOpen = ref(false)
-const prokerToDelete = ref<Proker | null>(null)
+// Unified Delete State
+const itemToDelete = ref<{ type: 'proker' | 'instansi'; id: string; name: string } | null>(null)
 const isDeleting = ref(false)
 
+// Instansi State
+const instansiList = ref<Instansi[]>([])
+const isLoadingInstansi = ref(false)
+const instansiErrorMessage = ref('')
+
+const isInstansiModalOpen = ref(false)
+const isEditingInstansi = ref(false)
+const editingInstansiId = ref('')
+const isSubmittingInstansi = ref(false)
+const formInstansiError = ref('')
+const formInstansi = ref({
+  nama_instansi: '',
+  kategori: 'Internal Kampus',
+  keterangan: '',
+})
+
+const KATEGORI_OPTIONS = [
+  'Fakultas',
+  'Universitas',
+  'Rektorat',
+  'Akademik',
+  'Unit Kampus',
+  'Sekolah Mitra',
+  'Eksternal',
+  'Ormawa / Mitra',
+  'Internal Kampus',
+] as const
+
+// Fetchers
 const fetchProker = async () => {
-  isLoading.value = true
-  errorMessage.value = ''
+  isLoadingProker.value = true
+  prokerErrorMessage.value = ''
   try {
     prokerList.value = await prokerService.getAll()
   } catch (err: any) {
-    errorMessage.value = err.response?.data?.error || err.message || 'Gagal memuat data program kerja'
+    prokerErrorMessage.value = err.response?.data?.error || err.message || 'Gagal memuat data program kerja'
     toast({
       title: 'Gagal Memuat Data',
-      description: errorMessage.value,
+      description: prokerErrorMessage.value,
       variant: 'destructive',
     })
   } finally {
-    isLoading.value = false
+    isLoadingProker.value = false
   }
 }
 
-const openModal = (proker?: Proker) => {
-  isEditing.value = !!proker
-  editingId.value = proker?.id || ''
+const fetchInstansi = async () => {
+  isLoadingInstansi.value = true
+  instansiErrorMessage.value = ''
+  try {
+    instansiList.value = await instansiService.getAll()
+  } catch (err: any) {
+    instansiErrorMessage.value = err.response?.data?.error || err.message || 'Gagal memuat data instansi'
+    toast({
+      title: 'Gagal Memuat Data',
+      description: instansiErrorMessage.value,
+      variant: 'destructive',
+    })
+  } finally {
+    isLoadingInstansi.value = false
+  }
+}
+
+const refreshCurrentTab = () => {
+  if (activeTab.value === 'proker') {
+    fetchProker()
+  } else {
+    fetchInstansi()
+  }
+}
+
+// Proker Handlers
+const openProkerModal = (proker?: Proker) => {
+  isEditingProker.value = !!proker
+  editingProkerId.value = proker?.id || ''
   formProker.value = {
     nama_proker: proker?.nama_proker || '',
     deskripsi: proker?.deskripsi || '',
   }
-  formError.value = ''
-  isModalOpen.value = true
+  formProkerError.value = ''
+  isProkerModalOpen.value = true
 }
 
-const handleSubmit = async () => {
+const handleProkerSubmit = async () => {
   const trimmedNama = formProker.value.nama_proker.trim()
   if (!trimmedNama) {
-    formError.value = 'Nama program kerja wajib diisi.'
+    formProkerError.value = 'Nama program kerja wajib diisi.'
     toast({
       title: 'Validasi Gagal',
-      description: formError.value,
+      description: formProkerError.value,
       variant: 'destructive',
     })
     return
   }
 
-  isSubmitting.value = true
-  formError.value = ''
+  isSubmittingProker.value = true
+  formProkerError.value = ''
   try {
-    if (isEditing.value && editingId.value) {
-      await prokerService.update(editingId.value, trimmedNama, formProker.value.deskripsi.trim())
+    if (isEditingProker.value && editingProkerId.value) {
+      await prokerService.update(editingProkerId.value, trimmedNama, formProker.value.deskripsi.trim())
       toast({
         title: 'Berhasil',
         description: 'Program kerja berhasil diperbarui',
@@ -95,43 +159,46 @@ const handleSubmit = async () => {
         variant: 'success',
       })
     }
-    isModalOpen.value = false
+    isProkerModalOpen.value = false
     await fetchProker()
   } catch (err: any) {
-    formError.value = err.response?.data?.error || err.message || 'Gagal menyimpan program kerja.'
+    formProkerError.value = err.response?.data?.error || err.message || 'Gagal menyimpan program kerja.'
     toast({
       title: 'Gagal Menyimpan Proker',
-      description: formError.value,
+      description: formProkerError.value,
       variant: 'destructive',
     })
   } finally {
-    isSubmitting.value = false
+    isSubmittingProker.value = false
   }
 }
 
-const confirmDeleteProker = (proker: Proker) => {
-  prokerToDelete.value = proker
-  isDeleteModalOpen.value = true
+const confirmDelete = (type: 'proker' | 'instansi', id: string, name: string) => {
+  itemToDelete.value = { type, id, name }
 }
 
-const executeDeleteProker = async () => {
-  if (!prokerToDelete.value) return
-
+const executeDelete = async () => {
+  if (!itemToDelete.value) return
   isDeleting.value = true
+  const { type, id, name } = itemToDelete.value
   try {
-    await prokerService.delete(prokerToDelete.value.id)
+    if (type === 'proker') {
+      await prokerService.delete(id)
+      await fetchProker()
+    } else {
+      await instansiService.delete(id)
+      await fetchInstansi()
+    }
     toast({
       title: 'Berhasil',
-      description: `Program kerja "${prokerToDelete.value.nama_proker}" berhasil dihapus`,
+      description: `"${name}" berhasil dihapus`,
       variant: 'success',
     })
-    isDeleteModalOpen.value = false
-    prokerToDelete.value = null
-    await fetchProker()
+    itemToDelete.value = null
   } catch (err: any) {
     toast({
-      title: 'Gagal Menghapus Proker',
-      description: err.response?.data?.error || err.message || 'Gagal menghapus program kerja.',
+      title: 'Gagal Menghapus',
+      description: err.response?.data?.error || err.message || 'Gagal menghapus data.',
       variant: 'destructive',
     })
   } finally {
@@ -139,37 +206,148 @@ const executeDeleteProker = async () => {
   }
 }
 
+// Instansi Handlers
+const openInstansiModal = (ins?: Instansi) => {
+  isEditingInstansi.value = !!ins
+  editingInstansiId.value = ins?.id || ''
+  formInstansi.value = {
+    nama_instansi: ins?.nama_instansi || '',
+    kategori: ins?.kategori || 'Fakultas',
+    keterangan: ins?.keterangan || '',
+  }
+  formInstansiError.value = ''
+  isInstansiModalOpen.value = true
+}
+
+const handleInstansiSubmit = async () => {
+  const trimmedNama = formInstansi.value.nama_instansi.trim()
+  if (!trimmedNama) {
+    formInstansiError.value = 'Nama instansi wajib diisi.'
+    toast({
+      title: 'Validasi Gagal',
+      description: formInstansiError.value,
+      variant: 'destructive',
+    })
+    return
+  }
+
+  isSubmittingInstansi.value = true
+  formInstansiError.value = ''
+  try {
+    if (isEditingInstansi.value && editingInstansiId.value) {
+      await instansiService.update(
+        editingInstansiId.value,
+        trimmedNama,
+        formInstansi.value.kategori,
+        formInstansi.value.keterangan.trim(),
+      )
+      toast({
+        title: 'Berhasil',
+        description: 'Data instansi berhasil diperbarui',
+        variant: 'success',
+      })
+    } else {
+      await instansiService.create(
+        trimmedNama,
+        formInstansi.value.kategori,
+        formInstansi.value.keterangan.trim(),
+      )
+      toast({
+        title: 'Berhasil',
+        description: 'Instansi baru berhasil ditambahkan',
+        variant: 'success',
+      })
+    }
+    isInstansiModalOpen.value = false
+    await fetchInstansi()
+  } catch (err: any) {
+    formInstansiError.value = err.response?.data?.error || err.message || 'Gagal menyimpan data instansi.'
+    toast({
+      title: 'Gagal Menyimpan Instansi',
+      description: formInstansiError.value,
+      variant: 'destructive',
+    })
+  } finally {
+    isSubmittingInstansi.value = false
+  }
+}
+
 onMounted(() => {
   fetchProker()
+  fetchInstansi()
 })
 </script>
 
 <template>
-  <div class="max-w-5xl mx-auto space-y-6">
-    <!-- Top Bar -->
+  <div class="w-full max-w-5xl mx-auto space-y-6">
+    <!-- Top Bar: Title & Pill Tab Switcher -->
     <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 px-1">
-      <div>
-        <div class="flex items-center gap-2.5">
-          <h2 class="text-xl font-medium tracking-tight text-slate-900 leading-snug">Program Kerja</h2>
-          <Badge variant="muted" size="pill">
-            {{ prokerList.length }} proker
-          </Badge>
+      <div class="space-y-1.5">
+        <!-- Tab Pill Switcher (Floema Minimalist) -->
+        <div class="inline-flex p-1 bg-slate-100/90 border border-slate-200/70 rounded-full text-xs shadow-2xs">
+          <button
+            type="button"
+            @click="activeTab = 'proker'"
+            :class="activeTab === 'proker' ? 'bg-white text-slate-900 font-semibold shadow-2xs' : 'text-slate-500 hover:text-slate-800'"
+            class="px-4 py-1.5 rounded-full transition-all duration-180 flex items-center gap-2 cursor-pointer"
+          >
+            <span>Program Kerja</span>
+            <span
+              :class="activeTab === 'proker' ? 'bg-sky-50 text-sky-700' : 'bg-slate-200/80 text-slate-600'"
+              class="text-[10px] px-1.5 py-0.2 rounded-full font-mono font-medium"
+            >
+              {{ prokerList.length }}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            @click="activeTab = 'instansi'"
+            :class="activeTab === 'instansi' ? 'bg-white text-slate-900 font-semibold shadow-2xs' : 'text-slate-500 hover:text-slate-800'"
+            class="px-4 py-1.5 rounded-full transition-all duration-180 flex items-center gap-2 cursor-pointer"
+          >
+            <span>Instansi &amp; Mitra</span>
+            <span
+              :class="activeTab === 'instansi' ? 'bg-sky-50 text-sky-700' : 'bg-slate-200/80 text-slate-600'"
+              class="text-[10px] px-1.5 py-0.2 rounded-full font-mono font-medium"
+            >
+              {{ instansiList.length }}
+            </span>
+          </button>
         </div>
-        <p class="text-xs text-slate-500 mt-0.5">Kelola data program kerja DOSCOM untuk klasifikasi dan penomoran surat resmi.</p>
+
+        <div>
+          <h2 class="text-xl font-medium tracking-tight text-slate-900 leading-snug">
+            {{ activeTab === 'proker' ? 'Program Kerja' : 'Instansi & Mitra Tujuan' }}
+          </h2>
+          <p class="text-xs text-slate-500 mt-0.5">
+            {{ activeTab === 'proker'
+              ? 'Kelola data program kerja DOSCOM untuk penomoran dan klasifikasi surat resmi.'
+              : 'Daftar pejabat birokrasi kampus dan mitra eksternal untuk auto-fill tujuan surat.'
+            }}
+          </p>
+        </div>
       </div>
 
+      <!-- Action Buttons -->
       <div class="flex items-center gap-2 w-full sm:w-auto">
         <Button
           type="button"
           variant="outline"
           size="icon"
-          @click="fetchProker"
-          :disabled="isLoading"
+          @click="refreshCurrentTab"
+          :disabled="activeTab === 'proker' ? isLoadingProker : isLoadingInstansi"
           title="Muat Ulang"
           aria-label="Muat Ulang"
           class="h-9 w-9 shrink-0 rounded-xl border-slate-200/90 bg-white shadow-2xs text-slate-600 hover:text-slate-900 active:scale-95 transition-all"
         >
-          <svg class="w-4 h-4" :class="{ 'animate-spin': isLoading }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg
+            class="w-4 h-4"
+            :class="{ 'animate-spin': activeTab === 'proker' ? isLoadingProker : isLoadingInstansi }"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
         </Button>
@@ -177,100 +355,188 @@ onMounted(() => {
         <Button
           type="button"
           size="sm"
-          @click="openModal()"
-          class="flex-1 sm:flex-initial"
+          @click="activeTab === 'proker' ? openProkerModal() : openInstansiModal()"
+          class="flex-1 sm:flex-initial transition-all duration-180"
         >
-          + Tambah Proker Baru
+          {{ activeTab === 'proker' ? '+ Tambah Proker Baru' : '+ Tambah Instansi Baru' }}
         </Button>
       </div>
     </header>
 
-    <!-- Error notice -->
+    <!-- Error notices -->
     <div
-      v-if="errorMessage"
+      v-if="activeTab === 'proker' && prokerErrorMessage"
       role="alert"
       class="p-3 text-xs bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl font-medium"
     >
-      {{ errorMessage }}
+      {{ prokerErrorMessage }}
+    </div>
+    <div
+      v-else-if="activeTab === 'instansi' && instansiErrorMessage"
+      role="alert"
+      class="p-3 text-xs bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl font-medium"
+    >
+      {{ instansiErrorMessage }}
     </div>
 
-    <!-- Table Container (Apple iOS HIG: rounded-2xl, soft shadow) -->
-    <div class="bg-white/95 border border-slate-200/90 rounded-3xl shadow-xs overflow-hidden">
-      <table class="w-full text-left text-xs divide-y divide-black/5">
-        <thead class="bg-black/[0.02] text-zinc-500 font-semibold">
-          <tr>
-            <th scope="col" class="px-5 py-4 w-14">No</th>
-            <th scope="col" class="px-5 py-4 w-64">Nama Proker</th>
-            <th scope="col" class="px-5 py-4">Deskripsi</th>
-            <th scope="col" class="px-5 py-4 text-right w-36">Aksi</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-black/5 text-zinc-800">
-          <tr v-if="isLoading && prokerList.length === 0">
-            <td colspan="4" class="px-5 py-12 text-center text-zinc-400">
-              Memuat data program kerja...
-            </td>
-          </tr>
+    <!-- Tab Content Transition (Floema page-fade) -->
+    <Transition name="page-fade" mode="out-in">
+      <!-- TAB 1: Tabel Program Kerja -->
+      <div
+        v-if="activeTab === 'proker'"
+        key="proker"
+        class="w-full bg-white/95 border border-slate-200/90 rounded-3xl shadow-xs overflow-hidden"
+    >
+      <div class="w-full overflow-x-auto">
+        <table class="w-full text-left text-xs divide-y divide-black/5 min-w-[640px]">
+          <thead class="bg-black/[0.02] text-zinc-500 font-semibold">
+            <tr>
+              <th scope="col" class="px-5 py-4 w-14">No</th>
+              <th scope="col" class="px-5 py-4 w-64">Nama Proker</th>
+              <th scope="col" class="px-5 py-4">Deskripsi</th>
+              <th scope="col" class="px-5 py-4 text-right w-32">Aksi</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-black/5 text-zinc-800">
+            <tr v-if="isLoadingProker && prokerList.length === 0">
+              <td colspan="4" class="px-5 py-12 text-center text-zinc-400">
+                Memuat data program kerja...
+              </td>
+            </tr>
 
-          <tr v-else-if="prokerList.length === 0">
-            <td colspan="4" class="px-5 py-12 text-center text-zinc-400">
-              Belum ada data program kerja. Klik "+ Tambah Proker Baru" untuk menambahkan.
-            </td>
-          </tr>
+            <tr v-else-if="prokerList.length === 0">
+              <td colspan="4" class="px-5 py-12 text-center text-zinc-400">
+                Belum ada data program kerja. Klik "+ Tambah Proker Baru" untuk menambahkan.
+              </td>
+            </tr>
 
-          <tr
-            v-for="(proker, index) in prokerList"
-            :key="proker.id"
-            class="hover:bg-black/[0.02] transition-colors"
-          >
-            <td class="px-5 py-4 font-mono text-zinc-400">
-              {{ index + 1 }}
-            </td>
-            <td class="px-5 py-4 font-semibold text-zinc-900">
-              {{ proker.nama_proker }}
-            </td>
-            <td class="px-5 py-4 text-zinc-600 leading-relaxed">
-              {{ proker.deskripsi || '-' }}
-            </td>
-            <td class="px-5 py-3 text-right">
-              <div class="inline-flex items-center justify-end gap-1">
-                <!-- Tombol Edit Proker (Pencil Icon) -->
-                <Button
-                  type="button"
-                  variant="ghost"
+            <tr
+              v-for="(proker, index) in prokerList"
+              :key="proker.id"
+              class="hover:bg-black/[0.02] transition-colors"
+            >
+              <td class="px-5 py-4 font-mono text-zinc-400">
+                {{ index + 1 }}
+              </td>
+              <td class="px-5 py-4 font-semibold text-zinc-900">
+                {{ proker.nama_proker }}
+              </td>
+              <td class="px-5 py-4 text-zinc-600 leading-relaxed">
+                {{ proker.deskripsi || '-' }}
+              </td>
+              <td class="px-5 py-3 text-right">
+                <div class="inline-flex items-center justify-end gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    @click="openProkerModal(proker)"
+                    class="h-8 w-8 rounded-xl text-zinc-400 hover:text-[#0A84DC] hover:bg-[#0A84DC]/10"
+                    title="Edit Program Kerja"
+                    aria-label="Edit Program Kerja"
+                  >
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    @click="confirmDelete('proker', proker.id, proker.nama_proker)"
+                    class="h-8 w-8 rounded-xl text-zinc-400 hover:text-rose-600 hover:bg-rose-50"
+                    title="Hapus Program Kerja"
+                    aria-label="Hapus Program Kerja"
+                  >
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </Button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+      <!-- TAB 2: Tabel Instansi & Mitra -->
+      <div
+        v-else
+        key="instansi"
+        class="w-full bg-white/95 border border-slate-200/90 rounded-3xl shadow-xs overflow-hidden"
+    >
+      <div class="w-full overflow-x-auto">
+        <table class="w-full text-left text-xs divide-y divide-black/5 min-w-[640px]">
+          <thead class="bg-black/[0.02] text-zinc-500 font-semibold">
+            <tr>
+              <th scope="col" class="px-5 py-4 w-14">No</th>
+              <th scope="col" class="px-5 py-4 w-64">Nama Instansi / Pejabat</th>
+              <th scope="col" class="px-5 py-4 w-36">Kategori</th>
+              <th scope="col" class="px-5 py-4">Keterangan</th>
+              <th scope="col" class="px-5 py-4 text-right w-32">Aksi</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-black/5 text-zinc-800">
+            <tr v-if="isLoadingInstansi && instansiList.length === 0">
+              <td colspan="5" class="px-5 py-12 text-center text-zinc-400">
+                Memuat data instansi...
+              </td>
+            </tr>
+
+            <tr v-else-if="instansiList.length === 0">
+              <td colspan="5" class="px-5 py-12 text-center text-zinc-400">
+                Belum ada data instansi. Klik "+ Tambah Instansi Baru" untuk menambahkan.
+              </td>
+            </tr>
+
+            <tr
+              v-for="(ins, index) in instansiList"
+              :key="ins.id"
+              class="hover:bg-black/[0.02] transition-colors"
+            >
+              <td class="px-5 py-4 font-mono text-zinc-400">
+                {{ index + 1 }}
+              </td>
+              <td class="px-5 py-4 font-semibold text-zinc-900">
+                {{ ins.nama_instansi }}
+              </td>
+              <td class="px-5 py-4">
+                <Badge variant="outline" size="xs" class="font-medium bg-slate-50 border-slate-200 text-slate-700">
+                  {{ ins.kategori }}
+                </Badge>
+              </td>
+              <td class="px-5 py-4 text-zinc-600 leading-relaxed">
+                {{ ins.keterangan || '-' }}
+              </td>
+              <td class="px-5 py-3 text-right">
+                <div class="inline-flex items-center justify-end gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
                   size="icon"
-                  @click="openModal(proker)"
+                  @click="openInstansiModal(ins)"
                   class="h-8 w-8 rounded-xl text-zinc-400 hover:text-[#0A84DC] hover:bg-[#0A84DC]/10"
-                  title="Edit Program Kerja"
-                  aria-label="Edit Program Kerja"
+                  title="Edit Instansi"
+                  aria-label="Edit Instansi"
                 >
                   <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="1.8"
-                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                    />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
                 </Button>
 
-                <!-- Tombol Hapus Proker (Trash Icon) -->
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  @click="confirmDeleteProker(proker)"
+                  @click="confirmDelete('instansi', ins.id, ins.nama_instansi)"
                   class="h-8 w-8 rounded-xl text-zinc-400 hover:text-rose-600 hover:bg-rose-50"
-                  title="Hapus Program Kerja"
-                  aria-label="Hapus Program Kerja"
+                  title="Hapus Instansi"
+                  aria-label="Hapus Instansi"
                 >
                   <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="1.8"
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                    />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
                 </Button>
               </div>
@@ -279,18 +545,20 @@ onMounted(() => {
         </tbody>
       </table>
     </div>
+  </div>
+</Transition>
 
     <!-- Modal Form (Tambah / Edit Proker) -->
-    <Dialog :open="isModalOpen" @update:open="(val: boolean) => { if (!val) isModalOpen = false }">
+    <Dialog :open="isProkerModalOpen" @update:open="(val: boolean) => { if (!val) isProkerModalOpen = false }">
       <DialogContent class="max-w-md space-y-4">
         <DialogHeader>
           <DialogTitle>
-            {{ isEditing ? 'Edit Program Kerja' : 'Tambah Program Kerja' }}
+            {{ isEditingProker ? 'Edit Program Kerja' : 'Tambah Program Kerja' }}
           </DialogTitle>
           <DialogDescription>Masukkan nama program kerja dan keterangan fungsinya.</DialogDescription>
         </DialogHeader>
 
-        <form @submit.prevent="handleSubmit" novalidate class="space-y-4">
+        <form @submit.prevent="handleProkerSubmit" novalidate class="space-y-4">
           <div class="space-y-3">
             <div class="space-y-1.5">
               <Label for="nama_proker">Nama Proker</Label>
@@ -313,8 +581,8 @@ onMounted(() => {
             </div>
           </div>
 
-          <p v-if="formError" class="text-xs text-rose-600 bg-rose-50 p-3 rounded-2xl border border-rose-200 font-medium">
-            {{ formError }}
+          <p v-if="formProkerError" class="text-xs text-rose-600 bg-rose-50 p-3 rounded-2xl border border-rose-200 font-medium">
+            {{ formProkerError }}
           </p>
 
           <DialogFooter>
@@ -322,35 +590,107 @@ onMounted(() => {
               type="button"
               variant="outline"
               size="sm"
-              @click="isModalOpen = false"
+              @click="isProkerModalOpen = false"
             >
               Batal
             </Button>
             <Button
               type="submit"
               size="sm"
-              :disabled="isSubmitting"
+              :disabled="isSubmittingProker"
             >
-              {{ isSubmitting ? 'Menyimpan...' : (isEditing ? 'Perbarui Proker' : 'Simpan Proker') }}
+              {{ isSubmittingProker ? 'Menyimpan...' : (isEditingProker ? 'Perbarui Proker' : 'Simpan Proker') }}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
 
-    <!-- Modal Konfirmasi Hapus Proker (Reusable ConfirmDialog) -->
+    <!-- Modal Form (Tambah / Edit Instansi) -->
+    <Dialog :open="isInstansiModalOpen" @update:open="(val: boolean) => { if (!val) isInstansiModalOpen = false }">
+      <DialogContent class="max-w-md space-y-4">
+        <DialogHeader>
+          <DialogTitle>
+            {{ isEditingInstansi ? 'Edit Instansi &amp; Mitra' : 'Tambah Instansi Baru' }}
+          </DialogTitle>
+          <DialogDescription>Daftarkan instansi atau pejabat kampus yang menjadi tujuan surat.</DialogDescription>
+        </DialogHeader>
+
+        <form @submit.prevent="handleInstansiSubmit" novalidate class="space-y-4">
+          <div class="space-y-3">
+            <div class="space-y-1.5">
+              <Label for="nama_instansi">Nama Instansi / Pejabat</Label>
+              <Input
+                id="nama_instansi"
+                v-model="formInstansi.nama_instansi"
+                type="text"
+                placeholder="Contoh: Tata Usaha Fakultas Teknologi Cerdas"
+              />
+            </div>
+
+            <div class="space-y-1.5">
+              <Label for="kategori_instansi">Kategori</Label>
+              <Select v-model="formInstansi.kategori">
+                <SelectTrigger id="kategori_instansi">
+                  <SelectValue :placeholder="formInstansi.kategori" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem v-for="kat in KATEGORI_OPTIONS" :key="kat" :value="kat">
+                    {{ kat }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div class="space-y-1.5">
+              <Label for="keterangan_instansi">Keterangan / Fungsi Surat</Label>
+              <Textarea
+                id="keterangan_instansi"
+                v-model="formInstansi.keterangan"
+                rows="2"
+                placeholder="Contoh: Peminjaman ruangan kampus & sarana prasarana..."
+              />
+            </div>
+          </div>
+
+          <p v-if="formInstansiError" class="text-xs text-rose-600 bg-rose-50 p-3 rounded-2xl border border-rose-200 font-medium">
+            {{ formInstansiError }}
+          </p>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              @click="isInstansiModalOpen = false"
+            >
+              Batal
+            </Button>
+            <Button
+              type="submit"
+              size="sm"
+              :disabled="isSubmittingInstansi"
+            >
+              {{ isSubmittingInstansi ? 'Menyimpan...' : (isEditingInstansi ? 'Perbarui Instansi' : 'Simpan Instansi') }}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Modal Konfirmasi Hapus (Unified) -->
     <ConfirmDialog
-      :open="isDeleteModalOpen"
-      title="Hapus Program Kerja?"
+      :open="!!itemToDelete"
+      :title="itemToDelete?.type === 'proker' ? 'Hapus Program Kerja?' : 'Hapus Instansi / Mitra?'"
       confirm-text="Ya, Hapus"
       loading-text="Menghapus..."
       :is-loading="isDeleting"
-      @update:open="(val: boolean) => { if (!val) isDeleteModalOpen = false }"
-      @cancel="isDeleteModalOpen = false"
-      @confirm="executeDeleteProker"
+      @update:open="(val: boolean) => { if (!val) itemToDelete = null }"
+      @cancel="itemToDelete = null"
+      @confirm="executeDelete"
     >
       <template #description>
-        Yakin ingin menghapus <b class="text-zinc-900">{{ prokerToDelete?.nama_proker }}</b>? Tindakan ini tidak dapat dibatalkan.
+        Yakin ingin menghapus <b class="text-zinc-900">{{ itemToDelete?.name }}</b>? Tindakan ini tidak dapat dibatalkan.
       </template>
     </ConfirmDialog>
   </div>

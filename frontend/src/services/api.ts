@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 function parseJwtPayload(token: string | null) {
   try {
@@ -83,6 +83,15 @@ export interface Proker {
   deskripsi?: string
 }
 
+export interface Instansi {
+  id: string
+  nama_instansi: string
+  kategori: string
+  keterangan?: string
+  created_at?: string
+  updated_at?: string
+}
+
 export interface CreateSuratPayload {
   nomor_surat: string
   perihal: string
@@ -97,6 +106,7 @@ export interface UpdateStatusPayload {
   tujuan?: string
   catatan?: string
   catatan_log?: string
+  pic_nama?: string
 }
 
 export interface User {
@@ -107,6 +117,7 @@ export interface User {
   username: string
   divisi: string
   role?: string
+  is_koor?: boolean
   is_active?: boolean
 }
 
@@ -118,18 +129,18 @@ export interface LoginResponse {
   nama?: string
   nim?: string
   email?: string
+  is_koor?: boolean
   is_active?: boolean
 }
 
 let prokerCache: Proker[] | null = null
-let usersCache: User[] | null = null
 
 const clearApiCache = () => {
   prokerCache = null
-  usersCache = null
 }
 
 export const currentUser = ref<User | null>(null)
+export const isKoor = computed(() => Boolean(currentUser.value?.is_koor))
 
 export const authService = {
   async login(username: string, password: string): Promise<LoginResponse> {
@@ -154,6 +165,7 @@ export const authService = {
       username: res.data.username || username,
       divisi: divisiVal,
       role: divisiVal,
+      is_koor: Boolean(res.data.is_koor ?? payload?.is_koor),
     }
 
     return res.data
@@ -228,39 +240,32 @@ export const authService = {
 }
 
 export const userService = {
-  async getAll(force = false): Promise<User[]> {
-    if (!force && usersCache) return usersCache
+  async getAll(): Promise<User[]> {
     const res = await api.get<User[]>('/users')
-    usersCache = res.data
     return res.data
   },
 
   async create(data: Partial<User> & { password?: string }): Promise<User> {
-    usersCache = null
-    const res = await api.post<User>('/users', data)
-    return res.data
+    const res = await api.post<any>('/users', data)
+    return res.data?.user || res.data
   },
 
   async update(id: string, data: Partial<User> & { password?: string }): Promise<User> {
-    usersCache = null
-    const res = await api.put<User>(`/users/${id}`, data)
-    return res.data
+    const res = await api.put<any>(`/users/${id}`, data)
+    return res.data?.user || res.data
   },
 
   async delete(id: string): Promise<{ message: string }> {
-    usersCache = null
     const res = await api.delete(`/users/${id}`)
     return res.data
   },
 
   async deleteBatch(ids: string[]): Promise<{ message: string; deleted: number }> {
-    usersCache = null
     const res = await api.delete('/users/batch', { data: { ids } })
     return res.data
   },
 
   async transferKetum(targetUserId: string, currentPassword: string): Promise<{ message: string; ketum_baru: string }> {
-    usersCache = null
     const res = await api.post('/users/transfer-ketum', {
       target_user_id: targetUserId,
       current_password: currentPassword,
@@ -269,7 +274,6 @@ export const userService = {
   },
 
   async importCSV(file: File): Promise<{ message: string; imported: User[]; skipped: string[] }> {
-    usersCache = null
     const formData = new FormData()
     formData.append('file', file)
     const res = await api.post('/users/import-csv', formData, {
@@ -281,7 +285,6 @@ export const userService = {
   },
 
   async importSpreadsheet(sheetURL: string): Promise<{ message: string; imported: User[]; skipped: string[] }> {
-    usersCache = null
     const res = await api.post('/users/import-spreadsheet', { sheet_url: sheetURL })
     return res.data
   },
@@ -335,6 +338,28 @@ export const prokerService = {
   async delete(id: string): Promise<{ message: string }> {
     prokerCache = null
     const response = await api.delete(`/programs/${id}`)
+    return response.data
+  },
+}
+
+export const instansiService = {
+  async getAll(): Promise<Instansi[]> {
+    const response = await api.get<Instansi[]>('/instansi')
+    return response.data
+  },
+
+  async create(nama_instansi: string, kategori = 'Internal Kampus', keterangan = ''): Promise<Instansi> {
+    const response = await api.post<Instansi>('/instansi', { nama_instansi, kategori, keterangan })
+    return response.data
+  },
+
+  async update(id: string, nama_instansi: string, kategori = 'Internal Kampus', keterangan = ''): Promise<Instansi> {
+    const response = await api.put<Instansi>(`/instansi/${id}`, { nama_instansi, kategori, keterangan })
+    return response.data
+  },
+
+  async delete(id: string): Promise<{ message: string }> {
+    const response = await api.delete(`/instansi/${id}`)
     return response.data
   },
 }

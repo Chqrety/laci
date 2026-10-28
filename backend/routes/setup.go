@@ -19,6 +19,7 @@ func SetupRoutes(r *gin.Engine) {
 	suratRepo := repositories.NewSuratRepository(config.DB)
 	prokerRepo := repositories.NewProkerRepository(config.DB)
 	templateRepo := repositories.NewTemplateRepository(config.DB)
+	instansiRepo := repositories.NewInstansiRepository(config.DB)
 
 	// Services
 	authService := services.NewAuthService(userRepo)
@@ -26,6 +27,7 @@ func SetupRoutes(r *gin.Engine) {
 	suratService := services.NewSuratService(suratRepo)
 	prokerService := services.NewProkerService(prokerRepo)
 	templateService := services.NewTemplateService(templateRepo, suratRepo, prokerRepo)
+	instansiService := services.NewInstansiService(instansiRepo)
 
 	// Handlers
 	authHandler := handlers.NewAuthHandler(authService)
@@ -33,6 +35,7 @@ func SetupRoutes(r *gin.Engine) {
 	suratHandler := handlers.NewSuratHandler(suratService)
 	prokerHandler := handlers.NewProkerHandler(prokerService)
 	templateHandler := handlers.NewTemplateHandler(templateService)
+	instansiHandler := handlers.NewInstansiHandler(instansiService)
 
 	// Public routes
 	r.POST("/login", authHandler.Login)
@@ -65,6 +68,13 @@ func SetupRoutes(r *gin.Engine) {
 		authGroup.POST("/programs", prokerHandler.CreateProker)
 		authGroup.PUT("/programs/:id", prokerHandler.UpdateProker)
 		authGroup.DELETE("/programs/:id", prokerHandler.DeleteProker)
+
+		// Master Instansi & Mitra
+		authGroup.GET("/instansi", instansiHandler.GetInstansi)
+		authGroup.POST("/instansi", instansiHandler.CreateInstansi)
+		authGroup.PUT("/instansi/:id", instansiHandler.UpdateInstansi)
+		authGroup.DELETE("/instansi/:id", instansiHandler.DeleteInstansi)
+
 		authGroup.GET("/letters", suratHandler.GetSurat)
 		authGroup.POST("/letters", suratHandler.CreateSurat)
 		authGroup.PUT("/letters/:id", suratHandler.UpdateSurat)

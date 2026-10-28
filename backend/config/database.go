@@ -47,6 +47,7 @@ func InitDB() {
 		&models.Proker{},
 		&models.SuratTemplate{},
 		&models.AppSetting{},
+		&models.Instansi{},
 	); err != nil {
 		log.Fatalf("Failed to auto migrate database schemas: %v", err)
 	}

@@ -4,9 +4,13 @@ import {
   templateService,
   prokerService,
   userService,
+  instansiService,
+  currentUser,
+  currentUsername,
   type SuratTemplate,
   type Proker,
   type User,
+  type Instansi,
   type Surat,
 } from '@/services/api'
 import {
@@ -47,12 +51,6 @@ const emit = defineEmits<{
   (e: 'openSetup'): void
 }>()
 
-
-
-
-
-
-
 const templates = ref<SuratTemplate[]>([])
 const prokerList = ref<Proker[]>([])
 const userList = ref<User[]>([])
@@ -70,6 +68,10 @@ const selectedTahun = ref(new Date().getFullYear().toString())
 
 // 2. Data Pokok Surat
 const perihal = ref('')
+const instansiList = ref<Instansi[]>([])
+const selectedTujuan = ref('')
+const isCustomTujuan = ref(false)
+const customTujuanInput = ref('')
 const outputFolderUrl = ref('')
 
 // 3. Detail Acara Kegiatan
@@ -162,6 +164,74 @@ const extractPrefixNoUrut = (name: string): string => {
   return match?.[1] ? match[1].padStart(2, '0') : '01'
 }
 
+const SMART_TUJUAN_RULES: [RegExp, string][] = [
+  [/^01|permohonan kegiatan/i, 'Dekan Fakultas Teknologi Cerdas'],
+  [/^02.*eksternal/i, 'Kepala Biro Umum'],
+  [/^02|peminjaman ruangan/i, 'Tata Usaha Fakultas Teknologi Cerdas'],
+  [/^03|peminjaman barang/i, 'Tata Usaha Fakultas Teknologi Cerdas'],
+  [/^04|kendaraan/i, 'Wakil Rektor II Bidang Umum dan Keuangan'],
+  [/^05|perkuliahan|dispensasi/i, 'Dosen Pengampu Mata Kuliah'],
+  [/^06|poster|banner/i, 'Tata Usaha Fakultas Teknologi Cerdas'],
+  [/^09|pembayaran|pembicara/i, 'Pembicara / Pemateri Kegiatan'],
+  [/^10|parkir/i, 'Kepala Biro Umum'],
+  [/^11|obat|p3k/i, 'Kepala Poliklinik'],
+  [/^14|sekolah/i, 'Bapak/Ibu Kepala Sekolah'],
+  [/^16|plakat/i, 'Biro Kemahasiswaan (BIMA)'],
+]
+
+// Pemetaan smart default tujuan berdasarkan nama template
+const getSmartDefaultTujuan = (name: string): { tujuan: string; isCustom: boolean } => {
+  const match = SMART_TUJUAN_RULES.find(([re]) => re.test(name))
+  return match ? { tujuan: match[1], isCustom: false } : { tujuan: '', isCustom: true }
+}
+
+const toggleCustomTujuan = () => {
+  isCustomTujuan.value = !isCustomTujuan.value
+  if (isCustomTujuan.value) {
+    if (!customTujuanInput.value && selectedTujuan.value) {
+      customTujuanInput.value = selectedTujuan.value
+    }
+  } else {
+    if (customTujuanInput.value) {
+      selectedTujuan.value = customTujuanInput.value
+    }
+  }
+}
+
+const displayInstansiOptions = computed(() => {
+  const list = [...instansiList.value]
+  if (selectedTujuan.value && !list.some((i) => i.nama_instansi === selectedTujuan.value)) {
+    list.unshift({
+      id: 'default-selected',
+      nama_instansi: selectedTujuan.value,
+      kategori: 'Default',
+      keterangan: '',
+      created_at: '',
+      updated_at: '',
+    })
+  }
+  return list
+})
+
+const computedFinalTujuan = computed(() => {
+  if (isCustomTujuan.value) {
+    return customTujuanInput.value.trim()
+  }
+  return selectedTujuan.value.trim()
+})
+
+const computedFinalPerihal = computed(() => {
+  const base = perihal.value.trim()
+  const extra = namaKegiatan.value.trim()
+  if (base && extra) {
+    if (base.toLowerCase().includes(extra.toLowerCase())) {
+      return base
+    }
+    return `${base} — ${extra}`
+  }
+  return base
+})
+
 // Format Tanggal Indonesia
 const formatIndonesianDate = (dateStr: string): string => {
   if (!dateStr) return ''
@@ -240,16 +310,18 @@ const extraPlaceholders = computed<string[]>(() => {
 const loadData = async () => {
   isLoadingData.value = true
   try {
-    const [tplData, prokerData, usersData, settings] = await Promise.all([
+    const [tplData, prokerData, usersData, settings, instansiData] = await Promise.all([
       templateService.getAll(),
       prokerService.getAll(),
       userService.getAll().catch(() => [] as User[]),
       templateService.getSettings().catch(() => ({} as Record<string, string>)),
+      instansiService.getAll().catch(() => [] as Instansi[]),
     ])
 
     templates.value = tplData
     prokerList.value = prokerData
     userList.value = usersData
+    instansiList.value = instansiData
 
     if (settings.default_output_folder_url) {
       outputFolderUrl.value = settings.default_output_folder_url
@@ -300,6 +372,15 @@ watch(
     if (!tpl) return
     noUrut.value = extractPrefixNoUrut(tpl.nama_template)
     perihal.value = tpl.nama_template.replace(/^\d+[\s_-]*/, '').replace(/_/g, ' ').trim()
+    const { tujuan, isCustom } = getSmartDefaultTujuan(tpl.nama_template)
+    isCustomTujuan.value = isCustom
+    if (isCustom) {
+      selectedTujuan.value = ''
+      customTujuanInput.value = ''
+    } else {
+      selectedTujuan.value = tujuan
+      customTujuanInput.value = ''
+    }
   },
   { immediate: true }
 )
@@ -323,6 +404,15 @@ const handleSubmit = async () => {
     return
   }
 
+  if (!computedFinalTujuan.value) {
+    toast({
+      title: 'Validasi Gagal',
+      description: 'Tujuan surat wajib diisi atau dipilih.',
+      variant: 'destructive',
+    })
+    return
+  }
+
   // Validasi: Ketum dan Penandatangan Dasar tidak boleh orang yang sama
   if (selectedKetumId.value && selectedKetupelId.value && selectedKetumId.value === selectedKetupelId.value) {
     toast({
@@ -338,13 +428,18 @@ const handleSubmit = async () => {
     const ketum = userList.value.find((u) => u.id === selectedKetumId.value)
     const ketupel = userList.value.find((u) => u.id === selectedKetupelId.value)
     const todayTanggalSurat = idDateOnlyFormatter.format(new Date())
+    const finalPerihal = computedFinalPerihal.value
+    const finalTujuan = computedFinalTujuan.value
 
     const finalReplacements: Record<string, string> = {
       nomor_surat: computedNomorSurat.value,
       tanggal_surat: todayTanggalSurat,
       tanggal_pembuatan: todayTanggalSurat,
       hari_tanggal_surat: idLongDateFormatter.format(new Date()),
-      perihal: perihal.value.trim(),
+      perihal: finalPerihal,
+      tujuan: finalTujuan,
+      tujuan_surat: finalTujuan,
+      nama_tamu: finalTujuan,
       nama_kegiatan: namaKegiatan.value.trim(),
       hari_tanggal: formattedHariTanggal.value,
       tanggal_acara: formattedHariTanggal.value,
@@ -392,8 +487,9 @@ const handleSubmit = async () => {
       folder_url: outputFolderUrl.value.trim() || undefined,
       nomor_surat: computedNomorSurat.value,
       file_name: computedFileName.value,
-      perihal: perihal.value.trim(),
-      pic_nama: '-', // PIC kosong/nullable saat pertama dibuat
+      perihal: finalPerihal,
+      tujuan: finalTujuan,
+      pic_nama: currentUser.value?.nama || currentUsername.value || 'Sekretaris',
       proker_id: matchedProker ? matchedProker.id : undefined,
       replacements: finalReplacements,
     })
@@ -438,7 +534,6 @@ const handleFinish = () => {
   dynamicReplacements.value = {}
   emit('close')
 }
-
 </script>
 
 <template>
@@ -494,7 +589,7 @@ const handleFinish = () => {
         <div class="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
           <div class="flex items-center justify-between">
             <Label class="text-xs font-semibold text-slate-800">
-              1. Pilih Template & Nomor Surat
+              1. Pilih Template &amp; Nomor Surat
             </Label>
             <Badge variant="outline" size="xs">
               Segmented Input
@@ -613,19 +708,72 @@ const handleFinish = () => {
             </div>
           </div>
 
-          <!-- Perihal Surat (Ditujukan Kepada ditiadakan karena sudah statis di template) -->
+          <!-- Perihal Surat -->
           <div class="space-y-1 pt-1">
-            <Label for="perihal" class="text-xs font-semibold text-slate-800">
-              Perihal Surat <span class="text-rose-500">*</span>
-            </Label>
+            <div class="flex items-center justify-between">
+              <Label for="perihal" class="text-xs font-semibold text-slate-800">
+                Perihal Surat <span class="text-rose-500">*</span>
+              </Label>
+              <span v-if="namaKegiatan.trim() && computedFinalPerihal !== perihal" class="text-[10px] text-emerald-600 font-medium truncate max-w-[220px]" :title="computedFinalPerihal">
+                Kanban: {{ computedFinalPerihal }}
+              </span>
+            </div>
             <Input
               id="perihal"
               v-model="perihal"
               type="text"
               required
-              placeholder="Contoh: Undangan Menghadiri Acara"
+              placeholder="Contoh: Peminjaman Ruangan Kampus"
               class="h-9 text-xs rounded-xl bg-white border-zinc-200"
             />
+          </div>
+
+          <!-- Tujuan Surat (Tertuju Kepada) -->
+          <div class="space-y-1 pt-1">
+            <div class="flex items-center justify-between">
+              <Label class="text-xs font-semibold text-slate-800">
+                Tujuan Surat (Tertuju Kepada) <span class="text-rose-500">*</span>
+              </Label>
+              <button
+                type="button"
+                @click="toggleCustomTujuan"
+                class="text-[11px] font-medium text-emerald-600 hover:text-emerald-700 hover:underline inline-flex items-center gap-1 cursor-pointer"
+              >
+                {{ isCustomTujuan ? '← Pilih dari Daftar Instansi' : '+ Ketik Manual / Custom' }}
+              </button>
+            </div>
+
+            <!-- Mode 1: Select dari Daftar Instansi -->
+            <div v-if="!isCustomTujuan">
+              <Select v-model="selectedTujuan">
+                <SelectTrigger size="sm" variant="white" class="h-9 text-xs rounded-xl">
+                  <SelectValue placeholder="Pilih instansi tujuan..." />
+                </SelectTrigger>
+                <SelectContent class="max-h-60">
+                  <SelectItem
+                    v-for="inst in displayInstansiOptions"
+                    :key="inst.id"
+                    :value="inst.nama_instansi"
+                    class="text-xs cursor-pointer"
+                  >
+                    <span class="font-medium">{{ inst.nama_instansi }}</span>
+                    <span class="text-[10px] text-slate-400 ml-1.5 font-normal">({{ inst.kategori }})</span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <!-- Mode 2: Input Manual Bebas -->
+            <div v-else>
+              <Input
+                id="tujuan-custom"
+                v-model="customTujuanInput"
+                type="text"
+                required
+                placeholder="Contoh: BEM KM UDINUS / PT. Teknologi Nusantara"
+                class="h-9 text-xs rounded-xl bg-white border-zinc-200"
+              />
+            </div>
           </div>
         </div>
 
@@ -649,7 +797,7 @@ const handleFinish = () => {
           <!-- Opsi Tanggal: 1 Hari vs Rentang Hari -->
           <div class="space-y-2">
             <div class="flex items-center justify-between">
-              <Label class="text-xs font-medium text-slate-700">Hari & Tanggal Pelaksanaan</Label>
+              <Label class="text-xs font-medium text-slate-700">Hari &amp; Tanggal Pelaksanaan</Label>
               <div class="flex items-center gap-1 bg-white p-0.5 rounded-full border border-slate-200">
                 <Button
                   type="button"
@@ -792,7 +940,7 @@ const handleFinish = () => {
             <Label class="text-xs font-semibold text-slate-800">
               3. Penandatangan Surat (Pengurus)
             </Label>
-            <span class="text-[10px] text-slate-400">Pembina & WR III statis di template</span>
+            <span class="text-[10px] text-slate-400">Pembina &amp; WR III statis di template</span>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">

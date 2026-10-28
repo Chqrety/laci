@@ -16,10 +16,11 @@ import (
 	"gorm.io/gorm"
 )
 
-// SeedCore menjalankan seeder kebutuhan dasar (Genesis Ketum & Proker)
+// SeedCore menjalankan seeder kebutuhan dasar (Genesis Ketum, Proker & Instansi)
 func SeedCore(db *gorm.DB) {
 	SeedGenesisKetum(db)
 	SeedProker(db)
+	SeedInstansi(db)
 }
 
 // SeedGenesisKetum menginisialisasi Ketua Umum pertama jika belum ada satupun akun ketum di database.
@@ -112,6 +113,33 @@ func SeedProker(db *gorm.DB) {
 		p.ID = uuid.New()
 		if err := db.Where(models.Proker{NamaProker: p.NamaProker}).FirstOrCreate(&proker, p).Error; err != nil {
 			log.Printf("Warning: failed to seed proker %s: %v", p.NamaProker, err)
+		}
+	}
+}
+
+func SeedInstansi(db *gorm.DB) {
+	defaultInstansi := []models.Instansi{
+		{NamaInstansi: "Dekan Fakultas Teknologi Cerdas", Kategori: "Fakultas", Keterangan: "Persetujuan izin kegiatan resmi DOSCOM"},
+		{NamaInstansi: "Tata Usaha Fakultas Teknologi Cerdas", Kategori: "Fakultas", Keterangan: "Peminjaman ruangan kampus, sarpras, dan media promosi"},
+		{NamaInstansi: "Kepala Biro Umum", Kategori: "Universitas", Keterangan: "Perizinan gedung eksternal dan parkir kampus"},
+		{NamaInstansi: "Wakil Rektor II Bidang Umum dan Keuangan", Kategori: "Rektorat", Keterangan: "Fasilitas kendaraan operasional universitas"},
+		{NamaInstansi: "Dosen Pengampu Mata Kuliah", Kategori: "Akademik", Keterangan: "Dispensasi izin perkuliahan panitia dan delegasi"},
+		{NamaInstansi: "Kepala Poliklinik", Kategori: "Unit Kampus", Keterangan: "Bantuan obat-obatan dan P3K kegiatan"},
+		{NamaInstansi: "Biro Kemahasiswaan (BIMA)", Kategori: "Universitas", Keterangan: "Permohonan plakat kenang-kenangan dan pendamping kegiatan"},
+		{NamaInstansi: "Bapak/Ibu Kepala Sekolah", Kategori: "Sekolah Mitra", Keterangan: "Surat pengantar sosialisasi dan kunjungan sekolah"},
+		{NamaInstansi: "Mitra Sponsor / Perusahaan", Kategori: "Eksternal", Keterangan: "Kerjasama pendanaan dan sponsorship kegiatan"},
+		{NamaInstansi: "Tamu Undangan / Ormawa Kampus", Kategori: "Ormawa / Mitra", Keterangan: "Undangan menghadiri acara resmi DOSCOM"},
+		{NamaInstansi: "Pembicara / Pemateri Kegiatan", Kategori: "Akademik", Keterangan: "Berita acara honorarium dan pemateri kegiatan"},
+	}
+
+	for _, ins := range defaultInstansi {
+		var existing models.Instansi
+		ins.ID = uuid.New()
+		now := time.Now()
+		ins.CreatedAt = now
+		ins.UpdatedAt = now
+		if err := db.Where("nama_instansi = ?", ins.NamaInstansi).FirstOrCreate(&existing, ins).Error; err != nil {
+			log.Printf("Warning: failed to seed instansi %s: %v", ins.NamaInstansi, err)
 		}
 	}
 }
